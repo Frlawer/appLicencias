@@ -1,0 +1,334 @@
+  <script>
+    let solicitudesSeleccionadas = [];
+    let agenteActual = null;
+
+    // Función para mostrar toast
+    function mostrarToast(tipo, titulo, texto, duracion = 5000) {
+      const toast = document.getElementById('toast-message-cta');
+      const icono = document.getElementById('iconoNotificacion');
+      const tituloElement = document.getElementById('tituloNotificacion');
+      const textoElement = document.getElementById('textoNotificacion');
+      
+      // Configurar icono y clases según el tipo
+      let iconoHTML = '';
+      let claseColor = '';
+      let fondoColor = '';
+      
+      switch(tipo) {
+        case 'success':
+          iconoHTML = '✓';
+          claseColor = 'text-green-600';
+          fondoColor = 'bg-green-300';
+          break;
+        case 'error':
+          iconoHTML = '✕';
+          claseColor = 'text-red-600';
+          fondoColor = 'bg-red-300';
+          break;
+        case 'warning':
+          iconoHTML = '⚠';
+          claseColor = 'text-yellow-600';
+          fondoColor = 'bg-yellow-300';
+          break;
+        case 'info':
+          iconoHTML = 'ℹ';
+          claseColor = 'text-blue-600';
+          fondoColor = 'bg-blue-300';
+          break;
+        default:
+          iconoHTML = '•';
+          claseColor = 'text-gray-600';
+          fondoColor = 'bg-gray-300';
+      }
+      
+      // Establecer contenido
+      icono.innerHTML = iconoHTML;
+      icono.className = `text-2xl font-bold ${claseColor}`;
+      tituloElement.textContent = titulo;
+      textoElement.textContent = texto;
+      
+      // Mostrar toast
+      toast.classList.remove('hidden');
+      toast.classList.add('animate-slide-in', fondoColor);
+      
+      // Ocultar automáticamente después de la duración especificado
+      if (duracion > 0) {
+        setTimeout(() => {
+          ocultarToast(fondoColor);
+        }, duracion);
+      }
+    }
+
+    function ocultarToast(fondoColor) {
+      const toast = document.getElementById('toast-message-cta');
+      toast.classList.add('animate-slide-out');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('animate-slide-in', 'animate-slide-out', fondoColor);
+      }, 300);
+    }
+
+    // Agregar event listener para el botón de cerrar
+    document.addEventListener('DOMContentLoaded', function() {
+      const closeButton = document.querySelector('[data-dismiss-target="#toast-message-cta"]');
+      if (closeButton) {
+        closeButton.addEventListener('click', ocultarToast);
+      }
+    });
+
+    // Formatear fecha de yyyy-mm-dd a dd/mm/yyyy
+    function formatearFecha(fecha) {
+      if (!fecha) return '';
+      const partes = fecha.split('-');
+      if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+      return fecha;
+    }
+
+    // Convertir fecha de input (yyyy-mm-dd) a dd/mm/yyyy para mostrar
+    function convertirFechaParaMostrar(inputDate) {
+      const date = new Date(inputDate + 'T00:00:00');
+      const dia = String(date.getDate()).padStart(2, '0');
+      const mes = String(date.getMonth() + 1).padStart(2, '0');
+      const anio = date.getFullYear();
+      return `${dia}/${mes}/${anio}`;
+    }
+
+    function cambiarStep(step) {
+      const btn1 = document.getElementById('btn-step-1');
+      const btn2 = document.getElementById('btn-step-2');
+      const form1 = document.getElementById('form-solicitud');
+      const form2 = document.getElementById('form-justificacion');
+
+      if (step === 1) {
+        btn1.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-600 text-white shadow-lg';
+        btn2.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-300 text-gray-600 hover:bg-gray-50';
+        form1.classList.remove('hidden');
+        form2.classList.add('hidden');
+      } else {
+        btn1.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-300 text-gray-600 hover:bg-gray-50';
+        btn2.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-600 text-white shadow-lg';
+        form1.classList.add('hidden');
+        form2.classList.remove('hidden');
+      }
+    }
+
+    function mostrarLoading(mostrar) {
+      const loading = document.getElementById('loading');
+      const form1 = document.getElementById('form-solicitud');
+      const form2 = document.getElementById('form-justificacion');
+      
+      if (mostrar) {
+        loading.classList.remove('hidden');
+        form1.classList.add('hidden');
+        form2.classList.add('hidden');
+      } else {
+        loading.classList.add('hidden');
+        const step = document.getElementById('btn-step-1').className.includes('bg-blue-600') ? 1 : 2;
+        if (step === 1) {
+          form1.classList.remove('hidden');
+        } else {
+          form2.classList.remove('hidden');
+        }
+      }
+    }
+
+    function mostrarInfoAgente(agente) {
+      if (!agente) return;
+      agenteActual = agente;
+      const div = document.getElementById('info-agente');
+      const datos = document.getElementById('agente-datos');
+      
+      datos.innerHTML = `
+        <p><strong>Nombre:</strong> ${agente.nombre}</p>
+        <p><strong>Email:</strong> ${agente.email}</p>
+        <p><strong>DNI:</strong> ${agente.dni}</p>
+        <p><strong>N° Empleado:</strong> ${agente.numeroEmpleado}</p>
+      `;
+      
+      div.classList.remove('hidden');
+    }
+
+    function enviarSolicitud() {
+      const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
+      const tipo = document.getElementById('sol-tipo').value;
+      const desde = document.getElementById('sol-desde').value;
+      const hasta = document.getElementById('sol-hasta').value;
+      const curso = document.getElementById('sol-curso').value;
+
+      if (!dniONumEmpleado || !tipo || !desde || !hasta) {
+        mostrarToast('warning', 'Campos incompletos', 'Complete todos los campos obligatorios');
+        return;
+      }
+
+      const datos = {
+        dniONumEmpleado: dniONumEmpleado,
+        tipoLicencia: tipo,
+        fechaDesde: desde,
+        fechaHasta: hasta,
+        cursoOCargo: curso
+      };
+
+      mostrarLoading(true);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          mostrarLoading(false);
+          console.log(result);
+          if (result.success) {
+            mostrarToast('success', 'Solicitud enviada', 'Se enviará un email a: ' + result.agente.email);
+            mostrarInfoAgente(result.agente);
+            // Limpiar formulario
+            document.getElementById('sol-dni').value = '';
+            document.getElementById('sol-tipo').value = '';
+            document.getElementById('sol-desde').value = '';
+            document.getElementById('sol-hasta').value = '';
+            document.getElementById('sol-curso').value = '';
+          } else {
+            console.log("error");
+            mostrarToast('error', 'Error', result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          mostrarLoading(false);
+          mostrarToast('error', 'Error al enviar', error.message);
+        })
+        .guardarSolicitud(datos);
+    }
+
+    function cargarSolicitudes() {
+      const dniONumEmpleado = document.getElementById('just-dni').value.trim();
+
+      if (!dniONumEmpleado) {
+        mostrarToast('warning', 'Campo requerido', 'Ingrese su DNI o N° de Empleado');
+        return;
+      }
+
+      mostrarLoading(true);
+
+      google.script.run
+        .withSuccessHandler(function(solicitudes) {
+          mostrarLoading(false);
+          solicitudesSeleccionadas = [];
+          
+          const container = document.getElementById('licencias-container');
+          const list = document.getElementById('licencias-list');
+          
+          if (solicitudes.length === 0) {
+            mostrarToast('info', 'Este usuario', 'No tiene solicitudes pendientes');
+            list.innerHTML = '<p class="text-gray-500 text-center py-4">No hay solicitudes pendientes</p>';
+          } else {
+            let html = '';
+            solicitudes.forEach(sol => {
+              html += `
+                <div onclick="toggleLicencia('${sol.id}')" id="lic-${sol.id}" class="p-3 mb-2 rounded-lg cursor-pointer transition-all border-2 bg-white border-gray-200 hover:border-gray-300">
+                  <div class="flex items-center">
+                    <div id="check-${sol.id}" class="w-5 h-5 rounded border-2 mr-3 flex items-center justify-center border-gray-300"></div>
+                    <div>
+                      <p class="font-semibold text-gray-800">${sol.tipo}</p>
+                      <p class="text-sm text-gray-600">Del ${formatearFecha(sol.desde)} al ${formatearFecha(sol.hasta)}${sol.cursoOCargo ? ' - ' + sol.cursoOCargo : ''}</p>
+                    </div>
+                  </div>
+                </div>
+              `;
+            });
+            list.innerHTML = html;
+          }
+          
+          container.classList.remove('hidden');
+          actualizarContador();
+        })
+        .withFailureHandler(function(error) {
+          mostrarLoading(false);
+          mostrarToast('error', 'Error al cargar', error.message);
+        })
+        .obtenerSolicitudesAgente(dniONumEmpleado);
+    }
+
+    function toggleLicencia(id) {
+      const index = solicitudesSeleccionadas.indexOf(id);
+      const div = document.getElementById('lic-' + id);
+      const check = document.getElementById('check-' + id);
+      
+      if (index > -1) {
+        solicitudesSeleccionadas.splice(index, 1);
+        div.className = 'p-3 mb-2 rounded-lg cursor-pointer transition-all border-2 bg-white border-gray-200 hover:border-gray-300';
+        check.className = 'w-5 h-5 rounded border-2 mr-3 flex items-center justify-center border-gray-300';
+        check.innerHTML = '';
+      } else {
+        solicitudesSeleccionadas.push(id);
+        div.className = 'p-3 mb-2 rounded-lg cursor-pointer transition-all border-2 bg-blue-100 border-blue-500';
+        check.className = 'w-5 h-5 rounded border-2 mr-3 flex items-center justify-center bg-blue-500 border-blue-500';
+        check.innerHTML = '✓';
+      }
+      
+      actualizarContador();
+    }
+
+    function actualizarContador() {
+      const contador = document.getElementById('contador-licencias');
+      const cant = solicitudesSeleccionadas.length;
+      if (cant > 0) {
+        contador.textContent = `${cant} licencia${cant > 1 ? 's' : ''} seleccionada${cant > 1 ? 's' : ''}`;
+      } else {
+        contador.textContent = '';
+      }
+    }
+
+    function enviarJustificacion() {
+      const dniONumEmpleado = document.getElementById('just-dni').value.trim();
+      const archivo = document.getElementById('just-archivo').files[0];
+
+      if (!dniONumEmpleado) {
+        mostrarToast('warning', 'Campo requerido', 'Ingrese su DNI o N° de Empleado');
+        return;
+      }
+
+      if (solicitudesSeleccionadas.length === 0) {
+        mostrarToast('warning', 'Selección requerida', 'Seleccione al menos una licencia');
+        return;
+      }
+
+      if (!archivo) {
+        mostrarToast('warning', 'Archivo requerido', 'Seleccione un archivo');
+        return;
+      }
+
+      const datos = {
+        dniONumEmpleado: dniONumEmpleado,
+        licenciasIds: solicitudesSeleccionadas
+      };
+
+      mostrarLoading(true);
+
+      // Leer archivo como base64
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const archivoBase64 = e.target.result;
+        const nombreArchivo = archivo.name;
+        const mimeType = archivo.type;
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            mostrarLoading(false);
+            if (result.success) {
+              mostrarToast('success', 'Justificación enviada', 'Se enviará un email a: ' + result.email);
+              // Limpiar
+              document.getElementById('just-dni').value = '';
+              document.getElementById('just-archivo').value = '';
+              document.getElementById('licencias-container').classList.add('hidden');
+              solicitudesSeleccionadas = [];
+            } else {
+              mostrarToast('error', 'Error', result.error);
+            }
+          })
+          .withFailureHandler(function(error) {
+            mostrarLoading(false);
+            mostrarToast('error', 'Error al enviar', error.message);
+          })
+          .guardarJustificacion(datos, archivoBase64, nombreArchivo, mimeType);
+      };
+      reader.readAsDataURL(archivo);
+    }
+  </script>
