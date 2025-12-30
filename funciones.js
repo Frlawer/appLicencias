@@ -98,34 +98,27 @@ function obtenerAgente(dniONumEmpleado) {
 // === OBTENER CURSOS/CARGOS DEL AGENTE (desde hoja Maestra) ===
 function obtenerCargosAgente(dniONumEmpleado) {
   try {
-    Logger.log('=== obtenerCargosAgente INICIO ===');
-    Logger.log('Parametro recibido: ' + dniONumEmpleado);
 
     // Obtener primero el agente para recuperar su número de empleado
     const agente = obtenerAgente(dniONumEmpleado);
-    Logger.log('Agente obtenido: ' + (agente ? JSON.stringify(agente) : 'null'));
 
     if (!agente) {
       return { success: false, error: 'Agente no encontrado en la base de datos' };
     }
 
     const numeroEmpleado = agente.numeroEmpleado ? agente.numeroEmpleado.toString().trim() : '';
-    Logger.log('Numero de empleado: ' + numeroEmpleado);
     if (!numeroEmpleado) {
       return { success: false, error: 'El agente no tiene Número de Empleado cargado' };
     }
 
-    Logger.log('Abriendo hoja Maestra: ' + SHEET_MAESTRA_ID + ' - ' + SHEET_MAESTRA_NOMBRE);
     const ssMaestra = SpreadsheetApp.openById(SHEET_MAESTRA_ID);
     const sheetMaestra = ssMaestra.getSheetByName(SHEET_MAESTRA_NOMBRE);
 
     if (!sheetMaestra) {
-      Logger.log('Hoja Maestra no encontrada');
       return { success: false, error: 'No se encontró la hoja "' + SHEET_MAESTRA_NOMBRE + '"' };
     }
 
     const data = sheetMaestra.getDataRange().getValues();
-    Logger.log('Filas en Maestra (incluyendo encabezado): ' + data.length);
     const cargos = [];
 
     // Buscar en columnas G (6), J (9), M (12)
@@ -143,7 +136,6 @@ function obtenerCargosAgente(dniONumEmpleado) {
         const colF = data[i][5] || '';
 
         const textoMostrar = `${colC}${colD} ${colE} Sec: ${colA}`.trim();
-        Logger.log('Curso match fila ' + (i + 1) + ': ' + textoMostrar);
 
         cargos.push({
           texto: textoMostrar,
@@ -152,8 +144,6 @@ function obtenerCargosAgente(dniONumEmpleado) {
         });
       }
     }
-
-    Logger.log('Total cargos encontrados: ' + cargos.length);
 
     // Normalizar datos para evitar problemas de serialización hacia el cliente
     const agentePlano = {
@@ -169,8 +159,6 @@ function obtenerCargosAgente(dniONumEmpleado) {
 
     return { success: true, cargos: cargosPlano, agente: agentePlano };
   } catch (error) {
-    Logger.log('Error al obtener cargos del agente: ' + error.toString());
-    Logger.log('Stack: ' + (error && error.stack ? error.stack : 'sin stack'));
     return { success: false, error: 'Error al obtener cargos: ' + error.toString() };
   }
 }
@@ -231,8 +219,16 @@ function guardarSolicitud(datos) {
       // No fallar la operación si el email falla
       
     }
-    
-    return { success: true, id: id, agente: agente };
+
+    // Normalizar datos para evitar problemas de serialización hacia el cliente
+    const agentePlano = {
+      nombre: agente.nombre || '',
+      email: agente.email || '',
+      dni: agente.dni || '',
+      numeroEmpleado: agente.numeroEmpleado || ''
+    };
+
+    return { success: true, id: id, agente: agentePlano };
 
   } catch (error) {
 
@@ -281,53 +277,59 @@ function guardarJustificacion(datos, archivoBase64, nombreArchivo, mimeType) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(SHEET_JUSTIFICACIONES);
-    
+
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_JUSTIFICACIONES);
       sheet.appendRow([
-        'Timestamp',
-        'Email',
-        'DNI',
-        'N° Empleado',
-        'Apellidos',
-        'Nombres',
-        'IDs Solicitudes',
-        'Cantidad Licencias',
-        'URL Archivo'
+        "Timestamp",
+        "Email",
+        "DNI",
+        "N° Empleado",
+        "Apellidos",
+        "Nombres",
+        "IDs Solicitudes",
+        "Cantidad Licencias",
+        "URL Archivo",
       ]);
     }
-    
+
     // Buscar agente por DNI o N° Empleado
     const agente = obtenerAgente(datos.dniONumEmpleado);
     if (!agente) {
-      return { success: false, error: 'DNI o Número de Empleado no encontrado en la base de datos' };
+      return {
+        success: false,
+        error: "DNI o Número de Empleado no encontrado en la base de datos",
+      };
     }
-    
+
     // Obtener carpeta por ID
     let folder = DriveApp.getFolderById(FOLDER_ARCHIVOS_ID);
-    
+
     // Guardar archivo en Drive
-    let archivoUrl = '';
-    if (archivoBase64 && archivoBase64.includes(',')) {
-      const contentType = mimeType || 'application/pdf';
-      const nuevoNombre = `${agente.dni}-${datos.licenciasIds.join('_')}`; //cambio nombre del archivo
+    let archivoUrl = "";
+    if (archivoBase64 && archivoBase64.includes(",")) {
+      const contentType = mimeType || "application/pdf";
+      const nuevoNombre = `${agente.dni}-${datos.licenciasIds.join("_")}`; //cambio nombre del archivo
 
       const blob = Utilities.newBlob(
-        Utilities.base64Decode(archivoBase64.split(',')[1]),
+        Utilities.base64Decode(archivoBase64.split(",")[1]),
         contentType,
         nuevoNombre
       );
       const archivo = folder.createFile(blob);
 
       // doy permisos.
-      archivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-      
+      archivo.setSharing(
+        DriveApp.Access.ANYONE_WITH_LINK,
+        DriveApp.Permission.VIEW
+      );
+
       archivoUrl = archivo.getUrl();
     }
-    
+
     const timestamp = new Date();
-    const idsString = datos.licenciasIds.join(', ');
-    
+    const idsString = datos.licenciasIds.join(", ");
+
     sheet.appendRow([
       timestamp,
       agente.email,
@@ -337,23 +339,33 @@ function guardarJustificacion(datos, archivoBase64, nombreArchivo, mimeType) {
       agente.nombres,
       idsString,
       datos.licenciasIds.length,
-      archivoUrl
+      archivoUrl,
     ]);
-    
+
     // Actualizar estado de todas las solicitudes seleccionadas
-    datos.licenciasIds.forEach(id => {
-      actualizarEstadoSolicitud(id, 'Justificada');
+    datos.licenciasIds.forEach((id) => {
+      actualizarEstadoSolicitud(id, "Justificada");
     });
-    
+
     // Enviar email al agente
     try {
-      enviarEmailJustificacion(agente, datos.licenciasIds.length, archivoUrl, timestamp);
+      enviarEmailJustificacion(
+        agente,
+        datos.licenciasIds.length,
+        archivoUrl,
+        timestamp
+      );
     } catch (emailError) {
-      Logger.log('Error al enviar email: ' + emailError.toString());
+      Logger.log("Error al enviar email: " + emailError.toString());
       // No fallar la operación si el email falla
     }
-    
-    return { success: true, email: agente.email };
+
+    // Normalizar datos para evitar problemas de serialización hacia el cliente
+    const agentePlano = {
+      email: agente.email || "",
+    };
+
+    return { success: true, email: agentePlano.email };
   } catch (error) {
     return { success: false, error: error.toString() };
   }
