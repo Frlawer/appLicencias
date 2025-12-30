@@ -181,6 +181,7 @@ function guardarSolicitud(datos) {
         'Fecha Desde',
         'Fecha Hasta',
         'Curso/Cargo',
+        'Articulación',
         'Tipo Licencia',
         'Estado',
         'ID'
@@ -200,12 +201,13 @@ function guardarSolicitud(datos) {
       timestamp,
       agente.email,
       agente.dni,
-      agente.numeroEmpleado,
+      agente.numeroEmpleado || '',
       agente.apellidos,
       agente.nombres,
       datos.fechaDesde,
       datos.fechaHasta,
       datos.cursoOCargo || '',
+      datos.articulacion,
       datos.tipoLicencia,
       'Pendiente',
       id
