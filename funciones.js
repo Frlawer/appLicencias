@@ -96,9 +96,9 @@ function obtenerAgente(dniONumEmpleado) {
 }
 
 // === OBTENER CURSOS/CARGOS DEL AGENTE (desde hoja Maestra) ===
-function obtenerCursosAgente(dniONumEmpleado) {
+function obtenerCargosAgente(dniONumEmpleado) {
   try {
-    Logger.log('=== obtenerCursosAgente INICIO ===');
+    Logger.log('=== obtenerCargosAgente INICIO ===');
     Logger.log('Parametro recibido: ' + dniONumEmpleado);
 
     // Obtener primero el agente para recuperar su número de empleado
@@ -126,7 +126,7 @@ function obtenerCursosAgente(dniONumEmpleado) {
 
     const data = sheetMaestra.getDataRange().getValues();
     Logger.log('Filas en Maestra (incluyendo encabezado): ' + data.length);
-    const cursos = [];
+    const cargos = [];
 
     // Buscar en columnas G (6), J (9), M (12)
     for (let i = 1; i < data.length; i++) {
@@ -145,7 +145,7 @@ function obtenerCursosAgente(dniONumEmpleado) {
         const textoMostrar = `${colC}${colD} ${colE} Sec: ${colA}`.trim();
         Logger.log('Curso match fila ' + (i + 1) + ': ' + textoMostrar);
 
-        cursos.push({
+        cargos.push({
           texto: textoMostrar,
           seccion: colA,
           valorOriginal: { colA, colB, colC, colD, colE, colF }
@@ -153,7 +153,7 @@ function obtenerCursosAgente(dniONumEmpleado) {
       }
     }
 
-    Logger.log('Total cursos encontrados: ' + cursos.length);
+    Logger.log('Total cargos encontrados: ' + cargos.length);
 
     // Normalizar datos para evitar problemas de serialización hacia el cliente
     const agentePlano = {
@@ -165,13 +165,13 @@ function obtenerCursosAgente(dniONumEmpleado) {
       numeroEmpleado: agente.numeroEmpleado || ''
     };
 
-    const cursosPlano = cursos.map(c => ({ texto: c.texto || '', seccion: c.seccion || '' }));
+    const cargosPlano = cargos.map(c => ({ texto: c.texto || '', seccion: c.seccion || '' }));
 
-    return { success: true, cursos: cursosPlano, agente: agentePlano };
+    return { success: true, cargos: cargosPlano, agente: agentePlano };
   } catch (error) {
-    Logger.log('Error al obtener cursos del agente: ' + error.toString());
+    Logger.log('Error al obtener cargos del agente: ' + error.toString());
     Logger.log('Stack: ' + (error && error.stack ? error.stack : 'sin stack'));
-    return { success: false, error: 'Error al obtener cursos: ' + error.toString() };
+    return { success: false, error: 'Error al obtener cargos: ' + error.toString() };
   }
 }
 
@@ -377,8 +377,8 @@ function actualizarEstadoSolicitud(idSolicitud, nuevoEstado) {
   }
 }
 
-// === TESTING - Verificar cursos del agente ===
-function testObtenerCursosAgente() {
+// === TESTING - Verificar cargos del agente ===
+function testObtenerCargosAgente() {
   const dniONumEmpleado = '4017'; // Reemplazar con DNI o N° Empleado real
   // Obtener primero el agente para recuperar su número de empleado
   const agente = obtenerAgente(dniONumEmpleado);
@@ -393,12 +393,12 @@ function testObtenerCursosAgente() {
   }
 
   try {
-    const resultado = obtenerCursosAgente(numeroEmpleado);
+    const resultado = obtenerCargosAgente(numeroEmpleado);
     if (resultado.success) {
-      Logger.log('✓ Cursos encontrados para el agente: ' + resultado.agente.nombre);
-      Logger.log('Total de cursos: ' + resultado.cursos.length);
-      resultado.cursos.forEach((curso, index) => {
-        Logger.log(`  ${index + 1}. ${curso.texto}`);
+      Logger.log('✓ Cargos encontrados para el agente: ' + resultado.agente.nombre);
+      Logger.log('Total de cargos: ' + resultado.cargos.length);
+      resultado.cargos.forEach((cargo, index) => {
+        Logger.log(`  ${index + 1}. ${cargo.texto}`);
       });
     } else {
       Logger.log('❌ Error: ' + resultado.error);

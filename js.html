@@ -151,7 +151,7 @@
     }
 
     // Cargar cursos del agente según su DNI o N° Empleado
-    function cargarCursosAgente() {
+    function cargarCargosAgente() {
       const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
       const selectCurso = document.getElementById('sol-curso');
       
@@ -162,7 +162,7 @@
       }
 
       // Mostrar loading en el select
-      selectCurso.innerHTML = '<option value="">Cargando cursos...</option>';
+      selectCurso.innerHTML = '<option value="">Cargando cargos...</option>';
       selectCurso.disabled = true;
 
       google.script.run
@@ -179,29 +179,29 @@
           if (result.success) {
             selectCurso.innerHTML = '<option value="">Seleccione un curso...</option>';
             
-            if (result.cursos && result.cursos.length > 0) {
-              result.cursos.forEach(curso => {
+            if (result.cargos && result.cargos.length > 0) {
+              result.cargos.forEach(cargo => {
                 const option = document.createElement('option');
-                option.value = curso.texto;
-                option.textContent = curso.texto;
+                option.value = cargo.texto;
+                option.textContent = cargo.texto;
                 selectCurso.appendChild(option);
               });
               selectCurso.disabled = false;
-              mostrarToast('info', 'Cursos cargados', `Se encontraron ${result.cursos.length} curso(s) asignado(s)`);
+              mostrarToast('info', 'Cargos cargados', `Se encontraron ${result.cargos.length} cargo(s) asignado(s)`);
             } else {
-              selectCurso.innerHTML = '<option value="">No se encontraron cursos asignados</option>';
-              mostrarToast('warning', 'Sin cursos', 'No se encontraron cursos asignados para este agente');
+              selectCurso.innerHTML = '<option value="">No se encontraron cargos asignados</option>';
+              mostrarToast('warning', 'Sin cargos', 'No se encontraron cargos asignados para este agente');
             }
           } else {
-            selectCurso.innerHTML = '<option value="">Error al cargar cursos</option>';
-            mostrarToast('error', 'Error', result.error || 'No se pudieron cargar los cursos');
+            selectCurso.innerHTML = '<option value="">Error al cargar cargos</option>';
+            mostrarToast('error', 'Error', result.error || 'No se pudieron cargar los cargos');
           }
         })
         .withFailureHandler(function(error) {
           selectCurso.innerHTML = '<option value="">Error al cargar</option>';
-          mostrarToast('error', 'Error', 'Error al obtener cursos: ' + error.message);
+          mostrarToast('error', 'Error', 'Error al obtener cargos: ' + error.message);
         })
-        .obtenerCursosAgente(dniONumEmpleado);
+        .obtenerCargosAgente(dniONumEmpleado);
     }
 
     function enviarSolicitud() {
