@@ -210,6 +210,7 @@
       const desde = document.getElementById('sol-desde').value;
       const hasta = document.getElementById('sol-hasta').value;
       const curso = document.getElementById('sol-curso').value;
+      const articulacion = document.querySelector('input[name="sol-articulacion"]:checked').value;
 
       if (!dniONumEmpleado || !tipo || !desde || !hasta) {
         mostrarToast('warning', 'Campos incompletos', 'Complete todos los campos obligatorios');
@@ -221,7 +222,8 @@
         tipoLicencia: tipo,
         fechaDesde: desde,
         fechaHasta: hasta,
-        cursoOCargo: curso
+        cursoOCargo: curso,
+        articulacion: articulacion
       };
 
       mostrarLoading(true);
@@ -229,7 +231,7 @@
       google.script.run
         .withSuccessHandler(function(result) {
           mostrarLoading(false);
-          console.log(result);
+
           if (result.success) {
             mostrarToast('success', 'Solicitud enviada', 'Se enviará un email a: ' + result.agente.email);
             mostrarInfoAgente(result.agente);
@@ -239,6 +241,7 @@
             document.getElementById('sol-desde').value = '';
             document.getElementById('sol-hasta').value = '';
             document.getElementById('sol-curso').value = '';
+            document.querySelector('input[name="sol-articulacion"]:checked').checked = false;
           } else {
             console.log("error");
             mostrarToast('error', 'Error', result.error);
