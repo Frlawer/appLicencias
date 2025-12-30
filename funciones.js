@@ -17,8 +17,8 @@ const SHEET_AGENTES_NOMBRE = 'RESPUESTAS'; // Nombre de la hoja dentro del archi
 const SHEET_MAESTRA_ID = '1B-TyiGskMJ-TDv2ck4cNyjPFMCJE6p87I3USF2zeFWc';
 const SHEET_MAESTRA_NOMBRE = 'Maestra';
 
-const SHEET_SOLICITUDES = 'Solicitudes';
-const SHEET_JUSTIFICACIONES = 'Justificaciones';
+const SHEET_SOLICITUDES = 'SOLICITUDES';
+const SHEET_JUSTIFICACIONES = 'JUSTIFICACIONES';
 const FOLDER_ARCHIVOS_ID = '1-48O-hpqqbINKbqdvZPVLT0jjzTCOEBz'; // ID de la carpeta en Drive
 
 // ID de la plantilla de Gmail para emails
@@ -259,11 +259,11 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
     const numEmpSheet = data[i][3] ? data[i][3].toString().trim() : '';
     
     if ((dniSheet === agente.dni.toString() || numEmpSheet === agente.numeroEmpleado.toString()) 
-        && data[i][10] === 'Pendiente') {
+        && data[i][11] === 'Pendiente') {
       solicitudes.push({
-        id: data[i][11],
+        id: data[i][12],
         rowIndex: i + 1,
-        tipo: data[i][9],
+        tipo: data[i][10],
         desde: Utilities.formatDate(new Date(data[i][6]), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
         hasta: Utilities.formatDate(new Date(data[i][7]), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
         cursoOCargo: data[i][8]
