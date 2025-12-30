@@ -1,11 +1,24 @@
 // === WEBAPP ===
-function doGet()
-{
-  return HtmlService.createTemplateFromFile('web').evaluate().setTitle('Sistema de Licencias CPEM 25').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+function doGet(e) {
+  // Verificar si es petición al dashboard admin
+  if (e && e.parameter && e.parameter.page === 'admin') {
+    // Verificar que el usuario tenga permisos (debe ser el propietario o editor del script)
+    const userEmail = Session.getEffectiveUser().getEmail();
+    Logger.log('Usuario accediendo al admin: ' + userEmail);
+    
+    return HtmlService.createHtmlOutputFromFile('admin')
+      .setTitle('Dashboard Admin - CPEM 25')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  
+  // Por defecto, mostrar la webapp pública
+  return HtmlService.createTemplateFromFile('web')
+    .evaluate()
+    .setTitle('Sistema de Licencias CPEM 25')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function obtenerDatosHtml(nombre)
-{
+function obtenerDatosHtml(nombre) {
   return HtmlService.createHtmlOutputFromFile(nombre).getContent();
 }
 // === CONFIGURACIÓN ===
@@ -558,4 +571,130 @@ function inicializarSheets() {
   }
   
   Logger.log('Sheets inicializados correctamente');
+}
+
+// ========================================
+// === FUNCIONES ADMINISTRATIVAS ===
+// ========================================
+
+// ID del borrador de Gmail para emails personalizados del admin
+const PLANTILLA_ADMIN = 'r-2767467785340734120'; // Reemplazar con ID real del borrador
+
+// Obtener email del usuario actual
+function obtenerEmailUsuario() {
+  return Session.getEffectiveUser().getEmail();
+}
+
+// Obtener todas las solicitudes
+function obtenerTodasSolicitudes() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+  
+  if (!sheet) return [];
+  
+  const data = sheet.getDataRange().getValues();
+  const solicitudes = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    solicitudes.push({
+      rowIndex: i + 1 || "",
+      timestamp: data[i][0] || "",
+      email: data[i][1] || "",
+      dni: data[i][2] || "",
+      numeroEmpleado: data[i][3] || "",
+      apellidos: data[i][4] || "",
+      nombres: data[i][5] || "",
+      fechaDesde: data[i][6] || "",
+      fechaHasta: data[i][7] || "",
+      cursoOCargo: data[i][8] || "",
+      tipoLicencia: data[i][9] || "",
+      estado: data[i][10] || "",
+      id: data[i][11] || ""
+    });
+  }
+  
+  return solicitudes;
+}
+
+// Obtener todas las justificaciones
+function obtenerTodasJustificaciones() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+  
+  if (!sheet) return [];
+  
+  const data = sheet.getDataRange().getValues();
+  const justificaciones = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    justificaciones.push({
+      rowIndex: i + 1,
+      timestamp: data[i][0],
+      email: data[i][1],
+      dni: data[i][2],
+      numeroEmpleado: data[i][3],
+      apellidos: data[i][4],
+      nombres: data[i][5],
+      idsSolicitudes: data[i][6],
+      cantidadLicencias: data[i][7],
+      archivoUrl: data[i][8]
+    });
+  }
+  
+  return justificaciones;
+}
+
+// Actualizar estado de una fila (por índice de fila)
+function actualizarEstadoFila(rowIndex, nuevoEstado) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+    
+    if (!sheet) {
+      return { success: false, error: 'Hoja no encontrada' };
+    }
+    
+    // Columna K es la 11 (Estado)
+    sheet.getRange(rowIndex, 11).setValue(nuevoEstado);
+    
+    return { success: true };
+  } catch (error) {
+    Logger.log('Error al actualizar estado: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+// Enviar email personalizado desde admin
+function enviarEmailAdmin(emailDocente, nombreDocente, mensaje) {
+  try {
+    const asunto = 'Notificación sobre su Licencia - CPEM N° 25';
+    
+    // Si tienes un borrador de plantilla, úsalo; si no, crea un email simple
+    let cuerpoHTML = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1f2937;">Estimado/a ${nombreDocente}</h2>
+        <p style="color: #4b5563; line-height: 1.6;">
+          ${mensaje.replace(/\n/g, '<br>')}
+        </p>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+        <p style="color: #6b7280; font-size: 12px;">
+          Centro Provincial de Enseñanza Media N° 25<br>
+          Ramos de Espejo 2550 | Neuquén Capital<br>
+          (0299) 4331684 | cpem025@neuquen.edu.ar
+        </p>
+      </div>
+    `;
+    
+    // Crear borrador del email
+    GmailApp.createDraft(emailDocente, asunto, mensaje, {
+      htmlBody: cuerpoHTML
+    });
+    
+    Logger.log('Borrador de email creado para: ' + emailDocente);
+    return { success: true };
+    
+  } catch (error) {
+    Logger.log('Error al crear borrador de email: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
 }
