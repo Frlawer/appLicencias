@@ -13,6 +13,10 @@ function obtenerDatosHtml(nombre)
 const SHEET_AGENTES_ID = '19Ik0mKdZwN37NZLBV-QLS5JLlBkUHcf3oBiIYr8u8Vo';
 const SHEET_AGENTES_NOMBRE = 'RESPUESTAS'; // Nombre de la hoja dentro del archivo
 
+// Hoja Maestra de cursos/cargos
+const SHEET_MAESTRA_ID = '1B-TyiGskMJ-TDv2ck4cNyjPFMCJE6p87I3USF2zeFWc';
+const SHEET_MAESTRA_NOMBRE = 'Maestra';
+
 const SHEET_SOLICITUDES = 'Solicitudes';
 const SHEET_JUSTIFICACIONES = 'Justificaciones';
 const FOLDER_ARCHIVOS_ID = '1-48O-hpqqbINKbqdvZPVLT0jjzTCOEBz'; // ID de la carpeta en Drive
@@ -88,6 +92,86 @@ function obtenerAgente(dniONumEmpleado) {
   } catch (error) {
     Logger.log('Error al obtener agente: ' + error.toString());
     throw new Error('Error al acceder a la hoja de agentes: ' + error.toString());
+  }
+}
+
+// === OBTENER CURSOS/CARGOS DEL AGENTE (desde hoja Maestra) ===
+function obtenerCursosAgente(dniONumEmpleado) {
+  try {
+    Logger.log('=== obtenerCursosAgente INICIO ===');
+    Logger.log('Parametro recibido: ' + dniONumEmpleado);
+
+    // Obtener primero el agente para recuperar su número de empleado
+    const agente = obtenerAgente(dniONumEmpleado);
+    Logger.log('Agente obtenido: ' + (agente ? JSON.stringify(agente) : 'null'));
+
+    if (!agente) {
+      return { success: false, error: 'Agente no encontrado en la base de datos' };
+    }
+
+    const numeroEmpleado = agente.numeroEmpleado ? agente.numeroEmpleado.toString().trim() : '';
+    Logger.log('Numero de empleado: ' + numeroEmpleado);
+    if (!numeroEmpleado) {
+      return { success: false, error: 'El agente no tiene Número de Empleado cargado' };
+    }
+
+    Logger.log('Abriendo hoja Maestra: ' + SHEET_MAESTRA_ID + ' - ' + SHEET_MAESTRA_NOMBRE);
+    const ssMaestra = SpreadsheetApp.openById(SHEET_MAESTRA_ID);
+    const sheetMaestra = ssMaestra.getSheetByName(SHEET_MAESTRA_NOMBRE);
+
+    if (!sheetMaestra) {
+      Logger.log('Hoja Maestra no encontrada');
+      return { success: false, error: 'No se encontró la hoja "' + SHEET_MAESTRA_NOMBRE + '"' };
+    }
+
+    const data = sheetMaestra.getDataRange().getValues();
+    Logger.log('Filas en Maestra (incluyendo encabezado): ' + data.length);
+    const cursos = [];
+
+    // Buscar en columnas G (6), J (9), M (12)
+    for (let i = 1; i < data.length; i++) {
+      const colG = data[i][6] ? data[i][6].toString().trim() : '';
+      const colJ = data[i][9] ? data[i][9].toString().trim() : '';
+      const colM = data[i][12] ? data[i][12].toString().trim() : '';
+
+      if (colG === numeroEmpleado || colJ === numeroEmpleado || colM === numeroEmpleado) {
+        const colA = data[i][0] || '';
+        const colB = data[i][1] || '';
+        const colC = data[i][2] || '';
+        const colD = data[i][3] || '';
+        const colE = data[i][4] || '';
+        const colF = data[i][5] || '';
+
+        const textoMostrar = `${colC}${colD} ${colE} Sec: ${colA}`.trim();
+        Logger.log('Curso match fila ' + (i + 1) + ': ' + textoMostrar);
+
+        cursos.push({
+          texto: textoMostrar,
+          seccion: colA,
+          valorOriginal: { colA, colB, colC, colD, colE, colF }
+        });
+      }
+    }
+
+    Logger.log('Total cursos encontrados: ' + cursos.length);
+
+    // Normalizar datos para evitar problemas de serialización hacia el cliente
+    const agentePlano = {
+      nombre: agente.nombre || '',
+      apellidos: agente.apellidos || '',
+      nombres: agente.nombres || '',
+      email: agente.email || '',
+      dni: agente.dni || '',
+      numeroEmpleado: agente.numeroEmpleado || ''
+    };
+
+    const cursosPlano = cursos.map(c => ({ texto: c.texto || '', seccion: c.seccion || '' }));
+
+    return { success: true, cursos: cursosPlano, agente: agentePlano };
+  } catch (error) {
+    Logger.log('Error al obtener cursos del agente: ' + error.toString());
+    Logger.log('Stack: ' + (error && error.stack ? error.stack : 'sin stack'));
+    return { success: false, error: 'Error al obtener cursos: ' + error.toString() };
   }
 }
 
@@ -293,6 +377,36 @@ function actualizarEstadoSolicitud(idSolicitud, nuevoEstado) {
   }
 }
 
+// === TESTING - Verificar cursos del agente ===
+function testObtenerCursosAgente() {
+  const dniONumEmpleado = '4017'; // Reemplazar con DNI o N° Empleado real
+  // Obtener primero el agente para recuperar su número de empleado
+  const agente = obtenerAgente(dniONumEmpleado);
+  Logger.log('agente encontrado: ' + agente.numeroEmpleado);
+  if (!agente) {
+    return { success: false, error: 'Agente no encontrado en la base de datos' };
+  }
+
+  const numeroEmpleado = agente.numeroEmpleado ? agente.numeroEmpleado.toString().trim() : '';
+  if (!numeroEmpleado) {
+    return { success: false, error: 'El agente no tiene Número de Empleado cargado' };
+  }
+
+  try {
+    const resultado = obtenerCursosAgente(numeroEmpleado);
+    if (resultado.success) {
+      Logger.log('✓ Cursos encontrados para el agente: ' + resultado.agente.nombre);
+      Logger.log('Total de cursos: ' + resultado.cursos.length);
+      resultado.cursos.forEach((curso, index) => {
+        Logger.log(`  ${index + 1}. ${curso.texto}`);
+      });
+    } else {
+      Logger.log('❌ Error: ' + resultado.error);
+    }
+  } catch (error) {
+    Logger.log('❌ Error: ' + error.toString());
+  }
+}
 // === TESTING - Verificar conexión con sheet externo ===
 function testConexionSheetExterno() {
   try {
