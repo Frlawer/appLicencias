@@ -22,17 +22,23 @@
         <select id="sol-tipo" required
           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
           <option value="">Seleccione...</option>
-          <option value="LIC POLITICA">Lic POLITICA</option>
-          <option value="LIC GREMIAL">LIC GREMIAL</option>
-          <option value="LIC RENDIR EXÁMEN">LIC RENDIR EXÁMEN</option>
-          <option value="LIC POR ESTUDIO SIN SUELDO">LIC POR ESTUDIO SIN SUELDO</option>
-          <option value="LIC MATRIMONIO">LIC MATRIMONIO</option>
+          <option value="LICENCIA POR CONSULTA MEDICA (ESPONTANEAS O PROGRAMADAS- RES. 1412)">LICENCIA POR CONSULTA MEDICA (ESPONTANEAS O PROGRAMADAS- RES. 1412/2025)</option>
+          <option value="LIC POR ESTUDIO">LIC POR ESTUDIO</option>
+          <option value="LIC POR CAPACITACION">LIC POR CAPACITACION</option>
           <option value="LIC DEPORTIVA">LIC DEPORTIVA</option>
-          <option value="LIC FALLECIMIENTO FAMILIAR">LIC FALLECIMIENTO FAMILIAR</option>
-          <option value="LIC RAZONES PARTICULARES SIN SUELDO">RAZONES PARTICULARES SIN SUELDO</option>
-          <option value="MESA DE EXÁMEN">MESA DE EXÁMEN</option>
-          <option value="LIC POR CAPACITACIÓN">LIC POR CAPACITACIÓN</option>
-          <option value="TURNO MÉDICO O ESTUDIOS HIJO C/ DISC.">TURNO MÉDICO O ESTUDIOS HIJO C/ DISC.</option>
+          <option value="LIC POR ACTO ESCOLAR">LIC POR ACTO ESCOLAR</option>
+          <option value="LIC POR AMBIENTACION">LIC POR AMBIENTACION</option>
+          <option value="LIC POR VIOLENCIA DE GENERO">LIC POR VIOLENCIA DE GENERO</option>
+          <option value="LIC/ACTIVIDAD GREMIAL">LIC/ACTIVIDAD GREMIAL</option>
+          <option value="AUSENCIA POR MESA DE EXAMEN EN OTRO ESTABLECIMIENTO">AUSENCIA POR MESA DE EXAMEN EN OTRO ESTABLECIMIENTO</option>
+          <option value="AUSENCIA POR REUNION DE PERSONAL/ACTIVIDAD EN OTRO ESTABLECIMIENTO">AUSENCIA POR REUNION DE PERSONAL/ACTIVIDAD EN OTRO ESTABLECIMIENTO</option>
+          <option value="COMISION DE SERVICIO EN OTRAS INSTITUCIONES">COMISION DE SERVICIO EN OTRAS INSTITUCIONES</option>
+          <option value="LIC POR FALLECIMIENTO DE FAMILIAR">LIC POR FALLECIMIENTO DE FAMILIAR</option>
+          <option value="CONVOCATORIA/AUDIENCIA JUDICIAL">CONVOCATORIA/AUDIENCIA JUDICIAL</option>
+          <option value="LIC POR EXPOSICION EN CONGRESO">LIC POR EXPOSICION EN CONGRESO</option>
+          <option value="CAPACITACION (INTERNA)">CAPACITACION (INTERNA)</option>
+          <option value="FUERZA MAYOR">FUERZA MAYOR</option>
+          <option value="ASISTENCIA A FORO CON AVAL CPE">ASISTENCIA A FORO CON AVAL CPE</option>
         </select>
       </div>
 
@@ -44,7 +50,21 @@
         </select>
         <p class="text-xs text-gray-500 mt-1">Los cargos se cargarán según su DNI/N° Empleado</p>
       </div>
-
+      
+      <div>
+        <p class="block text-sm font-medium text-gray-700 mb-2">¿Es horario de Articulación? *</p>
+        <div class="flex items-center gap-4">
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="radio" name="sol-articulacion" id="sol-articulacion-si" value="1" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+            <span>Sí</span>
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="radio" name="sol-articulacion" id="sol-articulacion-no" value="0" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" checked>
+            <span>No</span>
+          </label>
+        </div>
+      </div>
+      
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Desde *</label>
         <input type="date" id="sol-desde" required
