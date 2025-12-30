@@ -150,6 +150,60 @@
       div.classList.remove('hidden');
     }
 
+    // Cargar cursos del agente según su DNI o N° Empleado
+    function cargarCursosAgente() {
+      const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
+      const selectCurso = document.getElementById('sol-curso');
+      
+      if (!dniONumEmpleado) {
+        selectCurso.innerHTML = '<option value="">Seleccione...</option>';
+        selectCurso.disabled = true;
+        return;
+      }
+
+      // Mostrar loading en el select
+      selectCurso.innerHTML = '<option value="">Cargando cursos...</option>';
+      selectCurso.disabled = true;
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('Servidor respondió:', result);
+          // Validar que result no sea null o undefined
+          if (!result) {
+            console.log(result);
+            selectCurso.innerHTML = '<option value="">Error: Sin respuesta del servidor</option>';
+            mostrarToast('error', 'Error', 'No se recibió respuesta del servidor');
+            return;
+          }
+          
+          if (result.success) {
+            selectCurso.innerHTML = '<option value="">Seleccione un curso...</option>';
+            
+            if (result.cursos && result.cursos.length > 0) {
+              result.cursos.forEach(curso => {
+                const option = document.createElement('option');
+                option.value = curso.texto;
+                option.textContent = curso.texto;
+                selectCurso.appendChild(option);
+              });
+              selectCurso.disabled = false;
+              mostrarToast('info', 'Cursos cargados', `Se encontraron ${result.cursos.length} curso(s) asignado(s)`);
+            } else {
+              selectCurso.innerHTML = '<option value="">No se encontraron cursos asignados</option>';
+              mostrarToast('warning', 'Sin cursos', 'No se encontraron cursos asignados para este agente');
+            }
+          } else {
+            selectCurso.innerHTML = '<option value="">Error al cargar cursos</option>';
+            mostrarToast('error', 'Error', result.error || 'No se pudieron cargar los cursos');
+          }
+        })
+        .withFailureHandler(function(error) {
+          selectCurso.innerHTML = '<option value="">Error al cargar</option>';
+          mostrarToast('error', 'Error', 'Error al obtener cursos: ' + error.message);
+        })
+        .obtenerCursosAgente(dniONumEmpleado);
+    }
+
     function enviarSolicitud() {
       const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
       const tipo = document.getElementById('sol-tipo').value;
