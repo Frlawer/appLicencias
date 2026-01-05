@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <base target="_top">
   <meta charset="UTF-8">
@@ -15,42 +16,48 @@
       height: 40px;
       animation: spin 1s linear infinite;
     }
+
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
+
     .sidebar-link.active {
       background-color: #3b82f6;
       color: white;
     }
   </style>
 </head>
+
 <body class="bg-gray-100">
   <div class="flex h-screen overflow-hidden">
-    
+
     <!-- Sidebar -->
     <aside class="w-64 bg-gray-800 text-white flex flex-col">
       <div class="p-6 border-b border-gray-700">
         <h1 class="text-xl font-bold">📊 Admin Dashboard</h1>
         <p class="text-xs text-gray-400 mt-1">CPEM N° 25</p>
       </div>
-      
+
       <nav class="flex-1 p-4 space-y-2">
-        <a href="#" onclick="cambiarVista('solicitudes'); return false;" 
-           id="menu-solicitudes" 
-           class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
+        <a href="#" onclick="cambiarVista('solicitudes'); return false;" id="menu-solicitudes"
+          class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
           <span>📋</span>
           <span>Solicitudes</span>
         </a>
-        
-        <a href="#" onclick="cambiarVista('justificaciones'); return false;" 
-           id="menu-justificaciones"
-           class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
+
+        <a href="#" onclick="cambiarVista('justificaciones'); return false;" id="menu-justificaciones"
+          class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
           <span>📁</span>
           <span>Justificaciones</span>
         </a>
       </nav>
-      
+
       <div class="p-4 border-t border-gray-700">
         <p class="text-xs text-gray-400">Administrador:</p>
         <p class="text-sm font-semibold" id="admin-email">Cargando...</p>
@@ -59,7 +66,7 @@
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto">
-      
+
       <!-- Header -->
       <header class="bg-white shadow-sm p-6 border-b">
         <div class="flex justify-between items-center">
@@ -67,8 +74,8 @@
             <h2 class="text-2xl font-bold text-gray-800" id="titulo-seccion">Solicitudes de Licencia</h2>
             <p class="text-sm text-gray-600 mt-1" id="subtitulo-seccion">Gestione las solicitudes pendientes</p>
           </div>
-          <button onclick="recargarDatos()" 
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button onclick="recargarDatos()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
             <span>🔄</span>
             <span>Recargar</span>
           </button>
@@ -90,14 +97,19 @@
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente
+                  </th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Licencia</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo
+                    Licencia</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechas</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curso/Cargo</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curso/Cargo
+                  </th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody id="tabla-solicitudes" class="bg-white divide-y divide-gray-200">
@@ -115,13 +127,19 @@
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente
+                  </th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IDs Solicitudes</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archivo</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IDs
+                    Solicitudes</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archivo
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody id="tabla-justificaciones" class="bg-white divide-y divide-gray-200">
@@ -149,12 +167,11 @@
           </select>
         </div>
         <div class="flex gap-3">
-          <button onclick="cerrarModal()" 
-                  class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+          <button onclick="cerrarModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
             Cancelar
           </button>
-          <button onclick="guardarCambioEstado()" 
-                  class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          <button onclick="guardarCambioEstado()"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
             Guardar
           </button>
         </div>
@@ -169,22 +186,21 @@
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input type="email" id="email-docente" readonly 
-                 class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+          <input type="email" id="email-docente" readonly
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Mensaje Personalizado</label>
-          <textarea id="mensaje-email" rows="4" 
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Escriba su mensaje aquí..."></textarea>
+          <textarea id="mensaje-email" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+            placeholder="Escriba su mensaje aquí..."></textarea>
         </div>
         <div class="flex gap-3">
-          <button onclick="cerrarModalEmail()" 
-                  class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+          <button onclick="cerrarModalEmail()"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
             Cancelar
           </button>
-          <button onclick="enviarEmailDocente()" 
-                  class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+          <button onclick="enviarEmailDocente()"
+            class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
             Enviar Email
           </button>
         </div>
@@ -200,7 +216,7 @@
 
     // Cargar email del admin
     google.script.run
-      .withSuccessHandler(function(email) {
+      .withSuccessHandler(function (email) {
         document.getElementById('admin-email').textContent = email;
       })
       .obtenerEmailUsuario();
@@ -210,7 +226,7 @@
       document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
       document.getElementById('vista-solicitudes').classList.add('hidden');
       document.getElementById('vista-justificaciones').classList.add('hidden');
-      
+
       if (vista === 'solicitudes') {
         document.getElementById('menu-solicitudes').classList.add('active');
         document.getElementById('titulo-seccion').textContent = 'Solicitudes de Licencia';
@@ -235,25 +251,37 @@
     // Cargar solicitudes
     function cargarSolicitudes() {
       document.getElementById('loading').classList.remove('hidden');
+      console.log('[DEBUG] Iniciando cargarSolicitudes...');
+      
       google.script.run
-        .withSuccessHandler(function(data) {
+        .withSuccessHandler(function (data) {
           document.getElementById('loading').classList.add('hidden');
-          console.log('Solicitudes recibidas:', data);
+          console.log('[DEBUG] Solicitudes recibidas del servidor:', data);
+          console.log('[DEBUG] Tipo de dato recibido:', typeof data);
+          console.log('[DEBUG] ¿Es array?:', Array.isArray(data));
           
+          if (data) {
+            console.log('[DEBUG] Cantidad de solicitudes:', data.length);
+            if (data.length > 0) {
+              console.log('[DEBUG] Primera solicitud:', JSON.stringify(data[0]));
+            }
+          }
+
           // Validar que data no sea null y sea un array
           if (!data || !Array.isArray(data)) {
-            console.error('Datos inválidos recibidos:', data);
+            console.error('[ERROR] Datos inválidos recibidos:', data);
             solicitudesData = [];
             renderizarSolicitudes([]);
             return;
           }
-          
+
           solicitudesData = data;
           renderizarSolicitudes(data);
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           document.getElementById('loading').classList.add('hidden');
-          console.error('Error al cargar:', error);
+          console.error('[ERROR] Error al cargar solicitudes:', error);
+          console.error('[ERROR] Error message:', error.message);
           alert('Error al cargar solicitudes: ' + error.message);
         })
         .obtenerTodasSolicitudes();
@@ -263,26 +291,26 @@
     function renderizarSolicitudes(solicitudes) {
       const tbody = document.getElementById('tabla-solicitudes');
       tbody.innerHTML = '';
-      
+
       // Validar que solicitudes sea un array
       if (!solicitudes || !Array.isArray(solicitudes)) {
         tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
         return;
       }
-      
+
       if (solicitudes.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
         return;
       }
-      
+
       solicitudes.forEach(sol => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
-        
-        const estadoColor = sol.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' : 
-                           sol.estado === 'Autorizado' ? 'bg-green-100 text-green-800' : 
-                           'bg-blue-100 text-blue-800';
-        
+
+        const estadoColor = sol.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
+          sol.estado === 'Autorizado' ? 'bg-green-100 text-green-800' :
+            'bg-blue-100 text-blue-800';
+
         tr.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${sol.nombres} ${sol.apellidos}</td>
@@ -308,10 +336,10 @@
     function cargarJustificaciones() {
       document.getElementById('loading').classList.remove('hidden');
       google.script.run
-        .withSuccessHandler(function(data) {
+        .withSuccessHandler(function (data) {
           document.getElementById('loading').classList.add('hidden');
           console.log('Justificaciones recibidas:', data);
-          
+
           // Validar que data no sea null y sea un array
           if (!data || !Array.isArray(data)) {
             console.error('Datos inválidos recibidos:', data);
@@ -319,11 +347,11 @@
             renderizarJustificaciones([]);
             return;
           }
-          
+
           justificacionesData = data;
           renderizarJustificaciones(data);
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           document.getElementById('loading').classList.add('hidden');
           console.error('Error al cargar:', error);
           alert('Error al cargar justificaciones: ' + error.message);
@@ -335,22 +363,22 @@
     function renderizarJustificaciones(justificaciones) {
       const tbody = document.getElementById('tabla-justificaciones');
       tbody.innerHTML = '';
-      
+
       // Validar que justificaciones sea un array
       if (!justificaciones || !Array.isArray(justificaciones)) {
         tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
         return;
       }
-      
+
       if (justificaciones.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No hay justificaciones registradas</td></tr>';
         return;
       }
-      
+
       justificaciones.forEach(just => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
-        
+
         tr.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatearFecha(just.timestamp)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${just.nombres} ${just.apellidos}</td>
@@ -384,12 +412,12 @@
     // Guardar cambio de estado
     function guardarCambioEstado() {
       const nuevoEstado = document.getElementById('nuevo-estado').value;
-      
+
       if (!registroEditando) return;
-      
+
       document.getElementById('loading').classList.remove('hidden');
       google.script.run
-        .withSuccessHandler(function(result) {
+        .withSuccessHandler(function (result) {
           document.getElementById('loading').classList.add('hidden');
           if (result.success) {
             alert('Estado actualizado correctamente');
@@ -399,7 +427,7 @@
             alert('Error: ' + result.error);
           }
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           document.getElementById('loading').classList.add('hidden');
           alert('Error al actualizar: ' + error.message);
         })
@@ -423,17 +451,17 @@
     // Enviar email al docente
     function enviarEmailDocente() {
       const mensaje = document.getElementById('mensaje-email').value.trim();
-      
+
       if (!mensaje) {
         alert('Por favor ingrese un mensaje');
         return;
       }
-      
+
       if (!emailData) return;
-      
+
       document.getElementById('loading').classList.remove('hidden');
       google.script.run
-        .withSuccessHandler(function(result) {
+        .withSuccessHandler(function (result) {
           document.getElementById('loading').classList.add('hidden');
           if (result.success) {
             alert('Email enviado correctamente (borrador creado)');
@@ -442,7 +470,7 @@
             alert('Error: ' + result.error);
           }
         })
-        .withFailureHandler(function(error) {
+        .withFailureHandler(function (error) {
           document.getElementById('loading').classList.add('hidden');
           alert('Error al enviar: ' + error.message);
         })
@@ -453,9 +481,9 @@
     function formatearFecha(fecha) {
       if (!fecha) return '-';
       const d = new Date(fecha);
-      return d.toLocaleDateString('es-AR', { 
-        day: '2-digit', 
-        month: '2-digit', 
+      return d.toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -472,5 +500,7 @@
     // Iniciar cargando solicitudes
     cambiarVista('solicitudes');
   </script>
+
 </body>
+
 </html>

@@ -160,15 +160,20 @@ function obtenerCargosAgente(dniONumEmpleado) {
 
     // Normalizar datos para evitar problemas de serialización hacia el cliente
     const agentePlano = {
-      nombre: agente.nombre || '',
-      apellidos: agente.apellidos || '',
-      nombres: agente.nombres || '',
-      email: agente.email || '',
-      dni: agente.dni || '',
-      numeroEmpleado: agente.numeroEmpleado || ''
+      nombre: String(agente.nombre || ''),
+      apellidos: String(agente.apellidos || ''),
+      nombres: String(agente.nombres || ''),
+      email: String(agente.email || ''),
+      dni: String(agente.dni || ''),
+      numeroEmpleado: String(agente.numeroEmpleado || '')
     };
 
-    const cargosPlano = cargos.map(c => ({ texto: c.texto || '', seccion: c.seccion || '' }));
+    const cargosPlano = cargos.map(c => ({
+      texto: String(c.texto || ''),
+      seccion: String(c.seccion || '')
+    }));
+
+    Logger.log('Cargos normalizados: ' + JSON.stringify(cargosPlano));
 
     return { success: true, cargos: cargosPlano, agente: agentePlano };
   } catch (error) {
@@ -596,21 +601,35 @@ function obtenerTodasSolicitudes() {
   const solicitudes = [];
   
   for (let i = 1; i < data.length; i++) {
+    const timestamp = data[i][0] instanceof Date
+      ? Utilities.formatDate(data[i][0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+      : (data[i][0] ? String(data[i][0]) : '');
+    const fechaDesde = data[i][6] instanceof Date
+      ? Utilities.formatDate(data[i][6], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : (data[i][6] ? String(data[i][6]) : '');
+    const fechaHasta = data[i][7] instanceof Date
+      ? Utilities.formatDate(data[i][7], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : (data[i][7] ? String(data[i][7]) : '');
+
     solicitudes.push({
-      rowIndex: i + 1 || "",
-      timestamp: data[i][0] || "",
-      email: data[i][1] || "",
-      dni: data[i][2] || "",
-      numeroEmpleado: data[i][3] || "",
-      apellidos: data[i][4] || "",
-      nombres: data[i][5] || "",
-      fechaDesde: data[i][6] || "",
-      fechaHasta: data[i][7] || "",
-      cursoOCargo: data[i][8] || "",
-      tipoLicencia: data[i][9] || "",
-      estado: data[i][10] || "",
-      id: data[i][11] || ""
+      rowIndex: Number(i + 1),
+      timestamp: timestamp,
+      email: String(data[i][1] || ''),
+      dni: String(data[i][2] || ''),
+      numeroEmpleado: String(data[i][3] || ''),
+      apellidos: String(data[i][4] || ''),
+      nombres: String(data[i][5] || ''),
+      fechaDesde: fechaDesde,
+      fechaHasta: fechaHasta,
+      cursoOCargo: String(data[i][8] || ''),
+      tipoLicencia: String(data[i][9] || ''),
+      estado: String(data[i][10] || ''),
+      id: String(data[i][11] || '')
     });
+  }
+  Logger.log('Solicitudes obtenidas: ' + solicitudes.length);
+  if (solicitudes.length) {
+    Logger.log('Primera solicitud normalizada: ' + JSON.stringify(solicitudes[0]));
   }
   
   return solicitudes;
@@ -627,18 +646,27 @@ function obtenerTodasJustificaciones() {
   const justificaciones = [];
   
   for (let i = 1; i < data.length; i++) {
+    const timestamp = data[i][0] instanceof Date
+      ? Utilities.formatDate(data[i][0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+      : (data[i][0] ? String(data[i][0]) : '');
+
     justificaciones.push({
-      rowIndex: i + 1,
-      timestamp: data[i][0],
-      email: data[i][1],
-      dni: data[i][2],
-      numeroEmpleado: data[i][3],
-      apellidos: data[i][4],
-      nombres: data[i][5],
-      idsSolicitudes: data[i][6],
-      cantidadLicencias: data[i][7],
-      archivoUrl: data[i][8]
+      rowIndex: Number(i + 1),
+      timestamp: timestamp,
+      email: String(data[i][1] || ''),
+      dni: String(data[i][2] || ''),
+      numeroEmpleado: String(data[i][3] || ''),
+      apellidos: String(data[i][4] || ''),
+      nombres: String(data[i][5] || ''),
+      idsSolicitudes: String(data[i][6] || ''),
+      cantidadLicencias: Number(data[i][7]) || 0,
+      archivoUrl: String(data[i][8] || '')
     });
+  }
+
+  Logger.log('Justificaciones obtenidas: ' + justificaciones.length);
+  if (justificaciones.length) {
+    Logger.log('Primera justificación normalizada: ' + JSON.stringify(justificaciones[0]));
   }
   
   return justificaciones;
