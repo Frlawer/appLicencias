@@ -37,6 +37,11 @@ const FOLDER_ARCHIVOS_ID = '1-48O-hpqqbINKbqdvZPVLT0jjzTCOEBz'; // ID de la carp
 // ID de la plantilla de Gmail para emails
 const PLANTILLA_SOLICITUD = 'r-6079908409768349520';
 const PLANTILLA_JUSTIFICACION = 'r8871403211407668186';
+const PLANTILLA_ADMIN = 'r-2767467785340734120'; // Reemplazar con ID real del borrador
+
+// ========================================
+// === FUNCIONES PRINCIPALES ===
+// ========================================
 
 // Mapeo de columnas de tu sheet de Agentes (índice basado en 0)
 const COL_AGENTES = {
@@ -582,9 +587,6 @@ function inicializarSheets() {
 // === FUNCIONES ADMINISTRATIVAS ===
 // ========================================
 
-// ID del borrador de Gmail para emails personalizados del admin
-const PLANTILLA_ADMIN = 'r-2767467785340734120'; // Reemplazar con ID real del borrador
-
 // Obtener email del usuario actual
 function obtenerEmailUsuario() {
   return Session.getEffectiveUser().getEmail();
@@ -622,9 +624,10 @@ function obtenerTodasSolicitudes() {
       fechaDesde: fechaDesde,
       fechaHasta: fechaHasta,
       cursoOCargo: String(data[i][8] || ''),
-      tipoLicencia: String(data[i][9] || ''),
-      estado: String(data[i][10] || ''),
-      id: String(data[i][11] || '')
+      articulacion: String(data[i][9] || ''),
+      tipoLicencia: String(data[i][10] || ''),
+      estado: String(data[i][11] || ''),
+      id: String(data[i][12] || '')
     });
   }
   Logger.log('Solicitudes obtenidas: ' + solicitudes.length);
@@ -664,11 +667,6 @@ function obtenerTodasJustificaciones() {
     });
   }
 
-  Logger.log('Justificaciones obtenidas: ' + justificaciones.length);
-  if (justificaciones.length) {
-    Logger.log('Primera justificación normalizada: ' + JSON.stringify(justificaciones[0]));
-  }
-  
   return justificaciones;
 }
 
@@ -682,8 +680,8 @@ function actualizarEstadoFila(rowIndex, nuevoEstado) {
       return { success: false, error: 'Hoja no encontrada' };
     }
     
-    // Columna K es la 11 (Estado)
-    sheet.getRange(rowIndex, 11).setValue(nuevoEstado);
+    // Columna l es la 12 (Estado)
+    sheet.getRange(rowIndex, 12).setValue(nuevoEstado);
     
     return { success: true };
   } catch (error) {
@@ -695,32 +693,25 @@ function actualizarEstadoFila(rowIndex, nuevoEstado) {
 // Enviar email personalizado desde admin
 function enviarEmailAdmin(emailDocente, nombreDocente, mensaje) {
   try {
-    const asunto = 'Notificación sobre su Licencia - CPEM N° 25';
+    const asunto = `Respuesta solicitud de licencia ${nombreDocente} - CPEM N° 25`;
+    const draftId = PLANTILLA_ADMIN;
     
-    // Si tienes un borrador de plantilla, úsalo; si no, crea un email simple
-    let cuerpoHTML = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #1f2937;">Estimado/a ${nombreDocente}</h2>
-        <p style="color: #4b5563; line-height: 1.6;">
-          ${mensaje.replace(/\n/g, '<br>')}
-        </p>
-        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
-        <p style="color: #6b7280; font-size: 12px;">
-          Centro Provincial de Enseñanza Media N° 25<br>
-          Ramos de Espejo 2550 | Neuquén Capital<br>
-          (0299) 4331684 | cpem025@neuquen.edu.ar
-        </p>
-      </div>
-    `;
+    const borrador = GmailApp.getDraft(draftId);
+    const cuerpoBase = borrador.getMessage().getBody();
+
+    let cuerpoHTML = String(cuerpoBase);
+
+    // Reemplazar variables en la plantilla
+    cuerpoHTML = cuerpoHTML.replace(/%RESPUESTA%/g, mensaje).replace(/%NOMBRE%/g, nombreDocente);
     
-    // Crear borrador del email
-    GmailApp.createDraft(emailDocente, asunto, mensaje, {
+    // Crear borrador con el contenido modificado
+    
+    GmailApp.createDraft(emailDocente, asunto, "", {
       htmlBody: cuerpoHTML
     });
     
-    Logger.log('Borrador de email creado para: ' + emailDocente);
     return { success: true };
-    
+       
   } catch (error) {
     Logger.log('Error al crear borrador de email: ' + error.toString());
     return { success: false, error: error.toString() };
