@@ -2,6 +2,107 @@
     let solicitudesSeleccionadas = [];
     let agenteActual = null;
 
+    // ========================================
+    // === FUNCIONES DE OPTIMIZACIÓN DE ARCHIVOS ===
+    // ========================================
+
+    /**
+     * Optimiza un archivo según su tipo
+     * - Imágenes: redimensiona y comprime
+     * - PDFs y otros: mantiene sin cambios
+     * @param {File} archivo - Archivo original
+     * @param {Function} callback - Callback(archivoBase64, nombreArchivo, mimeType)
+     */
+    function optimizarArchivo(archivo, callback) {
+      const tipoArchivo = archivo.type;
+      const nombreArchivo = archivo.name;
+
+      // Si es imagen (JPG, JPEG, PNG), optimizar
+      if (tipoArchivo.match(/image\/(jpeg|jpg|png)/i)) {
+        comprimirImagen(archivo, function(base64Comprimido) {
+          callback(base64Comprimido, nombreArchivo, tipoArchivo);
+        });
+      } 
+      // Si es PDF u otro tipo, leer directamente sin modificar
+      else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          callback(e.target.result, nombreArchivo, tipoArchivo);
+        };
+        reader.readAsDataURL(archivo);
+      }
+    }
+
+    /**
+     * Comprime una imagen usando Canvas
+     * Redimensiona a máximo 1000px de ancho manteniendo proporción
+     * @param {File} archivo - Archivo de imagen
+     * @param {Function} callback - Callback(base64String)
+     */
+    function comprimirImagen(archivo, callback) {
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        const img = new Image();
+        
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calcular nuevas dimensiones (máximo 1800px de ancho)
+          const maxWidth = 1800;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          // Configurar canvas
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Dibujar imagen redimensionada
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convertir a base64 con compresión
+          // Para JPG/JPEG usar 0.95 de calidad, para PNG usar 0.98
+          const quality = archivo.type === 'image/png' ? 0.98 : 0.95;
+          const base64Comprimido = canvas.toDataURL(archivo.type, quality);
+          
+          // Log para ver la reducción de tamaño
+          const tamanoOriginal = (e.target.result.length * 0.75) / 1024; // KB aproximados
+          const tamanoComprimido = (base64Comprimido.length * 0.75) / 1024; // KB aproximados
+          const reduccion = ((1 - tamanoComprimido / tamanoOriginal) * 100).toFixed(1);
+          
+          console.log(`📸 Imagen optimizada: ${tamanoOriginal.toFixed(0)}KB → ${tamanoComprimido.toFixed(0)}KB (${reduccion}% reducción)`);
+          
+          callback(base64Comprimido);
+        };
+        
+        img.onerror = function() {
+          console.error('Error al cargar imagen para compresión');
+          // Si falla, usar archivo original
+          callback(e.target.result);
+        };
+        
+        img.src = e.target.result;
+      };
+      
+      reader.onerror = function() {
+        console.error('Error al leer archivo para compresión');
+        // Si falla, intentar leer normalmente
+        const fallbackReader = new FileReader();
+        fallbackReader.onload = function(e) {
+          callback(e.target.result);
+        };
+        fallbackReader.readAsDataURL(archivo);
+      };
+      
+      reader.readAsDataURL(archivo);
+    }
+
     // Función para mostrar toast
     function mostrarToast(tipo, titulo, texto, duracion = 5000) {
       const toast = document.getElementById('toast-message-cta');
@@ -357,15 +458,23 @@
         licenciasIds: solicitudesSeleccionadas
       };
 
+      // Mostrar mensaje si es imagen (se optimizará)
+      const esImagen = archivo.type.match(/image\/(jpeg|jpg|png)/i);
+      if (esImagen) {
+        mostrarToast('info', 'Procesando imagen', 'Optimizando imagen antes de cargar...', 2000);
+        // Pequeño delay para que el usuario vea el mensaje
+        setTimeout(() => procesarYEnviar(datos, archivo), 100);
+      } else {
+        procesarYEnviar(datos, archivo);
+      }
+    }
+
+    // Función auxiliar para procesar y enviar
+    function procesarYEnviar(datos, archivo) {
       mostrarLoading(true);
 
-      // Leer archivo como base64
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const archivoBase64 = e.target.result;
-        const nombreArchivo = archivo.name;
-        const mimeType = archivo.type;
-
+      // Optimizar archivo según tipo
+      optimizarArchivo(archivo, function(archivoOptimizado, nombreArchivo, mimeType) {
         google.script.run
           .withSuccessHandler(function(result) {
             mostrarLoading(false);
@@ -384,8 +493,35 @@
             mostrarLoading(false);
             mostrarToast('error', 'Error al enviar', error.message);
           })
-          .guardarJustificacion(datos, archivoBase64, nombreArchivo, mimeType);
-      };
-      reader.readAsDataURL(archivo);
+          .guardarJustificacion(datos, archivoOptimizado, nombreArchivo, mimeType);
+      });
     }
+
+    // Event listener para mostrar info del archivo seleccionado
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputArchivo = document.getElementById('just-archivo');
+      if (inputArchivo) {
+        inputArchivo.addEventListener('change', function(e) {
+          const archivo = e.target.files[0];
+          if (archivo) {
+            const tamanoMB = (archivo.size / (1024 * 1024)).toFixed(2);
+            const esImagen = archivo.type.match(/image\/(jpeg|jpg|png)/i);
+            
+            let mensaje = `📄 ${archivo.name} (${tamanoMB} MB)`;
+            if (esImagen) {
+              mensaje += ' - Se optimizará antes de cargar';
+            }
+            
+            console.log(mensaje);
+            
+            // Opcional: mostrar toast si el archivo es muy grande
+            if (parseFloat(tamanoMB) > 5) {
+              mostrarToast('warning', 'Archivo grande', 
+                `El archivo pesa ${tamanoMB} MB. ${esImagen ? 'Se optimizará automáticamente.' : 'Considere reducir el tamaño.'}`, 
+                4000);
+            }
+          }
+        });
+      }
+    });
   </script>
