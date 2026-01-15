@@ -69,6 +69,12 @@
           <span>📁</span>
           <span>Justificaciones</span>
         </a>
+
+        <a href="#" onclick="cambiarVista('jornada'); return false;" id="menu-jornada"
+          class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
+          <span>📁</span>
+          <span>Jornada</span>
+        </a>
       </nav>
 
       <div class="p-4 border-t border-gray-700">
@@ -161,6 +167,56 @@
         </div>
       </div>
 
+      <!-- Vista jornada -->
+      <div id="vista-jornada" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 class="text-lg font-bold mb-4">Generar Solicitudes de Jornada Institucional</h3>
+          
+          <!-- Paso 1: Cargar agentes -->
+          <div class="mb-6">
+            <button onclick="cargarAgentesJornada()"
+              class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+              <span>📋</span>
+              <span>Cargar Listado de Agentes</span>
+            </button>
+          </div>
+
+          <!-- Paso 2: Seleccionar fecha y agentes -->
+          <div id="panel-jornada" class="hidden">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Jornada Institucional</label>
+              <input type="date" id="fecha-jornada"
+                class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+
+            <div class="mb-4">
+              <div class="flex justify-between items-center mb-2">
+                <label class="block text-sm font-medium text-gray-700">Seleccionar Agentes</label>
+                <button onclick="toggleTodosAgentes()" class="text-sm text-blue-600 hover:text-blue-800">
+                  Seleccionar/Deseleccionar Todos
+                </button>
+              </div>
+              <div id="lista-agentes-jornada" 
+                class="max-h-96 overflow-y-auto border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <!-- Se llenará dinámicamente -->
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button onclick="generarSolicitudesJornadaMasivo()"
+                class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                <span>✓</span>
+                <span>Generar Solicitudes</span>
+              </button>
+              <button onclick="cancelarJornada()"
+                class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -224,6 +280,8 @@
     let justificacionesData = [];
     let registroEditando = null;
     let emailData = null;
+    let agentesJornadaData = [];
+    let todosSeleccionados = false;
 
     // Toast helpers
     function mostrarToast(tipo, titulo, texto, duracion = 5000) {
@@ -306,6 +364,7 @@
       document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
       document.getElementById('vista-solicitudes').classList.add('hidden');
       document.getElementById('vista-justificaciones').classList.add('hidden');
+      document.getElementById('vista-jornada').classList.add('hidden');
 
       if (vista === 'solicitudes') {
         document.getElementById('menu-solicitudes').classList.add('active');
@@ -319,6 +378,12 @@
         document.getElementById('subtitulo-seccion').textContent = 'Revise los archivos justificatorios';
         document.getElementById('vista-justificaciones').classList.remove('hidden');
         cargarJustificaciones();
+      } else if (vista === 'jornada') {
+        document.getElementById('menu-jornada').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Registros de Jornada';
+        document.getElementById('subtitulo-seccion').textContent = 'Revise los registros de jornada cargados';
+        document.getElementById('vista-jornada').classList.remove('hidden');
+        // cargarJornada(); // Implementar si es necesario
       }
     }
 
@@ -565,6 +630,133 @@
       if (!fecha) return '-';
       const d = new Date(fecha);
       return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // ========================================
+    // === FUNCIONES DE JORNADA ===
+    // ========================================
+
+    // Cargar agentes para jornada
+    function cargarAgentesJornada() {
+      document.getElementById('loading').classList.remove('hidden');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success) {
+            agentesJornadaData = result.agentes;
+            mostrarPanelJornada(result.agentes);
+            mostrarToast('success', 'Agentes cargados', `Se cargaron ${result.agentes.length} agentes correctamente`);
+          } else {
+            mostrarToast('error', 'Error', result.error || 'Error al cargar agentes');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al cargar agentes: ' + error.message);
+        })
+        .obtenerAgentesJornada();
+    }
+
+    // Mostrar panel con lista de agentes
+    function mostrarPanelJornada(agentes) {
+      const panel = document.getElementById('panel-jornada');
+      const lista = document.getElementById('lista-agentes-jornada');
+      
+      // Establecer fecha por defecto (hoy)
+      const hoy = new Date().toISOString().split('T')[0];
+      document.getElementById('fecha-jornada').value = hoy;
+      
+      lista.innerHTML = '';
+      
+      if (agentes.length === 0) {
+        lista.innerHTML = '<p class="text-gray-500 text-center py-4">No se encontraron agentes</p>';
+        panel.classList.remove('hidden');
+        return;
+      }
+      
+      agentes.forEach((agente, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 p-2 hover:bg-white rounded transition-colors';
+        div.innerHTML = `
+          <input type="checkbox" id="agente-${index}" value="${agente.numeroEmpleado}" checked
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+          <label for="agente-${index}" class="flex-1 text-sm cursor-pointer">
+            <span class="font-medium">${agente.nombre}</span>
+            <span class="text-gray-500 ml-2">(N° ${agente.numeroEmpleado})</span>
+          </label>
+        `;
+        lista.appendChild(div);
+      });
+      
+      todosSeleccionados = true;
+      panel.classList.remove('hidden');
+    }
+
+    // Toggle selección de todos los agentes
+    function toggleTodosAgentes() {
+      todosSeleccionados = !todosSeleccionados;
+      const checkboxes = document.querySelectorAll('#lista-agentes-jornada input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = todosSeleccionados);
+    }
+
+    // Generar solicitudes masivas
+    function generarSolicitudesJornadaMasivo() {
+      const fecha = document.getElementById('fecha-jornada').value;
+      
+      if (!fecha) {
+        mostrarToast('warning', 'Falta fecha', 'Por favor seleccione una fecha');
+        return;
+      }
+      
+      // Obtener agentes seleccionados
+      const checkboxes = document.querySelectorAll('#lista-agentes-jornada input[type="checkbox"]:checked');
+      const agentesSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+      
+      if (agentesSeleccionados.length === 0) {
+        mostrarToast('warning', 'Sin agentes', 'Debe seleccionar al menos un agente');
+        return;
+      }
+      
+      if (!confirm(`¿Generar ${agentesSeleccionados.length} solicitudes de Jornada Institucional para el ${fecha}?`)) {
+        return;
+      }
+      
+      document.getElementById('loading').classList.remove('hidden');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success) {
+            let mensaje = `✓ Solicitudes generadas: ${result.exitosas}`;
+            if (result.fallidas > 0) {
+              mensaje += `\n✕ Fallidas: ${result.fallidas}`;
+              if (result.errores && result.errores.length > 0) {
+                console.log('Errores:', result.errores);
+              }
+            }
+            mostrarToast('success', 'Solicitudes generadas', mensaje, 7000);
+            cancelarJornada();
+            cambiarVista('solicitudes');
+          } else {
+            mostrarToast('error', 'Error', result.error || 'Error al generar solicitudes');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al generar: ' + error.message);
+        })
+        .generarSolicitudesJornada(fecha, agentesSeleccionados);
+    }
+
+    // Cancelar proceso de jornada
+    function cancelarJornada() {
+      document.getElementById('panel-jornada').classList.add('hidden');
+      document.getElementById('lista-agentes-jornada').innerHTML = '';
+      agentesJornadaData = [];
+      todosSeleccionados = false;
     }
 
     // Iniciar cargando solicitudes

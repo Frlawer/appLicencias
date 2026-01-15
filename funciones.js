@@ -153,7 +153,7 @@ function obtenerCargosAgente(dniONumEmpleado) {
         const colE = data[i][4] || '';
         const colF = data[i][5] || '';
 
-        const textoMostrar = `${colC}${colD} ${colE} Sec: ${colA}`.trim();
+        const textoMostrar = `${colC}${colD} - ${colE} - Sec: ${colA}`.trim();
 
         cargos.push({
           texto: textoMostrar,
@@ -177,8 +177,6 @@ function obtenerCargosAgente(dniONumEmpleado) {
       texto: String(c.texto || ''),
       seccion: String(c.seccion || '')
     }));
-
-    Logger.log('Cargos normalizados: ' + JSON.stringify(cargosPlano));
 
     return { success: true, cargos: cargosPlano, agente: agentePlano };
   } catch (error) {
@@ -282,7 +280,7 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
     const numEmpSheet = data[i][3] ? data[i][3].toString().trim() : '';
     
     if ((dniSheet === agente.dni.toString() || numEmpSheet === agente.numeroEmpleado.toString()) 
-        && data[i][11] === 'Pendiente') {
+        && (data[i][11] === 'Autorizada' || data[i][11] === 'Pendiente')) {
       solicitudes.push({
         id: data[i][12],
         rowIndex: i + 1,
@@ -444,6 +442,120 @@ function testObtenerCargosAgente() {
     Logger.log('❌ Error: ' + error.toString());
   }
 }
+// === OBTENER LISTA DE AGENTES PARA JORNADA (columnas BH:BI de hoja ".") ===
+function obtenerAgentesJornada() {
+  try {
+    const ssMaestra = SpreadsheetApp.openById(SHEET_MAESTRA_ID);
+    const sheetPunto = ssMaestra.getSheetByName('.');
+    
+    if (!sheetPunto) {
+      return { success: false, error: 'No se encontró la hoja "." en la Maestra' };
+    }
+    
+    // BH es columna 60 (BH), BI es columna 61 (BI)
+    const data = sheetPunto.getRange('BH:BI').getValues();
+    const agentes = [];
+    
+    // Saltar el encabezado (fila 0)
+    for (let i = 0; i < data.length; i++) {
+      const nombre = data[i][0] ? String(data[i][0]).trim() : '';
+      const numeroEmpleado = data[i][1] ? String(data[i][1]).trim() : '';
+      
+      // Solo agregar si ambos valores existen
+      if (nombre && numeroEmpleado) {
+        agentes.push({
+          nombre: nombre,
+          numeroEmpleado: numeroEmpleado
+        });
+      }
+    }
+    
+    return { success: true, agentes: agentes };
+  } catch (error) {
+    Logger.log('Error al obtener agentes de jornada: ' + error.toString());
+    return { success: false, error: 'Error al obtener agentes: ' + error.toString() };
+  }
+}
+
+// === GENERAR SOLICITUDES MASIVAS DE JORNADA ===
+function generarSolicitudesJornada(fecha, agentesSeleccionados) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+    
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEET_SOLICITUDES);
+      sheet.appendRow([
+        'Timestamp',
+        'Email',
+        'DNI',
+        'N° Empleado',
+        'Apellidos',
+        'Nombres',
+        'Fecha Desde',
+        'Fecha Hasta',
+        'Curso/Cargo',
+        'Articulación',
+        'Tipo Licencia',
+        'Estado',
+        'ID'
+      ]);
+    }
+    
+    const timestamp = new Date();
+    let exitosas = 0;
+    let fallidas = 0;
+    const errores = [];
+    
+    agentesSeleccionados.forEach(numEmpleado => {
+      try {
+        // Buscar agente por número de empleado
+        const agente = obtenerAgente(numEmpleado);
+        
+        if (!agente) {
+          fallidas++;
+          errores.push(`N° Empleado ${numEmpleado}: No encontrado en base de datos`);
+          return;
+        }
+        
+        const id = Utilities.getUuid();
+        
+        sheet.appendRow([
+          timestamp,
+          agente.email || '',
+          agente.dni || '',
+          agente.numeroEmpleado || '',
+          agente.apellidos || '',
+          agente.nombres || '',
+          fecha,
+          fecha,
+          'Todos',
+          'No',
+          'JORNADA INSTITUCIONAL',
+          'Autorizada',
+          id
+        ]);
+        
+        exitosas++;
+      } catch (error) {
+        fallidas++;
+        errores.push(`N° Empleado ${numEmpleado}: ${error.toString()}`);
+      }
+    });
+    
+    return {
+      success: true,
+      exitosas: exitosas,
+      fallidas: fallidas,
+      errores: errores
+    };
+    
+  } catch (error) {
+    Logger.log('Error al generar solicitudes de jornada: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
 // === TESTING - Verificar conexión con sheet externo ===
 function testConexionSheetExterno() {
   try {
