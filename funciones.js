@@ -412,36 +412,33 @@ function actualizarEstadoSolicitud(idSolicitud, nuevoEstado) {
   }
 }
 
-// === TESTING - Verificar cargos del agente ===
-function testObtenerCargosAgente() {
-  const dniONumEmpleado = '4017'; // Reemplazar con DNI o N° Empleado real
-  // Obtener primero el agente para recuperar su número de empleado
-  const agente = obtenerAgente(dniONumEmpleado);
-  Logger.log('agente encontrado: ' + agente.numeroEmpleado);
-  if (!agente) {
-    return { success: false, error: 'Agente no encontrado en la base de datos' };
-  }
-
-  const numeroEmpleado = agente.numeroEmpleado ? agente.numeroEmpleado.toString().trim() : '';
-  if (!numeroEmpleado) {
-    return { success: false, error: 'El agente no tiene Número de Empleado cargado' };
-  }
-
+// === OBTENER EMAILS DE AGENTES POR NÚMERO DE EMPLEADO ===
+function obtenerEmailsAgentes(numerosEmpleado) {
   try {
-    const resultado = obtenerCargosAgente(numeroEmpleado);
-    if (resultado.success) {
-      Logger.log('✓ Cargos encontrados para el agente: ' + resultado.agente.nombre);
-      Logger.log('Total de cargos: ' + resultado.cargos.length);
-      resultado.cargos.forEach((cargo, index) => {
-        Logger.log(`  ${index + 1}. ${cargo.texto}`);
-      });
-    } else {
-      Logger.log('❌ Error: ' + resultado.error);
+    const emails = [];
+    
+    numerosEmpleado.forEach(numEmpleado => {
+      try {
+        const agente = obtenerAgente(numEmpleado);
+        if (agente && agente.email) {
+          emails.push(agente.email);
+        }
+      } catch (error) {
+        Logger.log('Error al obtener email para N° ' + numEmpleado + ': ' + error.toString());
+      }
+    });
+    
+    if (emails.length === 0) {
+      return { success: false, error: 'No se encontraron emails para los agentes seleccionados' };
     }
+    
+    return { success: true, emails: emails };
   } catch (error) {
-    Logger.log('❌ Error: ' + error.toString());
+    Logger.log('Error al obtener emails: ' + error.toString());
+    return { success: false, error: error.toString() };
   }
 }
+
 // === OBTENER LISTA DE AGENTES PARA JORNADA (columnas BH:BI de hoja ".") ===
 function obtenerAgentesJornada() {
   try {
@@ -556,43 +553,6 @@ function generarSolicitudesJornada(fecha, agentesSeleccionados) {
   }
 }
 
-// === TESTING - Verificar conexión con sheet externo ===
-function testConexionSheetExterno() {
-  try {
-    const ssExterno = SpreadsheetApp.openById(SHEET_AGENTES_ID);
-    const sheet = ssExterno.getSheetByName(SHEET_AGENTES_NOMBRE);
-    
-    if (!sheet) {
-      Logger.log('❌ No se encontró la hoja "' + SHEET_AGENTES_NOMBRE + '"');
-      return;
-    }
-    
-    const totalRows = sheet.getLastRow();
-    Logger.log('✓ Conexión exitosa!');
-    Logger.log('Total de registros (incluyendo encabezado): ' + totalRows);
-    Logger.log('Encabezados: ' + sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].join(', '));
-    
-  } catch (error) {
-    Logger.log('❌ Error: ' + error.toString());
-    Logger.log('Verifica que el ID del sheet sea correcto y tengas permisos de acceso');
-  }
-}
-
-// === TESTING - Verificar búsqueda de agente ===
-function testObtenerAgente() {
-  const dniONumEmpleado = ' 32282931'; // Reemplazar con DNI o N° Empleado real
-  try {
-    const agente = obtenerAgente(dniONumEmpleado);
-    if (agente) {
-      Logger.log('✓ Agente encontrado:');
-      Logger.log(JSON.stringify(agente, null, 2));
-    } else {
-      Logger.log('❌ No se encontró agente con ese DNI o N° Empleado');
-    }
-  } catch (error) {
-    Logger.log('❌ Error: ' + error.toString());
-  }
-}
 
 // === ENVIAR EMAIL - SOLICITUD (usando plantilla) ===
 function enviarEmailSolicitud(agente, datos, timestamp, idSolicitud) {
@@ -650,49 +610,6 @@ function enviarEmailJustificacion(agente, cantidadLicencias, archivoUrl, timesta
     Logger.log('Error al crear borrador de justificación: ' + error.toString());
     throw error;
   }
-}
-
-// === INICIALIZAR SHEETS (solo solicitudes y justificaciones) ===
-function inicializarSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // Solo crear las hojas nuevas, NO tocar la de Agentes
-  let sheetSolicitudes = ss.getSheetByName(SHEET_SOLICITUDES);
-  if (!sheetSolicitudes) {
-    sheetSolicitudes = ss.insertSheet(SHEET_SOLICITUDES);
-    sheetSolicitudes.appendRow([
-      'Timestamp',
-      'Email',
-      'DNI',
-      'N° Empleado',
-      'Apellidos',
-      'Nombres',
-      'Fecha Desde',
-      'Fecha Hasta',
-      'Curso/Cargo',
-      'Tipo Licencia',
-      'Estado',
-      'ID'
-    ]);
-  }
-  
-  let sheetJustificaciones = ss.getSheetByName(SHEET_JUSTIFICACIONES);
-  if (!sheetJustificaciones) {
-    sheetJustificaciones = ss.insertSheet(SHEET_JUSTIFICACIONES);
-    sheetJustificaciones.appendRow([
-      'Timestamp',
-      'Email',
-      'DNI',
-      'N° Empleado',
-      'Apellidos',
-      'Nombres',
-      'IDs Solicitudes',
-      'Cantidad Licencias',
-      'URL Archivo'
-    ]);
-  }
-  
-  Logger.log('Sheets inicializados correctamente');
 }
 
 // ========================================
@@ -827,5 +744,119 @@ function enviarEmailAdmin(emailDocente, nombreDocente, mensaje) {
   } catch (error) {
     Logger.log('Error al crear borrador de email: ' + error.toString());
     return { success: false, error: error.toString() };
+  }
+}
+
+
+// === INICIALIZAR SHEETS (solo solicitudes y justificaciones) ===
+function inicializarSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Solo crear las hojas nuevas, NO tocar la de Agentes
+  let sheetSolicitudes = ss.getSheetByName(SHEET_SOLICITUDES);
+  if (!sheetSolicitudes) {
+    sheetSolicitudes = ss.insertSheet(SHEET_SOLICITUDES);
+    sheetSolicitudes.appendRow([
+      'Timestamp',
+      'Email',
+      'DNI',
+      'N° Empleado',
+      'Apellidos',
+      'Nombres',
+      'Fecha Desde',
+      'Fecha Hasta',
+      'Curso/Cargo',
+      'Tipo Licencia',
+      'Estado',
+      'ID'
+    ]);
+  }
+  
+  let sheetJustificaciones = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+  if (!sheetJustificaciones) {
+    sheetJustificaciones = ss.insertSheet(SHEET_JUSTIFICACIONES);
+    sheetJustificaciones.appendRow([
+      'Timestamp',
+      'Email',
+      'DNI',
+      'N° Empleado',
+      'Apellidos',
+      'Nombres',
+      'IDs Solicitudes',
+      'Cantidad Licencias',
+      'URL Archivo'
+    ]);
+  }
+  
+  Logger.log('Sheets inicializados correctamente');
+}
+
+// === TESTING - Verificar cargos del agente ===
+function testObtenerCargosAgente() {
+  const dniONumEmpleado = '4017'; // Reemplazar con DNI o N° Empleado real
+  // Obtener primero el agente para recuperar su número de empleado
+  const agente = obtenerAgente(dniONumEmpleado);
+  Logger.log('agente encontrado: ' + agente.numeroEmpleado);
+  if (!agente) {
+    return { success: false, error: 'Agente no encontrado en la base de datos' };
+  }
+
+  const numeroEmpleado = agente.numeroEmpleado ? agente.numeroEmpleado.toString().trim() : '';
+  if (!numeroEmpleado) {
+    return { success: false, error: 'El agente no tiene Número de Empleado cargado' };
+  }
+
+  try {
+    const resultado = obtenerCargosAgente(numeroEmpleado);
+    if (resultado.success) {
+      Logger.log('✓ Cargos encontrados para el agente: ' + resultado.agente.nombre);
+      Logger.log('Total de cargos: ' + resultado.cargos.length);
+      resultado.cargos.forEach((cargo, index) => {
+        Logger.log(`  ${index + 1}. ${cargo.texto}`);
+      });
+    } else {
+      Logger.log('❌ Error: ' + resultado.error);
+    }
+  } catch (error) {
+    Logger.log('❌ Error: ' + error.toString());
+  }
+}
+
+
+// === TESTING - Verificar conexión con sheet externo ===
+function testConexionSheetExterno() {
+  try {
+    const ssExterno = SpreadsheetApp.openById(SHEET_AGENTES_ID);
+    const sheet = ssExterno.getSheetByName(SHEET_AGENTES_NOMBRE);
+    
+    if (!sheet) {
+      Logger.log('❌ No se encontró la hoja "' + SHEET_AGENTES_NOMBRE + '"');
+      return;
+    }
+    
+    const totalRows = sheet.getLastRow();
+    Logger.log('✓ Conexión exitosa!');
+    Logger.log('Total de registros (incluyendo encabezado): ' + totalRows);
+    Logger.log('Encabezados: ' + sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].join(', '));
+    
+  } catch (error) {
+    Logger.log('❌ Error: ' + error.toString());
+    Logger.log('Verifica que el ID del sheet sea correcto y tengas permisos de acceso');
+  }
+}
+
+// === TESTING - Verificar búsqueda de agente ===
+function testObtenerAgente() {
+  const dniONumEmpleado = ' 32282931'; // Reemplazar con DNI o N° Empleado real
+  try {
+    const agente = obtenerAgente(dniONumEmpleado);
+    if (agente) {
+      Logger.log('✓ Agente encontrado:');
+      Logger.log(JSON.stringify(agente, null, 2));
+    } else {
+      Logger.log('❌ No se encontró agente con ese DNI o N° Empleado');
+    }
+  } catch (error) {
+    Logger.log('❌ Error: ' + error.toString());
   }
 }
