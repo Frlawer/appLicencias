@@ -202,7 +202,12 @@
               </div>
             </div>
 
-            <div class="flex gap-3">
+            <div class="flex gap-3 flex-wrap">
+              <button onclick="mostrarEmails()"
+                class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
+                <span>📧</span>
+                <span>Copiar Emails</span>
+              </button>
               <button onclick="generarSolicitudesJornadaMasivo()"
                 class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
                 <span>✓</span>
@@ -242,6 +247,26 @@
             Guardar
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para copiar emails -->
+  <div id="modal-emails-jornada" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">📧 Listado de Emails</h3>
+      <div class="relative">
+        <button onclick="copiarEmails()" 
+          class="absolute top-0 right-0 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+          📋 Copiar
+        </button>
+        <pre id="emails-box" class="bg-gray-50 border border-gray-300 rounded-lg p-4 text-sm overflow-x-auto mt-8">
+        </pre>
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button onclick="cerrarModalEmails()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+          Cerrar
+        </button>
       </div>
     </div>
   </div>
@@ -757,6 +782,71 @@
       document.getElementById('lista-agentes-jornada').innerHTML = '';
       agentesJornadaData = [];
       todosSeleccionados = false;
+    }
+
+    // Mostrar modal con emails de agentes seleccionados
+    function mostrarEmails() {
+      // Obtener agentes seleccionados
+      const checkboxes = document.querySelectorAll('#lista-agentes-jornada input[type="checkbox"]:checked');
+      const emailsSeleccionados = [];
+      
+      checkboxes.forEach(cb => {
+        const numEmpleado = cb.value;
+        const agente = agentesJornadaData.find(a => a.numeroEmpleado === numEmpleado);
+        if (agente) {
+          emailsSeleccionados.push({
+            nombre: agente.nombre,
+            numeroEmpleado: agente.numeroEmpleado,
+            email: null // Se obtiene desde la base de datos
+          });
+        }
+      });
+
+      if (emailsSeleccionados.length === 0) {
+        mostrarToast('warning', 'Sin agentes', 'Debe seleccionar al menos un agente');
+        return;
+      }
+
+      // Obtener emails desde la base de datos
+      document.getElementById('loading').classList.remove('hidden');
+      
+      const numerosEmpleado = emailsSeleccionados.map(a => a.numeroEmpleado);
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success) {
+            const emailsList = result.emails.join('\n');
+            document.getElementById('emails-box').textContent = emailsList;
+            document.getElementById('modal-emails-jornada').classList.remove('hidden');
+          } else {
+            mostrarToast('error', 'Error', result.error || 'Error al obtener emails');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al obtener emails: ' + error.message);
+        })
+        .obtenerEmailsAgentes(numerosEmpleado);
+    }
+
+    // Copiar emails al portapapeles
+    function copiarEmails() {
+      const emailsBox = document.getElementById('emails-box');
+      const texto = emailsBox.textContent;
+      
+      navigator.clipboard.writeText(texto).then(function() {
+        mostrarToast('success', 'Copiado', `${texto.split('\n').length} emails copiados al portapapeles`);
+      }).catch(function(error) {
+        console.error('Error al copiar:', error);
+        mostrarToast('error', 'Error', 'No se pudo copiar al portapapeles');
+      });
+    }
+
+    // Cerrar modal de emails
+    function cerrarModalEmails() {
+      document.getElementById('modal-emails-jornada').classList.add('hidden');
     }
 
     // Iniciar cargando solicitudes
