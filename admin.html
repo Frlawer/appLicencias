@@ -75,6 +75,12 @@
           <span>📁</span>
           <span>Jornada</span>
         </a>
+
+        <a href="#" onclick="cambiarVista('siso'); return false;" id="menu-siso"
+          class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
+          <span>📊</span>
+          <span>SISO</span>
+        </a>
       </nav>
 
       <div class="p-4 border-t border-gray-700">
@@ -226,6 +232,42 @@
                 Cancelar
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista SISO -->
+      <div id="vista-siso" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 class="text-lg font-bold mb-4">Cargar Datos SISO desde CSV</h3>
+          
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar archivo CSV *</label>
+            <input type="file" id="csv-siso" accept=".csv"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            <p class="text-xs text-gray-500 mt-1">Formato: CSV con separador de comas</p>
+          </div>
+
+          <div id="preview-csv" class="hidden mb-4">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">Vista previa (primeras 5 filas)</h4>
+            <div class="overflow-x-auto border border-gray-300 rounded-lg max-h-64 overflow-y-auto">
+              <table id="tabla-preview-csv" class="min-w-full divide-y divide-gray-200 text-xs">
+                <!-- Se llena dinámicamente -->
+              </table>
+            </div>
+            <p id="info-csv" class="text-sm text-gray-600 mt-2"></p>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="cargarCSV()" id="btn-cargar-csv" disabled
+              class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span>✓</span>
+              <span>Guardar en SISO</span>
+            </button>
+            <button onclick="cancelarCSV()"
+              class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
@@ -416,6 +458,7 @@
       document.getElementById('vista-solicitudes').classList.add('hidden');
       document.getElementById('vista-justificaciones').classList.add('hidden');
       document.getElementById('vista-jornada').classList.add('hidden');
+      document.getElementById('vista-siso').classList.add('hidden');
 
       if (vista === 'solicitudes') {
         document.getElementById('menu-solicitudes').classList.add('active');
@@ -435,6 +478,11 @@
         document.getElementById('subtitulo-seccion').textContent = 'Revise los registros de jornada cargados';
         document.getElementById('vista-jornada').classList.remove('hidden');
         // cargarJornada(); // Implementar si es necesario
+      } else if (vista === 'siso') {
+        document.getElementById('menu-siso').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Cargar Datos SISO';
+        document.getElementById('subtitulo-seccion').textContent = 'Importar datos desde archivo CSV';
+        document.getElementById('vista-siso').classList.remove('hidden');
       }
     }
 
@@ -964,6 +1012,144 @@
 
     function cerrarModalSolicitud() {
       document.getElementById('modal-solicitud').classList.add('hidden');
+    }
+
+    // ==============================
+    // === Funciones SISO CSV ===
+    // ==============================
+
+    let csvData = null;
+
+    // Event listener para el input de archivo CSV
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputCsv = document.getElementById('csv-siso');
+      if (inputCsv) {
+        inputCsv.addEventListener('change', function(e) {
+          const archivo = e.target.files[0];
+          if (archivo) {
+            if (!archivo.name.endsWith('.csv')) {
+              mostrarToast('error', 'Formato inválido', 'Solo se permiten archivos CSV');
+              e.target.value = '';
+              return;
+            }
+            procesarCSV(archivo);
+          }
+        });
+      }
+    });
+
+    function procesarCSV(archivo) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const contenido = e.target.result;
+        const lineas = contenido.split('\n').filter(l => l.trim());
+        
+        if (lineas.length < 2) {
+          mostrarToast('error', 'CSV vacío', 'El archivo no contiene datos');
+          return;
+        }
+
+        // Parsear CSV (separador punto y coma ;)
+        const datos = lineas.map(linea => {
+          // Manejar comillas y punto y coma dentro de campos
+          const campos = [];
+          let campoActual = '';
+          let dentroComillas = false;
+          
+          for (let i = 0; i < linea.length; i++) {
+            const char = linea[i];
+            if (char === '"') {
+              dentroComillas = !dentroComillas;
+            } else if (char === ';' && !dentroComillas) {
+              campos.push(campoActual.trim());
+              campoActual = '';
+            } else {
+              campoActual += char;
+            }
+          }
+          campos.push(campoActual.trim());
+          return campos;
+        });
+
+        csvData = datos;
+        mostrarVistaPrevia(datos);
+        document.getElementById('btn-cargar-csv').disabled = false;
+      };
+      reader.onerror = function() {
+        mostrarToast('error', 'Error de lectura', 'No se pudo leer el archivo');
+      };
+      reader.readAsText(archivo);
+    }
+
+    function mostrarVistaPrevia(datos) {
+      const preview = document.getElementById('preview-csv');
+      const tabla = document.getElementById('tabla-preview-csv');
+      const info = document.getElementById('info-csv');
+
+      preview.classList.remove('hidden');
+
+      // Mostrar solo las primeras 5 filas
+      const filasMostrar = Math.min(5, datos.length);
+      let html = '';
+
+      // Encabezado
+      if (datos.length > 0) {
+        html += '<thead class="bg-gray-100"><tr>';
+        datos[0].forEach(col => {
+          html += `<th class="px-3 py-2 text-left font-medium text-gray-700">${col}</th>`;
+        });
+        html += '</tr></thead>';
+      }
+
+      // Datos
+      html += '<tbody class="divide-y divide-gray-200">';
+      for (let i = 1; i < filasMostrar; i++) {
+        html += '<tr class="hover:bg-gray-50">';
+        datos[i].forEach(celda => {
+          html += `<td class="px-3 py-2 text-gray-600">${celda}</td>`;
+        });
+        html += '</tr>';
+      }
+      html += '</tbody>';
+
+      tabla.innerHTML = html;
+      info.textContent = `Total: ${datos.length - 1} registros, ${datos[0].length} columnas`;
+    }
+
+    function cargarCSV() {
+      if (!csvData || csvData.length < 2) {
+        mostrarToast('warning', 'Sin datos', 'No hay datos para cargar');
+        return;
+      }
+
+      if (!confirm(`¿Guardar ${csvData.length - 1} registros en la hoja SISO?`)) {
+        return;
+      }
+
+      document.getElementById('loading').classList.remove('hidden');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          if (result.success) {
+            mostrarToast('success', 'Datos guardados', `${result.registros} registros guardados en SISO`);
+            cancelarCSV();
+          } else {
+            mostrarToast('error', 'Error', result.error || 'No se pudieron guardar los datos');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al guardar: ' + error.message);
+        })
+        .guardarDatosCSV(csvData);
+    }
+
+    function cancelarCSV() {
+      document.getElementById('csv-siso').value = '';
+      document.getElementById('preview-csv').classList.add('hidden');
+      document.getElementById('btn-cargar-csv').disabled = true;
+      csvData = null;
     }
 
     // Iniciar cargando solicitudes
