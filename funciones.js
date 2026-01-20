@@ -280,11 +280,17 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
     const numEmpSheet = data[i][3] ? data[i][3].toString().trim() : '';
     
     if ((dniSheet === agente.dni.toString() || numEmpSheet === agente.numeroEmpleado.toString()) 
-        && (data[i][11] === 'Autorizada' || data[i][11] === 'Pendiente')) {
+        && (
+              data[i][11] === 'Autorizada' || 
+              data[i][11] === 'Pendiente' ||
+              data[i][11] === 'Completada' ||
+              data[i][11] === 'Justificada' ||
+              data[i][11] === 'Injustificada')) {
       solicitudes.push({
         id: data[i][12],
         rowIndex: i + 1,
         tipo: data[i][10],
+        estado: data[i][11],
         desde: Utilities.formatDate(new Date(data[i][6]), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
         hasta: Utilities.formatDate(new Date(data[i][7]), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
         cursoOCargo: data[i][8]
