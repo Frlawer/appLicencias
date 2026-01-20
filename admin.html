@@ -140,6 +140,14 @@
       <!-- Vista Justificaciones -->
       <div id="vista-justificaciones" class="p-6 hidden">
         <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="p-4 border-b flex flex-wrap items-center gap-3">
+            <input id="busqueda-solicitud-id" type="text" placeholder="Buscar solicitud por ID"
+              class="px-4 py-2 border border-gray-300 rounded-lg w-full sm:w-64">
+            <button onclick="buscarSolicitudPorId()"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+              <span>🔍</span><span>Buscar</span>
+            </button>
+          </div>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
@@ -226,6 +234,22 @@
   </div>
 
   <!-- Modal para editar estado -->
+  <!-- Modal detalle de solicitud -->
+  <div id="modal-solicitud" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">Detalle de Solicitud</h3>
+        <button onclick="cerrarModalSolicitud()" class="text-gray-500 hover:text-gray-800">✕</button>
+      </div>
+      <div id="detalle-solicitud" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-800">
+        <!-- Se llena dinámicamente -->
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button onclick="cerrarModalSolicitud()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-estado" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg p-6 w-full max-w-md">
       <h3 class="text-xl font-bold mb-4">Cambiar Estado</h3>
@@ -537,6 +561,30 @@
         return;
       }
 
+      // Helper para renderizar lista de archivos (uno o varios)
+      function renderArchivos(archivoUrl) {
+        if (!archivoUrl) return '-';
+        const urls = archivoUrl.split(',').map(u => u.trim()).filter(Boolean);
+        if (!urls.length) return '-';
+        return urls.map((u, idx) => `
+          <a href="${u}" target="_blank" class="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M15.75 3.75h-7.5a2.25 2.25 0 0 0-2.25 2.25v12a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 18V6a2.25 2.25 0 0 0-2.25-2.25Zm-7.5-1.5A3.75 3.75 0 0 0 4.5 6v12A3.75 3.75 0 0 0 8.25 21.75h7.5A3.75 3.75 0 0 0 19.5 18V6a3.75 3.75 0 0 0-3.75-3.75h-7.5Z"/><path d="M9 7.5h6v1.5H9V7.5Zm0 3h6V12H9v-1.5Zm0 3h3v1.5H9V13.5Z"/></svg>
+            Archivo ${idx + 1}
+          </a>`).join('<br>');
+      }
+
+      // Helper para renderizar IDs clickeables
+      function renderIds(idsString) {
+        if (!idsString) return '-';
+        const ids = idsString.split(',').map(i => i.trim()).filter(Boolean);
+        if (!ids.length) return '-';
+        return ids.map(id => `
+          <button class="text-blue-600 hover:text-blue-800 underline" onclick="verSolicitudPorId('${id}')">
+            ${id}
+          </button>
+        `).join('<br>');
+      }
+
       justificaciones.forEach(just => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50';
@@ -545,10 +593,11 @@
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatearFecha(just.timestamp)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${just.nombres} ${just.apellidos}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${just.dni}</td>
-          <td class="px-6 py-4 text-sm text-gray-500">${just.idsSolicitudes}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${just.cantidadLicencias}</td>
+          <td class="px-6 py-4 text-sm text-gray-500">${renderIds(just.idsSolicitudes)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${just.cantidadLicencias}
+          </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm">
-            ${just.archivoUrl ? `<a href="${just.archivoUrl}" target="_blank" class="text-blue-600 hover:text-blue-800">📎 Ver Archivo</a>` : '-'}
+            ${renderArchivos(just.archivoUrl)}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm">
             <button onclick="abrirModalEmail('${just.email}', '${just.nombres} ${just.apellidos}')" 
@@ -849,6 +898,72 @@
     // Cerrar modal de emails
     function cerrarModalEmails() {
       document.getElementById('modal-emails-jornada').classList.add('hidden');
+    }
+
+    // ==============================
+    // === Detalle de Solicitud ====
+    // ==============================
+
+    function buscarSolicitudPorId() {
+      const id = (document.getElementById('busqueda-solicitud-id').value || '').trim();
+      if (!id) {
+        mostrarToast('warning', 'ID requerido', 'Ingrese un ID de solicitud');
+        return;
+      }
+      verSolicitudPorId(id);
+    }
+
+    function verSolicitudPorId(idSolicitud) {
+      document.getElementById('loading').classList.remove('hidden');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          if (result.success && result.solicitud) {
+            abrirModalSolicitud(result.solicitud);
+          } else {
+            mostrarToast('error', 'No encontrada', result.error || 'No se encontró la solicitud');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al obtener la solicitud: ' + error.message);
+        })
+        .obtenerSolicitudPorId(idSolicitud);
+    }
+
+    function estadoClass(estado) {
+      switch (estado) {
+        case 'Pendiente': return 'bg-yellow-100 text-yellow-800';
+        case 'Autorizada': return 'bg-green-100 text-green-800';
+        case 'Justificada': return 'bg-blue-100 text-blue-800';
+        case 'Completada': return 'bg-gray-200 text-gray-800';
+        case 'Injustificada': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+      }
+    }
+
+    function abrirModalSolicitud(sol) {
+      const cont = document.getElementById('detalle-solicitud');
+      cont.innerHTML = `
+        <div><span class="text-gray-500">ID</span><div class="font-semibold">${sol.id}</div></div>
+        <div><span class="text-gray-500">Estado</span><div><span class="px-2 py-1 text-xs font-semibold rounded ${estadoClass(sol.estado)}">${sol.estado}</span></div></div>
+        <div><span class="text-gray-500">Docente</span><div class="font-semibold">${sol.nombres} ${sol.apellidos}</div></div>
+        <div><span class="text-gray-500">Email</span><div>${sol.email || '-'}</div></div>
+        <div><span class="text-gray-500">DNI</span><div>${sol.dni}</div></div>
+        <div><span class="text-gray-500">N° Empleado</span><div>${sol.numeroEmpleado}</div></div>
+        <div><span class="text-gray-500">Fecha Desde</span><div>${sol.fechaDesde}</div></div>
+        <div><span class="text-gray-500">Fecha Hasta</span><div>${sol.fechaHasta}</div></div>
+        <div><span class="text-gray-500">Curso/Cargo</span><div>${sol.cursoOCargo || '-'}</div></div>
+        <div><span class="text-gray-500">Articulación</span><div>${sol.articulacion}</div></div>
+        <div><span class="text-gray-500">Tipo Licencia</span><div>${sol.tipoLicencia}</div></div>
+        <div><span class="text-gray-500">Timestamp</span><div>${sol.timestamp}</div></div>
+      `;
+      document.getElementById('modal-solicitud').classList.remove('hidden');
+    }
+
+    function cerrarModalSolicitud() {
+      document.getElementById('modal-solicitud').classList.add('hidden');
     }
 
     // Iniciar cargando solicitudes
