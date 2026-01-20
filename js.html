@@ -379,13 +379,22 @@
           } else {
             let html = '';
             solicitudes.forEach(sol => {
+              const esInjustificada = sol.estado === 'Injustificada' || sol.estado === 'Completada';
+              const onclickAttr = esInjustificada ? '' : `onclick="toggleLicencia('${sol.id}')"`;
+              const cursorClass = esInjustificada ? 'cursor-not-allowed opacity-50' : 'cursor-pointer';
+              const checkboxHTML = esInjustificada ? '' : `<div id="check-${sol.id}" class="w-5 h-5 rounded border-2 mr-3 flex items-center justify-center border-gray-300"></div>`;
+              
               html += `
-                <div onclick="toggleLicencia('${sol.id}')" id="lic-${sol.id}" class="p-3 mb-2 rounded-lg cursor-pointer transition-all border-2 bg-white border-gray-200 hover:border-gray-300">
+                <div
+                  ${onclickAttr}
+                  id="lic-${sol.id}" 
+                  class="p-3 mb-2 rounded-lg transition-all border-2 bg-white border-gray-200 hover:border-gray-300 ${cursorClass}">
                   <div class="flex items-center">
-                    <div id="check-${sol.id}" class="w-5 h-5 rounded border-2 mr-3 flex items-center justify-center border-gray-300"></div>
+                    ${checkboxHTML}
                     <div>
                       <p class="font-semibold text-gray-800">${sol.tipo}</p>
-                      <p class="text-sm text-gray-600">Del ${formatearFecha(sol.desde)} al ${formatearFecha(sol.hasta)}${sol.cursoOCargo ? ' - ' + sol.cursoOCargo : ''}</p>
+                      <p class="text-sm text-gray-600">Del ${formatearFecha(sol.desde)} al ${formatearFecha(sol.hasta)}${sol.cursoOCargo ? ' - ' + sol.cursoOCargo : ''}
+                        <span class="mx-2 px-2 rounded text-white" id="estado-${sol.estado}">${sol.estado}</span></p>
                     </div>
                   </div>
                 </div>
