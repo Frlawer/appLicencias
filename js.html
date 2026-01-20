@@ -445,7 +445,7 @@
 
     function enviarJustificacion() {
       const dniONumEmpleado = document.getElementById('just-dni').value.trim();
-      const archivo = document.getElementById('just-archivo').files[0];
+      const archivos = Array.from(document.getElementById('just-archivo').files || []);
 
       if (!dniONumEmpleado) {
         mostrarToast('warning', 'Campo requerido', 'Ingrese su DNI o N° de Empleado');
@@ -457,8 +457,15 @@
         return;
       }
 
-      if (!archivo) {
-        mostrarToast('warning', 'Archivo requerido', 'Seleccione un archivo');
+      if (!archivos.length) {
+        mostrarToast('warning', 'Archivo requerido', 'Seleccione al menos un archivo');
+        return;
+      }
+
+      // Validar tipos permitidos
+      const tiposInvalidos = archivos.filter(f => !f.type.match(/^(image\/(jpeg|jpg|png)|application\/pdf)$/i));
+      if (tiposInvalidos.length) {
+        mostrarToast('error', 'Formato no permitido', 'Solo se aceptan JPG, JPEG, PNG o PDF');
         return;
       }
 
@@ -467,42 +474,59 @@
         licenciasIds: solicitudesSeleccionadas
       };
 
-      // Mostrar mensaje si es imagen (se optimizará)
-      const esImagen = archivo.type.match(/image\/(jpeg|jpg|png)/i);
-      if (esImagen) {
-        mostrarToast('info', 'Procesando imagen', 'Optimizando imagen antes de cargar...', 2000);
-        // Pequeño delay para que el usuario vea el mensaje
-        setTimeout(() => procesarYEnviar(datos, archivo), 100);
+      const hayImagen = archivos.some(a => a.type.match(/image\/(jpeg|jpg|png)/i));
+      if (hayImagen) {
+        mostrarToast('info', 'Procesando imágenes', 'Optimizando imágenes antes de cargar...', 2000);
+        setTimeout(() => procesarYEnviar(datos, archivos), 100);
       } else {
-        procesarYEnviar(datos, archivo);
+        procesarYEnviar(datos, archivos);
       }
     }
 
     // Función auxiliar para procesar y enviar
-    function procesarYEnviar(datos, archivo) {
+    function procesarYEnviar(datos, archivos) {
       mostrarLoading(true);
 
-      // Optimizar archivo según tipo
-      optimizarArchivo(archivo, function(archivoOptimizado, nombreArchivo, mimeType) {
-        google.script.run
-          .withSuccessHandler(function(result) {
-            mostrarLoading(false);
-            if (result.success) {
-              mostrarToast('success', 'Justificación enviada', 'Se enviará un email a: ' + result.email);
-              // Limpiar
-              document.getElementById('just-dni').value = '';
-              document.getElementById('just-archivo').value = '';
-              document.getElementById('licencias-container').classList.add('hidden');
-              solicitudesSeleccionadas = [];
-            } else {
-              mostrarToast('error', 'Error', result.error);
-            }
-          })
-          .withFailureHandler(function(error) {
-            mostrarLoading(false);
-            mostrarToast('error', 'Error al enviar', error.message);
-          })
-          .guardarJustificacion(datos, archivoOptimizado, nombreArchivo, mimeType);
+      const promesas = archivos.map(archivo => optimizarArchivoPromise(archivo));
+
+      Promise.all(promesas)
+        .then(archivosOptim => {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              mostrarLoading(false);
+              if (result.success) {
+                mostrarToast('success', 'Justificación enviada', 'Se enviará un email a: ' + result.email);
+                document.getElementById('just-dni').value = '';
+                document.getElementById('just-archivo').value = '';
+                document.getElementById('licencias-container').classList.add('hidden');
+                solicitudesSeleccionadas = [];
+              } else {
+                mostrarToast('error', 'Error', result.error);
+              }
+            })
+            .withFailureHandler(function(error) {
+              mostrarLoading(false);
+              mostrarToast('error', 'Error al enviar', error.message);
+            })
+            .guardarJustificacion(datos, archivosOptim);
+        })
+        .catch(function(error) {
+          mostrarLoading(false);
+          console.error('Error al optimizar archivos:', error);
+          mostrarToast('error', 'Error', 'No se pudieron procesar los archivos');
+        });
+    }
+
+    // Promisify optimizarArchivo
+    function optimizarArchivoPromise(archivo) {
+      return new Promise((resolve, reject) => {
+        optimizarArchivo(archivo, function(archivoBase64, nombreArchivo, mimeType) {
+          if (!archivoBase64) {
+            reject(new Error('Archivo vacío'));
+            return;
+          }
+          resolve({ archivoBase64, nombreArchivo, mimeType });
+        });
       });
     }
 
@@ -511,22 +535,22 @@
       const inputArchivo = document.getElementById('just-archivo');
       if (inputArchivo) {
         inputArchivo.addEventListener('change', function(e) {
-          const archivo = e.target.files[0];
-          if (archivo) {
-            const tamanoMB = (archivo.size / (1024 * 1024)).toFixed(2);
-            const esImagen = archivo.type.match(/image\/(jpeg|jpg|png)/i);
-            
-            let mensaje = `📄 ${archivo.name} (${tamanoMB} MB)`;
-            if (esImagen) {
-              mensaje += ' - Se optimizará antes de cargar';
+          const archivos = Array.from(e.target.files || []);
+          if (archivos.length) {
+            const totalMB = archivos.reduce((acc, a) => acc + a.size, 0) / (1024 * 1024);
+            const hayImagen = archivos.some(a => a.type.match(/image\/(jpeg|jpg|png)/i));
+            const nombres = archivos.map(a => a.name).join(', ');
+
+            let mensaje = `📄 ${archivos.length} archivo(s): ${nombres} (${totalMB.toFixed(2)} MB)`;
+            if (hayImagen) {
+              mensaje += ' - Las imágenes se optimizarán antes de cargar';
             }
-            
+
             console.log(mensaje);
-            
-            // Opcional: mostrar toast si el archivo es muy grande
-            if (parseFloat(tamanoMB) > 5) {
-              mostrarToast('warning', 'Archivo grande', 
-                `El archivo pesa ${tamanoMB} MB. ${esImagen ? 'Se optimizará automáticamente.' : 'Considere reducir el tamaño.'}`, 
+
+            if (totalMB > 10) {
+              mostrarToast('warning', 'Archivos grandes', 
+                `Tamaño total ${totalMB.toFixed(2)} MB. ${hayImagen ? 'Se optimizarán las imágenes automáticamente.' : ''}`, 
                 4000);
             }
           }
