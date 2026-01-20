@@ -301,8 +301,8 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
   return solicitudes;
 }
 
-// === GUARDAR JUSTIFICACIÓN ===
-function guardarJustificacion(datos, archivoBase64, nombreArchivo, mimeType) {
+// === GUARDAR JUSTIFICACIÓN (múltiples archivos) ===
+function guardarJustificacion(datos, archivos) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = ss.getSheetByName(SHEET_JUSTIFICACIONES);
@@ -332,28 +332,30 @@ function guardarJustificacion(datos, archivoBase64, nombreArchivo, mimeType) {
     }
 
     // Obtener carpeta por ID
-    let folder = DriveApp.getFolderById(FOLDER_ARCHIVOS_ID);
+    const folder = DriveApp.getFolderById(FOLDER_ARCHIVOS_ID);
 
-    // Guardar archivo en Drive
-    let archivoUrl = "";
-    if (archivoBase64 && archivoBase64.includes(",")) {
-      const contentType = mimeType || "application/pdf";
-      const nuevoNombre = `${agente.dni}-${datos.licenciasIds.join("_")}`; //cambio nombre del archivo
-
-      const blob = Utilities.newBlob(
-        Utilities.base64Decode(archivoBase64.split(",")[1]),
-        contentType,
-        nuevoNombre
-      );
-      const archivo = folder.createFile(blob);
-
-      // doy permisos.
-      archivo.setSharing(
-        DriveApp.Access.ANYONE_WITH_LINK,
-        DriveApp.Permission.VIEW
-      );
-
-      archivoUrl = archivo.getUrl();
+    // Guardar archivos en Drive
+    const urls = [];
+    if (archivos && archivos.length) {
+      archivos.forEach((archivo, idx) => {
+        try {
+          if (archivo.archivoBase64 && archivo.archivoBase64.includes(",")) {
+            const contentType = archivo.mimeType || "application/pdf";
+            const extension = contentType === "application/pdf" ? "pdf" : "jpg";
+            const nombreBase = `${agente.dni}-${datos.licenciasIds.join("_")}-${idx + 1}`;
+            const blob = Utilities.newBlob(
+              Utilities.base64Decode(archivo.archivoBase64.split(",")[1]),
+              contentType,
+              `${nombreBase}.${extension}`
+            );
+            const file = folder.createFile(blob);
+            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            urls.push(file.getUrl());
+          }
+        } catch (err) {
+          Logger.log('Error al guardar archivo: ' + err.toString());
+        }
+      });
     }
 
     const timestamp = new Date();
@@ -368,7 +370,7 @@ function guardarJustificacion(datos, archivoBase64, nombreArchivo, mimeType) {
       agente.nombres,
       idsString,
       datos.licenciasIds.length,
-      archivoUrl,
+      urls.join(", "),
     ]);
 
     // Actualizar estado de todas las solicitudes seleccionadas
@@ -672,6 +674,55 @@ function obtenerTodasSolicitudes() {
   
   return solicitudes;
 }
+
+  // Obtener solicitud por ID
+  function obtenerSolicitudPorId(idSolicitud) {
+    try {
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+      if (!sheet) {
+        return { success: false, error: 'Hoja de solicitudes no encontrada' };
+      }
+
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][12] || '') === String(idSolicitud)) {
+          const timestamp = data[i][0] instanceof Date
+            ? Utilities.formatDate(data[i][0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+            : (data[i][0] ? String(data[i][0]) : '');
+          const fechaDesde = data[i][6] instanceof Date
+            ? Utilities.formatDate(data[i][6], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+            : (data[i][6] ? String(data[i][6]) : '');
+          const fechaHasta = data[i][7] instanceof Date
+            ? Utilities.formatDate(data[i][7], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+            : (data[i][7] ? String(data[i][7]) : '');
+
+          const solicitud = {
+            rowIndex: Number(i + 1),
+            timestamp,
+            email: String(data[i][1] || ''),
+            dni: String(data[i][2] || ''),
+            numeroEmpleado: String(data[i][3] || ''),
+            apellidos: String(data[i][4] || ''),
+            nombres: String(data[i][5] || ''),
+            fechaDesde,
+            fechaHasta,
+            cursoOCargo: String(data[i][8] || ''),
+            articulacion: String(data[i][9] || ''),
+            tipoLicencia: String(data[i][10] || ''),
+            estado: String(data[i][11] || ''),
+            id: String(data[i][12] || '')
+          };
+          return { success: true, solicitud };
+        }
+      }
+
+      return { success: false, error: 'No se encontró la solicitud con ese ID' };
+    } catch (error) {
+      Logger.log('Error al obtener solicitud por ID: ' + error.toString());
+      return { success: false, error: error.toString() };
+    }
+  }
 
 // Obtener todas las justificaciones
 function obtenerTodasJustificaciones() {
