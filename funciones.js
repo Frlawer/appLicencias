@@ -668,10 +668,6 @@ function obtenerTodasSolicitudes() {
       id: String(data[i][12] || '')
     });
   }
-  Logger.log('Solicitudes obtenidas: ' + solicitudes.length);
-  if (solicitudes.length) {
-    Logger.log('Primera solicitud normalizada: ' + JSON.stringify(solicitudes[0]));
-  }
   
   return solicitudes;
 }
@@ -793,7 +789,6 @@ function eliminarSolicitud(id) {
     for (let i = 1; i < data.length; i++) {
       if (data[i][12] === id) { // Índice 12 = columna M (ID)
         sheet.deleteRow(i + 1); // +1 porque deleteRow es 1-indexed
-        Logger.log('Solicitud eliminada: ' + id);
         return { success: true };
       }
     }
@@ -1004,8 +999,6 @@ function guardarDatosCSV(datos) {
     for (let i = 1; i <= numColumnas; i++) {
       sheet.autoResizeColumn(i);
     }
-
-    Logger.log('Datos CSV guardados en SISO: ' + (numFilas - 1) + ' registros');
 
     return {
       success: true,
