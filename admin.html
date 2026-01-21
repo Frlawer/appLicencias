@@ -31,6 +31,23 @@
       background-color: #3b82f6;
       color: white;
     }
+
+    .sidebar {
+      transition: transform 0.3s ease, width 0.3s ease;
+    }
+
+    .sidebar.hidden {
+      transform: translateX(-100%);
+      width: 0;
+    }
+
+    .main-content {
+      transition: margin-left 0.3s ease;
+    }
+
+    .main-content.expanded {
+      margin-left: 0;
+    }
   </style>
 </head>
 
@@ -51,7 +68,7 @@
   <div class="flex h-screen overflow-hidden">
 
     <!-- Sidebar -->
-    <aside class="w-64 bg-gray-800 text-white flex flex-col">
+    <aside id="sidebar" class="sidebar w-64 bg-gray-800 text-white flex flex-col">
       <div class="p-6 border-b border-gray-700">
         <h1 class="text-xl font-bold">📊 Admin Dashboard</h1>
         <p class="text-xs text-gray-400 mt-1">CPEM N° 25</p>
@@ -90,14 +107,20 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto">
+    <main id="main-content" class="main-content flex-1 overflow-y-auto">
 
       <!-- Header -->
       <header class="bg-white shadow-sm p-6 border-b">
         <div class="flex justify-between items-center">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-800" id="titulo-seccion">Solicitudes de Licencia</h2>
-            <p class="text-sm text-gray-600 mt-1" id="subtitulo-seccion">Gestione las solicitudes pendientes</p>
+          <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()"
+              class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2">
+              <span id="toggle-icon">☰</span>
+            </button>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800" id="titulo-seccion">Solicitudes de Licencia</h2>
+              <p class="text-sm text-gray-600 mt-1" id="subtitulo-seccion">Gestione las solicitudes pendientes</p>
+            </div>
           </div>
           <button onclick="recargarDatos()"
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
@@ -1150,6 +1173,26 @@
       document.getElementById('preview-csv').classList.add('hidden');
       document.getElementById('btn-cargar-csv').disabled = true;
       csvData = null;
+    }
+
+    // ==============================
+    // === Toggle Sidebar ===
+    // ==============================
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('main-content');
+      const toggleIcon = document.getElementById('toggle-icon');
+      
+      sidebar.classList.toggle('hidden');
+      mainContent.classList.toggle('expanded');
+      
+      // Cambiar icono
+      if (sidebar.classList.contains('hidden')) {
+        toggleIcon.textContent = '☰';
+      } else {
+        toggleIcon.textContent = '✕';
+      }
     }
 
     // Iniciar cargando solicitudes
