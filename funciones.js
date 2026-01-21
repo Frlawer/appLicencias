@@ -777,6 +777,34 @@ function actualizarEstadoFila(rowIndex, nuevoEstado) {
   }
 }
 
+// Eliminar solicitud por ID
+function eliminarSolicitud(id) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+    
+    if (!sheet) {
+      return { success: false, error: 'Hoja de solicitudes no encontrada' };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // Buscar la fila con este ID (columna 13 = columna M)
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][12] === id) { // Índice 12 = columna M (ID)
+        sheet.deleteRow(i + 1); // +1 porque deleteRow es 1-indexed
+        Logger.log('Solicitud eliminada: ' + id);
+        return { success: true };
+      }
+    }
+    
+    return { success: false, error: 'Solicitud no encontrada' };
+  } catch (error) {
+    Logger.log('Error al eliminar solicitud: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
 // Enviar email personalizado desde admin
 function enviarEmailAdmin(emailDocente, nombreDocente, mensaje) {
   try {
