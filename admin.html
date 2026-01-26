@@ -683,9 +683,7 @@
             <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
                     class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
             <button onclick="abrirModalEmail('${sol.email}', '${sol.nombres} ${sol.apellidos}')" 
-                    class="text-green-600 hover:text-green-800 mr-3 whitespace-nowrap">📧 Email</button>
-            <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.id}')" 
-                    class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
+                    class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -791,30 +789,6 @@
     function cerrarModal() {
       document.getElementById('modal-estado').classList.add('hidden');
       registroEditando = null;
-    }
-
-    // Eliminar solicitud
-    function eliminarSolicitud(rowIndex, id) {
-      if (!confirm('¿Estás seguro de que quieres eliminar esta solicitud? Esta acción no se puede deshacer.')) {
-        return;
-      }
-
-      document.getElementById('loading').classList.remove('hidden');
-      google.script.run
-        .withSuccessHandler(function (result) {
-          document.getElementById('loading').classList.add('hidden');
-          if (result.success) {
-            mostrarToast('success', 'Solicitud eliminada', 'La solicitud ha sido eliminada correctamente');
-            recargarDatos();
-          } else {
-            mostrarToast('error', 'Error', result.error || 'No se pudo eliminar la solicitud');
-          }
-        })
-        .withFailureHandler(function (error) {
-          document.getElementById('loading').classList.add('hidden');
-          mostrarToast('error', 'Error', 'Error al eliminar: ' + error.message);
-        })
-        .eliminarSolicitud(id);
     }
 
     // Guardar cambio de estado
