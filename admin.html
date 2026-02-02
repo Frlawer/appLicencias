@@ -1322,6 +1322,12 @@
             selectCurso.innerHTML = '';
             
             if (result.cargos && result.cargos.length > 0) {
+              // Agregar opción "Todos"
+              const optionTodos = document.createElement('option');
+              optionTodos.value = 'Todos';
+              optionTodos.textContent = 'Todos';
+              selectCurso.appendChild(optionTodos);
+              
               result.cargos.forEach(cargo => {
                 const option = document.createElement('option');
                 option.value = cargo.texto;
