@@ -626,6 +626,11 @@
       if (closeButton) {
         closeButton.addEventListener('click', () => ocultarToast(''));
       }
+      
+      // Inicializar vista de solicitudes al cargar la página
+      setTimeout(function() {
+        cambiarVista('solicitudes');
+      }, 500);
     });
 
     // Cargar email del admin
@@ -1495,9 +1500,6 @@
         })
         .guardarSolicitud(datos);
     }
-
-    // Iniciar cargando solicitudes
-    // cambiarVista('solicitudes');
 
     // ==============================
     // === FUNCIONES DE PAGINACIÓN ===
