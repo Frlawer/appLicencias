@@ -546,9 +546,962 @@
     </div>
   </div>
 
-  <!-- ==============================
+  <script>
+    let solicitudesData = [];
+    let justificacionesData = [];
+    let registroEditando = null;
+    let emailData = null;
+    let agentesJornadaData = [];
+    let todosSeleccionados = false;
+
+    // ========== VARIABLES DE PAGINACIÓN ==========
+    let paginaActualSolicitudes = 1;
+    let paginaActualJustificaciones = 1;
+    const REGISTROS_POR_PAGINA = 25; // Cambiar a 20 o 50 según preferencia
+
+    // Toast helpers
+    function mostrarToast(tipo, titulo, texto, duracion = 5000) {
+      const toast = document.getElementById('toast-message-cta');
+      const icono = document.getElementById('iconoNotificacion');
+      const tituloElement = document.getElementById('tituloNotificacion');
+      const textoElement = document.getElementById('textoNotificacion');
+      
+      let iconoHTML = '';
+      let claseColor = '';
+      let fondoColor = '';
+      
+      switch(tipo) {
+        case 'success':
+          iconoHTML = '✓';
+          claseColor = 'text-green-600';
+          fondoColor = 'bg-green-300';
+          break;
+        case 'error':
+          iconoHTML = '✕';
+          claseColor = 'text-red-600';
+          fondoColor = 'bg-red-300';
+          break;
+        case 'warning':
+          iconoHTML = '⚠';
+          claseColor = 'text-yellow-600';
+          fondoColor = 'bg-yellow-300';
+          break;
+        case 'info':
+          iconoHTML = 'ℹ';
+          claseColor = 'text-blue-600';
+          fondoColor = 'bg-blue-300';
+          break;
+        default:
+          iconoHTML = '•';
+          claseColor = 'text-gray-600';
+          fondoColor = 'bg-gray-300';
+      }
+      
+      icono.innerHTML = iconoHTML;
+      icono.className = `text-2xl font-bold ${claseColor}`;
+      tituloElement.textContent = titulo;
+      textoElement.textContent = texto;
+      
+      toast.classList.remove('hidden');
+      toast.classList.add('animate-slide-in', fondoColor);
+      
+      if (duracion > 0) {
+        setTimeout(() => {
+          ocultarToast(fondoColor);
+        }, duracion);
+      }
+    }
+
+    function ocultarToast(fondoColor) {
+      const toast = document.getElementById('toast-message-cta');
+      toast.classList.add('animate-slide-out');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('animate-slide-in', 'animate-slide-out', fondoColor);
+      }, 300);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const closeButton = document.querySelector('[data-dismiss-target="#toast-message-cta"]');
+      if (closeButton) {
+        closeButton.addEventListener('click', () => ocultarToast(''));
+      }
+    });
+
+    // Cargar email del admin
+    google.script.run
+      .withSuccessHandler(function (email) {
+        document.getElementById('admin-email').textContent = email;
+      })
+      .obtenerEmailUsuario();
+
+    // Cambiar entre vistas
+    function cambiarVista(vista) {
+      document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+      document.getElementById('vista-solicitudes').classList.add('hidden');
+      document.getElementById('vista-justificaciones').classList.add('hidden');
+      document.getElementById('vista-jornada').classList.add('hidden');
+      document.getElementById('vista-siso').classList.add('hidden');
+      document.getElementById('vista-agregar').classList.add('hidden');
+
+      if (vista === 'solicitudes') {
+        document.getElementById('menu-solicitudes').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Solicitudes de Licencia';
+        document.getElementById('subtitulo-seccion').textContent = 'Gestione las solicitudes pendientes';
+        document.getElementById('vista-solicitudes').classList.remove('hidden');
+        cargarSolicitudes();
+      } else if (vista === 'justificaciones') {
+        document.getElementById('menu-justificaciones').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Justificaciones Cargadas';
+        document.getElementById('subtitulo-seccion').textContent = 'Revise los archivos justificatorios';
+        document.getElementById('vista-justificaciones').classList.remove('hidden');
+        cargarJustificaciones();
+      } else if (vista === 'jornada') {
+        document.getElementById('menu-jornada').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Registros de Jornada';
+        document.getElementById('subtitulo-seccion').textContent = 'Revise los registros de jornada cargados';
+        document.getElementById('vista-jornada').classList.remove('hidden');
+        // cargarJornada(); // Implementar si es necesario
+      } else if (vista === 'siso') {
+        document.getElementById('menu-siso').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Cargar Datos SISO';
+        document.getElementById('subtitulo-seccion').textContent = 'Importar datos desde archivo CSV';
+        document.getElementById('vista-siso').classList.remove('hidden');
+      } else if (vista === 'agregar') {
+        document.getElementById('menu-agregar').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Agregar Solicitud Manual';
+        document.getElementById('subtitulo-seccion').textContent = 'Cargue una nueva solicitud manualmente';
+        document.getElementById('vista-agregar').classList.remove('hidden');
+      }
+    }
+
+    // Recargar datos
+    function recargarDatos() {
+      const vistaActual = document.getElementById('vista-solicitudes').classList.contains('hidden') ? 'justificaciones' : 'solicitudes';
+      cambiarVista(vistaActual);
+    }
+
+    // Cargar solicitudes
+    function cargarSolicitudes() {
+      document.getElementById('loading').classList.remove('hidden');
+      paginaActualSolicitudes = 1; // Reset a página 1
+      
+      google.script.run
+        .withSuccessHandler(function (data) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          // Validar que data no sea null y sea un array
+          if (!data || !Array.isArray(data)) {
+            console.error('[ERROR] Datos inválidos recibidos:', data);
+            solicitudesData = [];
+            renderizarSolicitudesPaginadas();
+            return;
+          }
+
+          solicitudesData = data.reverse();
+          renderizarSolicitudesPaginadas();
+        })
+        .withFailureHandler(function (error) {
+          document.getElementById('loading').classList.add('hidden');
+          console.error('[ERROR] Error al cargar solicitudes:', error);
+          console.error('[ERROR] Error message:', error.message);
+          mostrarToast('error', 'Error', 'Error al cargar solicitudes: ' + error.message);
+        })
+        .obtenerTodasSolicitudes();
+    }
+
+    // Renderizar solicitudes
+    function renderizarSolicitudes(solicitudes) {
+      const tbody = document.getElementById('tabla-solicitudes');
+      tbody.innerHTML = '';
+
+      // Validar que solicitudes sea un array
+      if (!solicitudes || !Array.isArray(solicitudes)) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+        return;
+      }
+
+      if (solicitudes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
+        return;
+      }
+
+      solicitudes.forEach(sol => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+
+        const estadoColor = sol.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
+          sol.estado === 'Autorizado' ? 'bg-green-100 text-green-800' :
+            'bg-blue-100 text-blue-800';
+
+        tr.innerHTML = `
+          <td class="px-3 py-3 text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
+          <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.nombres} ${sol.apellidos}</td>
+          <td class="px-3 py-3 text-sm text-gray-500">${sol.dni}</td>
+          <td class="px-3 py-3 text-sm text-gray-900">${sol.numeroEmpleado}</td>
+          <td class="px-3 py-3 text-sm text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
+          <td class="px-3 py-3 text-xs text-gray-500">${sol.cursoOCargo || '-'}</td>
+          <td class="px-3 py-3 text-sm text-gray-900">${sol.articulacion}</td>
+          <td class="px-3 py-3 text-sm text-gray-900">${sol.tipoLicencia}</td>
+          <td class="px-3 py-3 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
+          </td>
+          <td class="px-3 py-3 text-sm">
+            <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
+                    class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
+            <button onclick="abrirModalEmail('${sol.email}', '${sol.nombres} ${sol.apellidos}')" 
+                    class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Cargar justificaciones
+    function cargarJustificaciones() {
+      document.getElementById('loading').classList.remove('hidden');
+      paginaActualJustificaciones = 1; // Reset a página 1
+      
+      google.script.run
+        .withSuccessHandler(function (data) {
+          document.getElementById('loading').classList.add('hidden');
+
+          // Validar que data no sea null y sea un array
+          if (!data || !Array.isArray(data)) {
+            console.error('Datos inválidos recibidos:', data);
+            justificacionesData = [];
+            renderizarJustificacionesPaginadas();
+            return;
+          }
+
+          justificacionesData = data.reverse();
+          renderizarJustificacionesPaginadas();
+        })
+        .withFailureHandler(function (error) {
+          document.getElementById('loading').classList.add('hidden');
+          console.error('Error al cargar:', error);
+          mostrarToast('error', 'Error', 'Error al cargar justificaciones: ' + error.message);
+        })
+        .obtenerTodasJustificaciones();
+    }
+
+    // Renderizar justificaciones
+    function renderizarJustificaciones(justificaciones) {
+      const tbody = document.getElementById('tabla-justificaciones');
+      tbody.innerHTML = '';
+
+      // Validar que justificaciones sea un array
+      if (!justificaciones || !Array.isArray(justificaciones)) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-3 py-3 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+        return;
+      }
+
+      if (justificaciones.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No hay justificaciones registradas</td></tr>';
+        return;
+      }
+
+      // Helper para renderizar lista de archivos (uno o varios)
+      function renderArchivos(archivoUrl) {
+        if (!archivoUrl) return '-';
+        const urls = archivoUrl.split(',').map(u => u.trim()).filter(Boolean);
+        if (!urls.length) return '-';
+        return urls.map((u, idx) => `
+          <a href="${u}" target="_blank" class="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M15.75 3.75h-7.5a2.25 2.25 0 0 0-2.25 2.25v12a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 18V6a2.25 2.25 0 0 0-2.25-2.25Zm-7.5-1.5A3.75 3.75 0 0 0 4.5 6v12A3.75 3.75 0 0 0 8.25 21.75h7.5A3.75 3.75 0 0 0 19.5 18V6a3.75 3.75 0 0 0-3.75-3.75h-7.5Z"/><path d="M9 7.5h6v1.5H9V7.5Zm0 3h6V12H9v-1.5Zm0 3h3v1.5H9V13.5Z"/></svg>
+            Archivo ${idx + 1}
+          </a>`).join('<br>');
+      }
+
+      // Helper para renderizar IDs clickeables
+      function renderIds(idsString) {
+        if (!idsString) return '-';
+        const ids = idsString.split(',').map(i => i.trim()).filter(Boolean);
+        if (!ids.length) return '-';
+        return ids.map(id => `
+          <button class="text-blue-600 hover:text-blue-800 underline" onclick="verSolicitudPorId('${id}')">
+            ${id}
+          </button>
+        `).join('<br>');
+      }
+
+      justificaciones.forEach(just => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+
+        tr.innerHTML = `
+          <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-900">${formatearFecha(just.timestamp)}</td>
+          <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${just.nombres} ${just.apellidos}</td>
+          <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.dni}</td>
+          <td class="px-3 py-4 text-sm text-gray-500">${renderIds(just.idsSolicitudes)}</td>
+          <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.cantidadLicencias}
+          </td>
+          <td class="px-3 py-4 whitespace-nowrap text-sm">
+            ${renderArchivos(just.archivoUrl)}
+          </td>
+          <td class="px-3 py-4 whitespace-nowrap text-sm">
+            <button onclick="abrirModalEmail('${just.email}', '${just.nombres} ${just.apellidos}')" 
+                    class="text-green-600 hover:text-green-800">📧 Email</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Abrir modal de estado
+    function abrirModalEstado(rowIndex, tipo) {
+      registroEditando = { rowIndex, tipo };
+      document.getElementById('modal-estado').classList.remove('hidden');
+    }
+
+    // Cerrar modal de estado
+    function cerrarModal() {
+      document.getElementById('modal-estado').classList.add('hidden');
+      registroEditando = null;
+    }
+
+    // Guardar cambio de estado
+    function guardarCambioEstado() {
+      const nuevoEstado = document.getElementById('nuevo-estado').value;
+
+      if (!registroEditando) return;
+
+      document.getElementById('loading').classList.remove('hidden');
+      google.script.run
+        .withSuccessHandler(function (result) {
+          document.getElementById('loading').classList.add('hidden');
+          if (result.success) {
+            mostrarToast('success', 'Estado actualizado', 'Estado actualizado correctamente');
+            cerrarModal();
+            // recargarDatos();
+          } else {
+            mostrarToast('error', 'Error', result.error || 'No se pudo actualizar');
+          }
+        })
+        .withFailureHandler(function (error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al actualizar: ' + error.message);
+        })
+        .actualizarEstadoFila(registroEditando.rowIndex, nuevoEstado);
+    }
+
+    // Abrir modal de email
+    function abrirModalEmail(email, nombre) {
+      emailData = { email, nombre };
+      document.getElementById('email-docente').value = email;
+      document.getElementById('mensaje-email').value = '';
+      document.getElementById('modal-email').classList.remove('hidden');
+    }
+
+    // Cerrar modal de email
+    function cerrarModalEmail() {
+      document.getElementById('modal-email').classList.add('hidden');
+      emailData = null;
+    }
+
+    // Enviar email al docente
+    function enviarEmailDocente() {
+      const mensaje = document.getElementById('mensaje-email').value.trim();
+
+      if (!mensaje) {
+        mostrarToast('warning', 'Falta mensaje', 'Por favor ingrese un mensaje');
+        return;
+      }
+
+      if (!emailData) return;
+
+      document.getElementById('loading').classList.remove('hidden');
+      google.script.run
+        .withSuccessHandler(function (result) {
+          document.getElementById('loading').classList.add('hidden');
+          if (result.success) {
+            mostrarToast('success', 'Email listo', 'Email enviado correctamente (borrador creado)');
+            cerrarModalEmail();
+          } else {
+            mostrarToast('error', 'Error', result.error || 'No se pudo enviar el email');
+          }
+        })
+        .withFailureHandler(function (error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al enviar: ' + error.message);
+        })
+        .enviarEmailAdmin(emailData.email, emailData.nombre, mensaje);
+    }
+
+    // Formatear fecha completa
+    function formatearFecha(fecha) {
+      if (!fecha) return '-';
+      const d = new Date(fecha);
+      return d.toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // Formatear fecha corta
+    function formatearFechaCorta(fecha) {
+      if (!fecha) return '-';
+      const d = new Date(fecha);
+      return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // ========================================
+    // === FUNCIONES DE JORNADA ===
+    // ========================================
+
+    // Cargar agentes para jornada
+    function cargarAgentesJornada() {
+      document.getElementById('loading').classList.remove('hidden');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success) {
+            agentesJornadaData = result.agentes;
+            mostrarPanelJornada(result.agentes);
+            mostrarToast('success', 'Agentes cargados', `Se cargaron ${result.agentes.length} agentes correctamente`);
+          } else {
+            mostrarToast('error', 'Error', result.error || 'Error al cargar agentes');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al cargar agentes: ' + error.message);
+        })
+        .obtenerAgentesJornada();
+    }
+
+    // Mostrar panel con lista de agentes
+    function mostrarPanelJornada(agentes) {
+      const panel = document.getElementById('panel-jornada');
+      const lista = document.getElementById('lista-agentes-jornada');
+      
+      // Establecer fecha por defecto (hoy)
+      const hoy = new Date().toISOString().split('T')[0];
+      document.getElementById('fecha-jornada').value = hoy;
+      
+      lista.innerHTML = '';
+      
+      if (agentes.length === 0) {
+        lista.innerHTML = '<p class="text-gray-500 text-center py-4">No se encontraron agentes</p>';
+        panel.classList.remove('hidden');
+        return;
+      }
+      
+      agentes.forEach((agente, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 p-2 hover:bg-white rounded transition-colors';
+        div.innerHTML = `
+          <input type="checkbox" id="agente-${index}" value="${agente.numeroEmpleado}" checked
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+          <label for="agente-${index}" class="flex-1 text-sm cursor-pointer">
+            <span class="font-medium">${agente.nombre}</span>
+            <span class="text-gray-500 ml-2">(N° ${agente.numeroEmpleado})</span>
+          </label>
+        `;
+        lista.appendChild(div);
+      });
+      
+      todosSeleccionados = true;
+      panel.classList.remove('hidden');
+    }
+
+    // Toggle selección de todos los agentes
+    function toggleTodosAgentes() {
+      todosSeleccionados = !todosSeleccionados;
+      const checkboxes = document.querySelectorAll('#lista-agentes-jornada input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = todosSeleccionados);
+    }
+
+    // Generar solicitudes masivas
+    function generarSolicitudesJornadaMasivo() {
+      const fecha = document.getElementById('fecha-jornada').value;
+      
+      if (!fecha) {
+        mostrarToast('warning', 'Falta fecha', 'Por favor seleccione una fecha');
+        return;
+      }
+      
+      // Obtener agentes seleccionados
+      const checkboxes = document.querySelectorAll('#lista-agentes-jornada input[type="checkbox"]:checked');
+      const agentesSeleccionados = Array.from(checkboxes).map(cb => cb.value);
+      
+      if (agentesSeleccionados.length === 0) {
+        mostrarToast('warning', 'Sin agentes', 'Debe seleccionar al menos un agente');
+        return;
+      }
+      
+      if (!confirm(`¿Generar ${agentesSeleccionados.length} solicitudes de Jornada Institucional para el ${fecha}?`)) {
+        return;
+      }
+      
+      document.getElementById('loading').classList.remove('hidden');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success) {
+            let mensaje = `✓ Solicitudes generadas: ${result.exitosas}`;
+            if (result.fallidas > 0) {
+              mensaje += `\n✕ Fallidas: ${result.fallidas}`;
+              if (result.errores && result.errores.length > 0) {
+                console.log('Errores:', result.errores);
+              }
+            }
+            mostrarToast('success', 'Solicitudes generadas', mensaje, 7000);
+            cancelarJornada();
+            cambiarVista('solicitudes');
+          } else {
+            mostrarToast('error', 'Error', result.error || 'Error al generar solicitudes');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al generar: ' + error.message);
+        })
+        .generarSolicitudesJornada(fecha, agentesSeleccionados);
+    }
+
+    // Cancelar proceso de jornada
+    function cancelarJornada() {
+      document.getElementById('panel-jornada').classList.add('hidden');
+      document.getElementById('lista-agentes-jornada').innerHTML = '';
+      agentesJornadaData = [];
+      todosSeleccionados = false;
+    }
+
+    // Mostrar modal con emails de agentes seleccionados
+    function mostrarEmails() {
+      // Obtener agentes seleccionados
+      const checkboxes = document.querySelectorAll('#lista-agentes-jornada input[type="checkbox"]:checked');
+      const emailsSeleccionados = [];
+      
+      checkboxes.forEach(cb => {
+        const numEmpleado = cb.value;
+        const agente = agentesJornadaData.find(a => a.numeroEmpleado === numEmpleado);
+        if (agente) {
+          emailsSeleccionados.push({
+            nombre: agente.nombre,
+            numeroEmpleado: agente.numeroEmpleado,
+            email: null // Se obtiene desde la base de datos
+          });
+        }
+      });
+
+      if (emailsSeleccionados.length === 0) {
+        mostrarToast('warning', 'Sin agentes', 'Debe seleccionar al menos un agente');
+        return;
+      }
+
+      // Obtener emails desde la base de datos
+      document.getElementById('loading').classList.remove('hidden');
+      
+      const numerosEmpleado = emailsSeleccionados.map(a => a.numeroEmpleado);
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success) {
+            const emailsList = result.emails.join('\n');
+            document.getElementById('emails-box').textContent = emailsList;
+            document.getElementById('modal-emails-jornada').classList.remove('hidden');
+          } else {
+            mostrarToast('error', 'Error', result.error || 'Error al obtener emails');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al obtener emails: ' + error.message);
+        })
+        .obtenerEmailsAgentes(numerosEmpleado);
+    }
+
+    // Copiar emails al portapapeles
+    function copiarEmails() {
+      const emailsBox = document.getElementById('emails-box');
+      const texto = emailsBox.textContent;
+      
+      navigator.clipboard.writeText(texto).then(function() {
+        mostrarToast('success', 'Copiado', `${texto.split('\n').length} emails copiados al portapapeles`);
+      }).catch(function(error) {
+        console.error('Error al copiar:', error);
+        mostrarToast('error', 'Error', 'No se pudo copiar al portapapeles');
+      });
+    }
+
+    // Cerrar modal de emails
+    function cerrarModalEmails() {
+      document.getElementById('modal-emails-jornada').classList.add('hidden');
+    }
+
+    // ==============================
+    // === Detalle de Solicitud ====
+    // ==============================
+
+    function buscarSolicitudPorId() {
+      const id = (document.getElementById('busqueda-solicitud-id').value || '').trim();
+      if (!id) {
+        mostrarToast('warning', 'ID requerido', 'Ingrese un ID de solicitud');
+        return;
+      }
+      verSolicitudPorId(id);
+    }
+
+    function verSolicitudPorId(idSolicitud) {
+      document.getElementById('loading').classList.remove('hidden');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          if (result.success && result.solicitud) {
+            abrirModalSolicitud(result.solicitud);
+          } else {
+            mostrarToast('error', 'No encontrada', result.error || 'No se encontró la solicitud');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al obtener la solicitud: ' + error.message);
+        })
+        .obtenerSolicitudPorId(idSolicitud);
+    }
+
+    function estadoClass(estado) {
+      switch (estado) {
+        case 'Pendiente': return 'bg-yellow-100 text-yellow-800';
+        case 'Autorizada': return 'bg-green-100 text-green-800';
+        case 'Justificada': return 'bg-blue-100 text-blue-800';
+        case 'Completada': return 'bg-gray-200 text-gray-800';
+        case 'Injustificada': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+      }
+    }
+
+    function abrirModalSolicitud(sol) {
+      const cont = document.getElementById('detalle-solicitud');
+      cont.innerHTML = `
+        <div><span class="text-gray-500">ID</span><div class="font-semibold">${sol.id}</div></div>
+        <div><span class="text-gray-500">Estado</span><div><span class="px-2 py-1 text-xs font-semibold rounded ${estadoClass(sol.estado)}">${sol.estado}</span></div></div>
+        <div><span class="text-gray-500">Docente</span><div class="font-semibold">${sol.nombres} ${sol.apellidos}</div></div>
+        <div><span class="text-gray-500">Email</span><div>${sol.email || '-'}</div></div>
+        <div><span class="text-gray-500">DNI</span><div>${sol.dni}</div></div>
+        <div><span class="text-gray-500">N° Empleado</span><div>${sol.numeroEmpleado}</div></div>
+        <div><span class="text-gray-500">Fecha Desde</span><div>${sol.fechaDesde}</div></div>
+        <div><span class="text-gray-500">Fecha Hasta</span><div>${sol.fechaHasta}</div></div>
+        <div><span class="text-gray-500">Curso/Cargo</span><div>${sol.cursoOCargo || '-'}</div></div>
+        <div><span class="text-gray-500">Articulación</span><div>${sol.articulacion}</div></div>
+        <div><span class="text-gray-500">Tipo Licencia</span><div>${sol.tipoLicencia}</div></div>
+        <div><span class="text-gray-500">Timestamp</span><div>${sol.timestamp}</div></div>
+      `;
+      document.getElementById('modal-solicitud').classList.remove('hidden');
+    }
+
+    function cerrarModalSolicitud() {
+      document.getElementById('modal-solicitud').classList.add('hidden');
+    }
+
+    // ==============================
+    // === Funciones SISO CSV ===
+    // ==============================
+
+    let csvData = null;
+
+    // Event listener para el input de archivo CSV
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputCsv = document.getElementById('csv-siso');
+      if (inputCsv) {
+        inputCsv.addEventListener('change', function(e) {
+          const archivo = e.target.files[0];
+          if (archivo) {
+            if (!archivo.name.endsWith('.csv')) {
+              mostrarToast('error', 'Formato inválido', 'Solo se permiten archivos CSV');
+              e.target.value = '';
+              return;
+            }
+            procesarCSV(archivo);
+          }
+        });
+      }
+    });
+
+    function procesarCSV(archivo) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const contenido = e.target.result;
+        const lineas = contenido.split('\n').filter(l => l.trim());
+        
+        if (lineas.length < 2) {
+          mostrarToast('error', 'CSV vacío', 'El archivo no contiene datos');
+          return;
+        }
+
+        // Parsear CSV (separador punto y coma ;)
+        const datos = lineas.map(linea => {
+          // Manejar comillas y punto y coma dentro de campos
+          const campos = [];
+          let campoActual = '';
+          let dentroComillas = false;
+          
+          for (let i = 0; i < linea.length; i++) {
+            const char = linea[i];
+            if (char === '"') {
+              dentroComillas = !dentroComillas;
+            } else if (char === ';' && !dentroComillas) {
+              campos.push(campoActual.trim());
+              campoActual = '';
+            } else {
+              campoActual += char;
+            }
+          }
+          campos.push(campoActual.trim());
+          return campos;
+        });
+
+        csvData = datos;
+        mostrarVistaPrevia(datos);
+        document.getElementById('btn-cargar-csv').disabled = false;
+      };
+      reader.onerror = function() {
+        mostrarToast('error', 'Error de lectura', 'No se pudo leer el archivo');
+      };
+      reader.readAsText(archivo);
+    }
+
+    function mostrarVistaPrevia(datos) {
+      const preview = document.getElementById('preview-csv');
+      const tabla = document.getElementById('tabla-preview-csv');
+      const info = document.getElementById('info-csv');
+
+      preview.classList.remove('hidden');
+
+      // Mostrar solo las primeras 5 filas
+      const filasMostrar = Math.min(5, datos.length);
+      let html = '';
+
+      // Encabezado
+      if (datos.length > 0) {
+        html += '<thead class="bg-gray-100"><tr>';
+        datos[0].forEach(col => {
+          html += `<th class="px-3 py-2 text-left font-medium text-gray-700">${col}</th>`;
+        });
+        html += '</tr></thead>';
+      }
+
+      // Datos
+      html += '<tbody class="divide-y divide-gray-200">';
+      for (let i = 1; i < filasMostrar; i++) {
+        html += '<tr class="hover:bg-gray-50">';
+        datos[i].forEach(celda => {
+          html += `<td class="px-3 py-2 text-gray-600">${celda}</td>`;
+        });
+        html += '</tr>';
+      }
+      html += '</tbody>';
+
+      tabla.innerHTML = html;
+      info.textContent = `Total: ${datos.length - 1} registros, ${datos[0].length} columnas`;
+    }
+
+    function cargarCSV() {
+      if (!csvData || csvData.length < 2) {
+        mostrarToast('warning', 'Sin datos', 'No hay datos para cargar');
+        return;
+      }
+
+      if (!confirm(`¿Guardar ${csvData.length - 1} registros en la hoja SISO?`)) {
+        return;
+      }
+
+      document.getElementById('loading').classList.remove('hidden');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          if (result.success) {
+            mostrarToast('success', 'Datos guardados', `${result.registros} registros guardados en SISO`);
+            cancelarCSV();
+          } else {
+            mostrarToast('error', 'Error', result.error || 'No se pudieron guardar los datos');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al guardar: ' + error.message);
+        })
+        .guardarDatosCSV(csvData);
+    }
+
+    function cancelarCSV() {
+      document.getElementById('csv-siso').value = '';
+      document.getElementById('preview-csv').classList.add('hidden');
+      document.getElementById('btn-cargar-csv').disabled = true;
+      csvData = null;
+    }
+
+    // ==============================
+    // === Toggle Sidebar ===
+    // ==============================
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const mainContent = document.getElementById('main-content');
+      const toggleIcon = document.getElementById('toggle-icon');
+      
+      sidebar.classList.toggle('hidden');
+      mainContent.classList.toggle('expanded');
+      
+      // Cambiar icono
+      if (sidebar.classList.contains('hidden')) {
+        toggleIcon.textContent = '☰';
+      } else {
+        toggleIcon.textContent = '✕';
+      }
+    }
+
+    // ==============================
+    // === Agregar Solicitud Manual ===
+    // ==============================
+
+    function cargarCargosAgenteAdmin() {
+      const dni = (document.getElementById('agregar-dni').value || '').trim();
+      if (!dni) {
+        mostrarToast('warning', 'DNI requerido', 'Ingrese un DNI o N° de Empleado');
+        return;
+      }
+
+      document.getElementById('loading').classList.remove('hidden');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success && result.agente) {
+            // Llenar datos del docente
+            document.getElementById('agregar-docente').value = result.agente.nombre;
+            document.getElementById('agregar-email').value = result.agente.email;
+
+            // Llenar select de cursos
+            const selectCurso = document.getElementById('agregar-curso');
+            selectCurso.innerHTML = '';
+            
+            if (result.cargos && result.cargos.length > 0) {
+              // Agregar opción "Todos"
+              const optionTodos = document.createElement('option');
+              optionTodos.value = 'Todos';
+              optionTodos.textContent = 'Todos';
+              selectCurso.appendChild(optionTodos);
+              
+              result.cargos.forEach(cargo => {
+                const option = document.createElement('option');
+                option.value = cargo.texto;
+                option.textContent = cargo.texto;
+                selectCurso.appendChild(option);
+              });
+              selectCurso.disabled = false;
+            } else {
+              selectCurso.innerHTML = '<option value="">No se encontraron cargos</option>';
+            }
+          } else {
+            mostrarToast('error', 'No encontrado', result.error || 'No se encontró el agente');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al cargar cargos: ' + error.message);
+        })
+        .obtenerCargosAgente(dni);
+    }
+
+    function agregarSolicitudManual() {
+      // Validar campos requeridos
+      const dni = (document.getElementById('agregar-dni').value || '').trim();
+      const tipo = (document.getElementById('agregar-tipo').value || '').trim();
+      const curso = (document.getElementById('agregar-curso').value || '').trim();
+      const articulacion = document.querySelector('input[name="agregar-articulacion"]:checked');
+      const desde = (document.getElementById('agregar-desde').value || '').trim();
+      const hasta = (document.getElementById('agregar-hasta').value || '').trim();
+
+      if (!dni) {
+        mostrarToast('warning', 'DNI requerido', 'Ingrese un DNI o N° de Empleado');
+        return;
+      }
+      if (!tipo) {
+        mostrarToast('warning', 'Tipo requerido', 'Ingrese el tipo de licencia');
+        return;
+      }
+      if (!curso) {
+        mostrarToast('warning', 'Curso requerido', 'Seleccione un curso o cargo');
+        return;
+      }
+      if (!articulacion) {
+        mostrarToast('warning', 'Articulación requerida', 'Seleccione si es horario de articulación');
+        return;
+      }
+      if (!desde) {
+        mostrarToast('warning', 'Fecha requerida', 'Ingrese la fecha desde');
+        return;
+      }
+      if (!hasta) {
+        mostrarToast('warning', 'Fecha requerida', 'Ingrese la fecha hasta');
+        return;
+      }
+
+      document.getElementById('loading').classList.remove('hidden');
+
+      const datos = {
+        dniONumEmpleado: dni,
+        tipoLicencia: tipo,
+        cursoOCargo: curso,
+        articulacion: articulacion.value,
+        fechaDesde: desde,
+        fechaHasta: hasta
+      };
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          
+          if (result.success) {
+            mostrarToast('success', 'Solicitud guardada', `Solicitud creada con ID: ${result.id}`);
+            
+            // Limpiar formulario
+            document.getElementById('agregar-dni').value = '';
+            document.getElementById('agregar-docente').value = '';
+            document.getElementById('agregar-email').value = '';
+            document.getElementById('agregar-tipo').value = '';
+            document.getElementById('agregar-curso').innerHTML = '<option value="">Primero agregue su DNI o N° de empleado...</option>';
+            document.getElementById('agregar-curso').disabled = true;
+            document.querySelectorAll('input[name="agregar-articulacion"]').forEach(r => r.checked = false);
+            document.getElementById('agregar-desde').value = '';
+            document.getElementById('agregar-hasta').value = '';
+
+            // Recargar solicitudes para actualizar tabla
+            // setTimeout(() => {
+            //   cambiarVista('solicitudes');
+            // }, 1000);
+          } else {
+            mostrarToast('error', 'Error', result.error || 'No se pudo guardar la solicitud');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al guardar: ' + error.message);
+        })
+        .guardarSolicitud(datos);
+    }
+
+    // Iniciar cargando solicitudes
+    // cambiarVista('solicitudes');
+
+    // ==============================
     // === FUNCIONES DE PAGINACIÓN ===
-    // ============================== -->
+    // ==============================
 
     function obtenerTotalPaginas(totalRegistros) {
       return Math.ceil(totalRegistros / REGISTROS_POR_PAGINA);
@@ -695,71 +1648,20 @@
     }
 
     function cambiarRegistrosPorPagina(valor) {
-      const oldREGISTROS = REGISTROS_POR_PAGINA;
+      const registrosPorPagina = parseInt(valor);
+      
+      // Actualizar la variable global
       Object.defineProperty(window, 'REGISTROS_POR_PAGINA', {
         writable: true,
-        value: parseInt(valor)
+        configurable: true,
+        value: registrosPorPagina
       });
+      
       paginaActualSolicitudes = 1;
       paginaActualJustificaciones = 1;
       renderizarSolicitudesPaginadas();
       mostrarToast('info', 'Paginación', `Ahora mostrando ${valor} registros por página`);
     }
-
-    function cargarSolicitudes() {
-      document.getElementById('loading').classList.remove('hidden');
-      paginaActualSolicitudes = 1; // Reset a página 1
-      
-      google.script.run
-        .withSuccessHandler(function (data) {
-          document.getElementById('loading').classList.add('hidden');
-          
-          if (!data || !Array.isArray(data)) {
-            console.error('[ERROR] Datos inválidos recibidos:', data);
-            solicitudesData = [];
-            renderizarSolicitudesPaginadas();
-            return;
-          }
-
-          solicitudesData = data.reverse();
-          renderizarSolicitudesPaginadas(); // Cambio aquí
-        })
-        .withFailureHandler(function (error) {
-          document.getElementById('loading').classList.add('hidden');
-          console.error('[ERROR] Error al cargar solicitudes:', error);
-          mostrarToast('error', 'Error', 'Error al cargar solicitudes: ' + error.message);
-        })
-        .obtenerTodasSolicitudes();
-    }
-
-    function cargarJustificaciones() {
-      document.getElementById('loading').classList.remove('hidden');
-      paginaActualJustificaciones = 1; // Reset a página 1
-      
-      google.script.run
-        .withSuccessHandler(function (data) {
-          document.getElementById('loading').classList.add('hidden');
-
-          if (!data || !Array.isArray(data)) {
-            console.error('Datos inválidos recibidos:', data);
-            justificacionesData = [];
-            renderizarJustificacionesPaginadas();
-            return;
-          }
-
-          justificacionesData = data.reverse();
-          renderizarJustificacionesPaginadas(); // Cambio aquí
-        })
-        .withFailureHandler(function (error) {
-          document.getElementById('loading').classList.add('hidden');
-          console.error('Error al cargar:', error);
-          mostrarToast('error', 'Error', 'Error al cargar justificaciones: ' + error.message);
-        })
-        .obtenerTodasJustificaciones();
-    }
-
-    // Iniciar cargando solicitudes
-    // cambiarVista('solicitudes');
   </script>
 
 </body>
