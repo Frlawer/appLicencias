@@ -133,6 +133,12 @@
             <span>🔄</span>
             <span>Recargar</span>
           </button>
+          <button onclick="mostrarInfoCache()"
+            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 text-sm"
+            title="Ver información del caché local">
+            <span>💾</span>
+            <span>Caché</span>
+          </button>
         </div>
       </header>
 
@@ -632,6 +638,11 @@
     let filtroActivoSolicitudes = false;
     let filtroActivoJustificaciones = false;
 
+    // ========== VARIABLES DE CACHÉ ==========
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos en milisegundos
+    let ultimaCargarSolicitudes = 0;
+    let ultimaCargarJustificaciones = 0;
+
     // Toast helpers
     function mostrarToast(tipo, titulo, texto, duracion = 5000) {
       const toast = document.getElementById('toast-message-cta');
@@ -755,6 +766,9 @@
 
     // Recargar datos
     function recargarDatos() {
+      // Limpiar caché para forzar recarga desde GAS
+      limpiarTodoCache();
+      
       const vistaActual = document.getElementById('vista-solicitudes').classList.contains('hidden') ? 'justificaciones' : 'solicitudes';
       cambiarVista(vistaActual);
     }
@@ -763,7 +777,22 @@
     function cargarSolicitudes() {
       document.getElementById('loading').classList.remove('hidden');
       paginaActualSolicitudes = 1; // Reset a página 1
-      
+
+      // Intentar obtener del caché primero
+      const datosEnCache = obtenerCacheSolicitudes();
+      if (datosEnCache) {
+        // Usar datos del caché
+        solicitudesData = datosEnCache;
+        solicitudesFiltradas = [...solicitudesData];
+        filtroActivoSolicitudes = false;
+        limpiarInputsFiltroSolicitudes();
+        document.getElementById('loading').classList.add('hidden');
+        renderizarSolicitudesPaginadas();
+        mostrarToast('info', 'Caché', 'Datos cargados desde caché local (5 min)');
+        return;
+      }
+
+      // Si no hay caché válido, cargar desde Google Apps Script
       google.script.run
         .withSuccessHandler(function (data) {
           document.getElementById('loading').classList.add('hidden');
@@ -778,10 +807,15 @@
           }
 
           solicitudesData = data.reverse();
-          solicitudesFiltradas = [...solicitudesData]; // Inicializar datos filtrados
-          filtroActivoSolicitudes = false; // Reset filtros
+          solicitudesFiltradas = [...solicitudesData];
+          filtroActivoSolicitudes = false;
           limpiarInputsFiltroSolicitudes();
+          
+          // Guardar en caché
+          guardarCacheSolicitudes(solicitudesData);
+          
           renderizarSolicitudesPaginadas();
+          mostrarToast('success', 'Datos', `${solicitudesData.length} solicitudes cargadas`);
         })
         .withFailureHandler(function (error) {
           document.getElementById('loading').classList.add('hidden');
@@ -843,6 +877,20 @@
     function cargarJustificaciones() {
       document.getElementById('loading').classList.remove('hidden');
       paginaActualJustificaciones = 1; // Reset a página 1
+
+      // Intentar obtener del caché primero
+      const datosEnCache = obtenerCacheJustificaciones();
+      if (datosEnCache) {
+        // Usar datos del caché
+        justificacionesData = datosEnCache;
+        justificacionesFiltradas = [...justificacionesData];
+        filtroActivoJustificaciones = false;
+        limpiarInputsFiltroJustificaciones();
+        document.getElementById('loading').classList.add('hidden');
+        renderizarJustificacionesPaginadas();
+        mostrarToast('info', 'Caché', 'Datos cargados desde caché local (5 min)');
+        return;
+      }
       
       google.script.run
         .withSuccessHandler(function (data) {
@@ -861,7 +909,12 @@
           justificacionesFiltradas = [...justificacionesData]; // Inicializar datos filtrados
           filtroActivoJustificaciones = false; // Reset filtros
           limpiarInputsFiltroJustificaciones();
+          
+          // Guardar en caché
+          guardarCacheJustificaciones(justificacionesData);
+          
           renderizarJustificacionesPaginadas();
+          mostrarToast('success', 'Datos', `${justificacionesData.length} justificaciones cargadas`);
         })
         .withFailureHandler(function (error) {
           document.getElementById('loading').classList.add('hidden');
@@ -1867,6 +1920,166 @@
       document.getElementById('filtro-dni-justificacion').value = '';
       document.getElementById('filtro-empleado-justificacion').value = '';
       document.getElementById('info-filtro-justificacion').innerHTML = '';
+    }
+
+    // ==============================
+    // === FUNCIONES DE CACHÉ ===
+    // ==============================
+
+    // Guardar solicitudes en caché
+    function guardarCacheSolicitudes(datos) {
+      try {
+        const cacheData = {
+          datos: datos,
+          timestamp: Date.now()
+        };
+        sessionStorage.setItem('cache_solicitudes', JSON.stringify(cacheData));
+        ultimaCargarSolicitudes = Date.now();
+        console.log('✓ Caché de solicitudes guardado');
+      } catch (error) {
+        console.warn('No se pudo guardar caché de solicitudes:', error);
+      }
+    }
+
+    // Obtener solicitudes del caché
+    function obtenerCacheSolicitudes() {
+      try {
+        const cacheStr = sessionStorage.getItem('cache_solicitudes');
+        if (!cacheStr) return null;
+
+        const cacheData = JSON.parse(cacheStr);
+        const ahora = Date.now();
+        const edadCache = ahora - cacheData.timestamp;
+
+        // Si el caché tiene más de 5 minutos, considerarlo expirado
+        if (edadCache > CACHE_DURATION) {
+          console.log('⏰ Caché de solicitudes expirado');
+          sessionStorage.removeItem('cache_solicitudes');
+          return null;
+        }
+
+        console.log(`✓ Caché de solicitudes válido (${Math.floor(edadCache / 1000)}s atrás)`);
+        ultimaCargarSolicitudes = cacheData.timestamp;
+        return cacheData.datos;
+      } catch (error) {
+        console.warn('Error al leer caché de solicitudes:', error);
+        return null;
+      }
+    }
+
+    // Guardar justificaciones en caché
+    function guardarCacheJustificaciones(datos) {
+      try {
+        const cacheData = {
+          datos: datos,
+          timestamp: Date.now()
+        };
+        sessionStorage.setItem('cache_justificaciones', JSON.stringify(cacheData));
+        ultimaCargarJustificaciones = Date.now();
+        console.log('✓ Caché de justificaciones guardado');
+      } catch (error) {
+        console.warn('No se pudo guardar caché de justificaciones:', error);
+      }
+    }
+
+    // Obtener justificaciones del caché
+    function obtenerCacheJustificaciones() {
+      try {
+        const cacheStr = sessionStorage.getItem('cache_justificaciones');
+        if (!cacheStr) return null;
+
+        const cacheData = JSON.parse(cacheStr);
+        const ahora = Date.now();
+        const edadCache = ahora - cacheData.timestamp;
+
+        // Si el caché tiene más de 5 minutos, considerarlo expirado
+        if (edadCache > CACHE_DURATION) {
+          console.log('⏰ Caché de justificaciones expirado');
+          sessionStorage.removeItem('cache_justificaciones');
+          return null;
+        }
+
+        console.log(`✓ Caché de justificaciones válido (${Math.floor(edadCache / 1000)}s atrás)`);
+        ultimaCargarJustificaciones = cacheData.timestamp;
+        return cacheData.datos;
+      } catch (error) {
+        console.warn('Error al leer caché de justificaciones:', error);
+        return null;
+      }
+    }
+
+    // Limpiar todos los cachés
+    function limpiarTodoCache() {
+      try {
+        sessionStorage.removeItem('cache_solicitudes');
+        sessionStorage.removeItem('cache_justificaciones');
+        ultimaCargarSolicitudes = 0;
+        ultimaCargarJustificaciones = 0;
+        console.log('✓ Todos los cachés limpiados');
+        mostrarToast('success', 'Caché', 'Caché local limpiado correctamente');
+      } catch (error) {
+        console.warn('Error al limpiar cachés:', error);
+      }
+    }
+
+    // Obtener información del caché
+    function obtenerInfoCache() {
+      const info = {
+        solicitudes: null,
+        justificaciones: null
+      };
+
+      try {
+        const cacheSol = sessionStorage.getItem('cache_solicitudes');
+        if (cacheSol) {
+          const datos = JSON.parse(cacheSol);
+          const edad = Date.now() - datos.timestamp;
+          info.solicitudes = {
+            registros: datos.datos.length,
+            edadSegundos: Math.floor(edad / 1000),
+            valido: edad < CACHE_DURATION
+          };
+        }
+
+        const cacheJust = sessionStorage.getItem('cache_justificaciones');
+        if (cacheJust) {
+          const datos = JSON.parse(cacheJust);
+          const edad = Date.now() - datos.timestamp;
+          info.justificaciones = {
+            registros: datos.datos.length,
+            edadSegundos: Math.floor(edad / 1000),
+            valido: edad < CACHE_DURATION
+          };
+        }
+      } catch (error) {
+        console.warn('Error al obtener info de caché:', error);
+      }
+
+      return info;
+    }
+
+    // Mostrar información del caché en un toast
+    function mostrarInfoCache() {
+      const info = obtenerInfoCache();
+      let mensaje = '📊 Estado del Caché Local\n\n';
+
+      if (info.solicitudes) {
+        const estado = info.solicitudes.valido ? '✓ Válido' : '⏰ Expirado';
+        mensaje += `Solicitudes: ${info.solicitudes.registros} registros (${info.solicitudes.edadSegundos}s) ${estado}\n`;
+      } else {
+        mensaje += 'Solicitudes: Sin caché\n';
+      }
+
+      if (info.justificaciones) {
+        const estado = info.justificaciones.valido ? '✓ Válido' : '⏰ Expirado';
+        mensaje += `Justificaciones: ${info.justificaciones.registros} registros (${info.justificaciones.edadSegundos}s) ${estado}\n`;
+      } else {
+        mensaje += 'Justificaciones: Sin caché\n';
+      }
+
+      mensaje += `\n⏱️ Duración: 5 minutos`;
+
+      mostrarToast('info', 'Información de Caché', mensaje, 8000);
     }
   </script>
 
