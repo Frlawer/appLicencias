@@ -706,37 +706,86 @@ function obtenerEmailUsuario() {
   return Session.getEffectiveUser().getEmail();
 }
 
-// Obtener novedades de la semana (desde lunes)
+// Obtener novedades desde las hojas (últimos 3 días, incluye hoy)
 function obtenerNovedadesSemana() {
-  const sheet = asegurarHojaNovedades_();
-  const data = sheet.getDataRange().getValues();
-  const lunes = obtenerLunesSemanaActual_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetSolicitudes = ss.getSheetByName(SHEET_SOLICITUDES);
+  const sheetJustificaciones = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+
+  const ahora = new Date();
+  const desde = new Date(ahora);
+  desde.setDate(ahora.getDate() - 3);
+  desde.setHours(0, 0, 0, 0);
 
   const novedades = [];
 
-  for (let i = 1; i < data.length; i++) {
-    const timestamp = data[i][0];
-    if (!(timestamp instanceof Date)) continue;
+  // Solicitudes
+  if (sheetSolicitudes) {
+    const dataSol = sheetSolicitudes.getDataRange().getValues();
+    for (let i = 1; i < dataSol.length; i++) {
+      const ts = dataSol[i][0];
+      const timestamp = ts instanceof Date ? ts : new Date(ts);
+      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) continue;
 
-    if (timestamp >= lunes) {
-      novedades.push({
-        timestamp: Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
-        tipo: String(data[i][1] || ''),
-        mensaje: String(data[i][2] || ''),
-        dni: String(data[i][3] || ''),
-        numeroEmpleado: String(data[i][4] || ''),
-        apellidos: String(data[i][5] || ''),
-        nombres: String(data[i][6] || ''),
-        idsSolicitudes: String(data[i][7] || ''),
-        origen: String(data[i][8] || '')
-      });
+      if (timestamp >= desde) {
+        const apellidos = String(dataSol[i][4] || '');
+        const nombres = String(dataSol[i][5] || '');
+        const tipoLicencia = String(dataSol[i][10] || '');
+        const id = String(dataSol[i][12] || '');
+
+        novedades.push({
+          timestampObj: timestamp,
+          timestamp: Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
+          tipo: 'SOLICITUD',
+          mensaje: `Solicitud de licencia (${tipoLicencia}) - ${apellidos} ${nombres}`,
+          dni: String(dataSol[i][2] || ''),
+          numeroEmpleado: String(dataSol[i][3] || ''),
+          apellidos,
+          nombres,
+          idsSolicitudes: id,
+          origen: 'SOLICITUD'
+        });
+      }
+    }
+  }
+
+  // Justificaciones
+  if (sheetJustificaciones) {
+    const dataJust = sheetJustificaciones.getDataRange().getValues();
+    for (let i = 1; i < dataJust.length; i++) {
+      const ts = dataJust[i][0];
+      const timestamp = ts instanceof Date ? ts : new Date(ts);
+      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) continue;
+
+      if (timestamp >= desde) {
+        const apellidos = String(dataJust[i][4] || '');
+        const nombres = String(dataJust[i][5] || '');
+        const ids = String(dataJust[i][6] || '');
+
+        novedades.push({
+          timestampObj: timestamp,
+          timestamp: Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
+          tipo: 'JUSTIFICACION',
+          mensaje: `Justificación cargada (IDs: ${ids}) - ${apellidos} ${nombres}`,
+          dni: String(dataJust[i][2] || ''),
+          numeroEmpleado: String(dataJust[i][3] || ''),
+          apellidos,
+          nombres,
+          idsSolicitudes: ids,
+          origen: 'JUSTIFICACION'
+        });
+      }
     }
   }
 
   // Ordenar por más reciente primero
-  novedades.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  novedades.sort((a, b) => b.timestampObj - a.timestampObj);
 
-  return novedades;
+  // Quitar campo interno antes de devolver
+  return novedades.map(n => {
+    const { timestampObj, ...rest } = n;
+    return rest;
+  });
 }
 
 // Obtener todas las solicitudes
