@@ -1,10 +1,14 @@
   <div id="app" class="mx-auto">
 
     <!-- Header -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mb-6 text-center">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Licencias CPEM Nº 25</h1>
-      <p class="text-gray-600">Complete los formularios según corresponda</p>
-      <p><a href="https://www.neuquen.edu.ar/wp-content/uploads/2022/07/RegimenLicenciasJustificacionesFranquicias.pdf" target="_blank" rel="noopener noreferrer">🚨 📢 LINK AL Régimen de Licencias, Justificaciones y Franquicias Decreto N° 1.429/73</a></p>
+    <div class="bg-[#2f6fb2] rounded-lg shadow-lg p-6 mb-6 text-center text-white">
+      <div class="flex items-center justify-center gap-3 mb-2">
+        <img src="https://cpem25.wordpress.com/wp-content/uploads/2024/11/logo-png.png?w=240&h=216"
+          alt="Logo CPEM 25" class="h-12 w-auto" loading="lazy" />
+        <h1 class="text-3xl font-bold text-white">Sistema de Gestión de Licencias CPEM Nº 25</h1>
+      </div>
+      <p class="text-white/90">Complete los formularios según corresponda</p>
+      <p><a class="text-white underline" href="https://www.neuquen.edu.ar/wp-content/uploads/2022/07/RegimenLicenciasJustificacionesFranquicias.pdf" target="_blank" rel="noopener noreferrer">🚨 📢 LINK AL Régimen de Licencias, Justificaciones y Franquicias Decreto N° 1.429/73</a></p>
 
       <!-- Toast de notificaciones -->
        <div id="toast-message-cta" class="hidden flex fixed top-4 right-4 z-50 items-center w-full max-w-xs p-4 text-body rounded-base shadow-xs border border-neutral-200" role="alert">
@@ -23,10 +27,10 @@
 
     <!-- Selector de formulario -->
     <div class="flex gap-4 mb-6">
-      <button onclick="cambiarStep(1)" id="btn-step-1" class="flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-600 text-white shadow-lg">
+      <button onclick="cambiarStep(1)" id="btn-step-1" class="flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-[#2f6fb2] text-white shadow-lg">
         📝 Solicitar Licencia
       </button>
-      <button onclick="cambiarStep(2)" id="btn-step-2" class="flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-300 text-gray-600 hover:bg-gray-50">
+      <button onclick="cambiarStep(2)" id="btn-step-2" class="flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-[#2f6fb2] text-white hover:bg-[#295f99]">
         📥 Cargar Constancia de Justificación
       </button>
     </div>
