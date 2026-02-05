@@ -155,7 +155,14 @@
         <div class="bg-white rounded-lg shadow overflow-hidden">
           <!-- BUSCADOR Y FILTROS -->
           <div class="p-4 border-b bg-gray-50">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">🔍 Buscar y Filtrar</h3>
+            <div class="flex items-center justify-between gap-3 mb-3">
+              <h3 class="text-sm font-semibold text-gray-700">🔍 Buscar y Filtrar</h3>
+              <button onclick="toggleFiltrosSolicitudes()"
+                class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                Mostrar/Ocultar
+              </button>
+            </div>
+            <div id="filtros-solicitudes" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Por Nombre</label>
@@ -182,6 +189,7 @@
                 ✕ Limpiar Filtros
               </button>
               <span id="info-filtro-solicitud" class="text-xs text-gray-600 flex items-center"></span>
+            </div>
             </div>
           </div>
 
@@ -260,7 +268,14 @@
               </div>
             </div>
 
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">🔍 Buscar y Filtrar</h3>
+            <div class="flex items-center justify-between gap-3 mb-3">
+              <h3 class="text-sm font-semibold text-gray-700">🔍 Buscar y Filtrar</h3>
+              <button onclick="toggleFiltrosJustificaciones()"
+                class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                Mostrar/Ocultar
+              </button>
+            </div>
+            <div id="filtros-justificaciones" class="hidden">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <label class="block text-xs font-medium text-gray-600 mb-1">Por Nombre</label>
@@ -287,6 +302,7 @@
                 ✕ Limpiar Filtros
               </button>
               <span id="info-filtro-justificacion" class="text-xs text-gray-600 flex items-center"></span>
+            </div>
             </div>
           </div>
 
@@ -1808,6 +1824,18 @@
     // ==============================
     // === FUNCIONES DE FILTROS ===
     // ==============================
+
+    function toggleFiltrosSolicitudes() {
+      const panel = document.getElementById('filtros-solicitudes');
+      if (!panel) return;
+      panel.classList.toggle('hidden');
+    }
+
+    function toggleFiltrosJustificaciones() {
+      const panel = document.getElementById('filtros-justificaciones');
+      if (!panel) return;
+      panel.classList.toggle('hidden');
+    }
 
     // ===== SOLICITUDES =====
     function aplicarFiltrosSolicitudes() {
