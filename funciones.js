@@ -935,6 +935,28 @@ function actualizarEstadoFila(rowIndex, nuevoEstado) {
   }
 }
 
+// Eliminar solicitud por índice de fila
+function eliminarSolicitud(rowIndex) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+
+    if (!sheet) {
+      return { success: false, error: 'Hoja no encontrada' };
+    }
+
+    if (!rowIndex || rowIndex < 2 || rowIndex > sheet.getLastRow()) {
+      return { success: false, error: 'Índice de fila inválido' };
+    }
+
+    sheet.deleteRow(rowIndex);
+    return { success: true };
+  } catch (error) {
+    Logger.log('Error al eliminar solicitud: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
 // Enviar email personalizado desde admin
 function enviarEmailAdmin(emailDocente, nombreDocente, mensaje) {
   try {

@@ -177,6 +177,20 @@
       }
     });
 
+    // Parsear fecha sin desfase (yyyy-mm-dd)
+    function parseFechaLocal(fecha) {
+      if (!fecha) return null;
+      if (typeof fecha === 'string') {
+        const match = fecha.match(/^\d{4}-\d{2}-\d{2}$/);
+        if (match) {
+          const [y, m, d] = fecha.split('-').map(Number);
+          return new Date(y, m - 1, d);
+        }
+      }
+      const d = new Date(fecha);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
     // Formatear fecha de yyyy-mm-dd a dd/mm/yyyy
     function formatearFecha(fecha) {
       if (!fecha) return '';
@@ -189,7 +203,8 @@
 
     // Convertir fecha de input (yyyy-mm-dd) a dd/mm/yyyy para mostrar
     function convertirFechaParaMostrar(inputDate) {
-      const date = new Date(inputDate + 'T00:00:00');
+      const date = parseFechaLocal(inputDate);
+      if (!date) return '';
       const dia = String(date.getDate()).padStart(2, '0');
       const mes = String(date.getMonth() + 1).padStart(2, '0');
       const anio = date.getFullYear();

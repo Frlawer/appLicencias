@@ -896,12 +896,16 @@
           <td class="px-3 py-3 whitespace-nowrap">
             <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
           </td>
-          <td class="px-3 py-3 text-sm">
-            <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
-                    class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
-            <button onclick="abrirModalEmail('${sol.email}', '${sol.nombres} ${sol.apellidos}')" 
-                    class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
-          </td>
+            <td class="px-3 py-3 text-sm">
+              <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
+                class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
+              <button onclick="abrirModalEmail('${sol.email}', '${sol.nombres} ${sol.apellidos}')" 
+                class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
+              <div class="mt-1">
+                <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.nombres} ${sol.apellidos}')" 
+                  class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
+              </div>
+            </td>
         `;
         tbody.appendChild(tr);
       });
@@ -1058,6 +1062,30 @@
         .actualizarEstadoFila(registroEditando.rowIndex, nuevoEstado);
     }
 
+    // Eliminar solicitud
+    function eliminarSolicitud(rowIndex, nombreDocente) {
+      const mensaje = `¿Eliminar la solicitud de ${nombreDocente}?\nEsta acción no se puede deshacer.`;
+      if (!confirm(mensaje)) return;
+
+      document.getElementById('loading').classList.remove('hidden');
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('loading').classList.add('hidden');
+          if (result.success) {
+            mostrarToast('success', 'Solicitud eliminada', 'La solicitud fue eliminada correctamente');
+            limpiarTodoCache();
+            cargarSolicitudes();
+          } else {
+            mostrarToast('error', 'Error', result.error || 'No se pudo eliminar la solicitud');
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al eliminar: ' + error.message);
+        })
+        .eliminarSolicitud(rowIndex);
+    }
+
     // Abrir modal de email
     function abrirModalEmail(email, nombre) {
       emailData = { email, nombre };
@@ -1101,10 +1129,24 @@
         .enviarEmailAdmin(emailData.email, emailData.nombre, mensaje);
     }
 
+    // Parsear fecha sin desfase (yyyy-mm-dd)
+    function parseFechaLocal(fecha) {
+      if (!fecha) return null;
+      if (typeof fecha === 'string') {
+        const match = fecha.match(/^\d{4}-\d{2}-\d{2}$/);
+        if (match) {
+          const [y, m, d] = fecha.split('-').map(Number);
+          return new Date(y, m - 1, d);
+        }
+      }
+      const d = new Date(fecha);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
     // Formatear fecha completa
     function formatearFecha(fecha) {
-      if (!fecha) return '-';
-      const d = new Date(fecha);
+      const d = parseFechaLocal(fecha);
+      if (!d) return '-';
       return d.toLocaleDateString('es-AR', {
         day: '2-digit',
         month: '2-digit',
@@ -1116,8 +1158,8 @@
 
     // Formatear fecha corta
     function formatearFechaCorta(fecha) {
-      if (!fecha) return '-';
-      const d = new Date(fecha);
+      const d = parseFechaLocal(fecha);
+      if (!d) return '-';
       return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
