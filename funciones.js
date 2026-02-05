@@ -33,6 +33,7 @@ const SHEET_MAESTRA_NOMBRE = 'Maestra';
 const SHEET_SOLICITUDES = 'SOLICITUDES';
 const SHEET_JUSTIFICACIONES = 'JUSTIFICACIONES';
 const SHEET_SISO = 'SISO';
+const SHEET_NOVEDADES = 'NOVEDADES';
 const FOLDER_ARCHIVOS_ID = '1-48O-hpqqbINKbqdvZPVLT0jjzTCOEBz'; // ID de la carpeta en Drive
 
 // ID de la plantilla de Gmail para emails
@@ -43,6 +44,61 @@ const PLANTILLA_ADMIN = 'r-2767467785340734120'; // Reemplazar con ID real del b
 // ========================================
 // === FUNCIONES PRINCIPALES ===
 // ========================================
+
+// === NOVEDADES (Notificaciones) ===
+function asegurarHojaNovedades_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NOVEDADES);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NOVEDADES);
+    sheet.appendRow([
+      'Timestamp',
+      'Tipo',
+      'Mensaje',
+      'DNI',
+      'N° Empleado',
+      'Apellidos',
+      'Nombres',
+      'IDs Solicitudes',
+      'Origen'
+    ]);
+  }
+
+  return sheet;
+}
+
+function registrarNovedad_(tipo, payload) {
+  try {
+    const sheet = asegurarHojaNovedades_();
+    const timestamp = new Date();
+
+    const mensaje = payload.mensaje || '';
+    sheet.appendRow([
+      timestamp,
+      String(tipo || ''),
+      String(mensaje || ''),
+      String(payload.dni || ''),
+      String(payload.numeroEmpleado || ''),
+      String(payload.apellidos || ''),
+      String(payload.nombres || ''),
+      String(payload.idsSolicitudes || ''),
+      String(payload.origen || '')
+    ]);
+  } catch (error) {
+    Logger.log('Error al registrar novedad: ' + error.toString());
+  }
+}
+
+function obtenerLunesSemanaActual_() {
+  const ahora = new Date();
+  const dia = ahora.getDay(); // 0 domingo, 1 lunes...
+  const diff = dia === 0 ? -6 : 1 - dia; // lunes de esta semana
+  const lunes = new Date(ahora);
+  lunes.setDate(ahora.getDate() + diff);
+  lunes.setHours(0, 0, 0, 0);
+  return lunes;
+}
 
 // Mapeo de columnas de tu sheet de Agentes (índice basado en 0)
 const COL_AGENTES = {
@@ -234,6 +290,16 @@ function guardarSolicitud(datos) {
       'Pendiente',
       id
     ]);
+
+    registrarNovedad_('SOLICITUD', {
+      mensaje: `Solicitud de licencia (${datos.tipoLicencia}) cargada por ${agente.apellidos} ${agente.nombres}`,
+      dni: agente.dni,
+      numeroEmpleado: agente.numeroEmpleado || '',
+      apellidos: agente.apellidos,
+      nombres: agente.nombres,
+      idsSolicitudes: id,
+      origen: 'SOLICITUD'
+    });
     
     // Enviar email al agente
     try {
@@ -373,6 +439,16 @@ function guardarJustificacion(datos, archivos) {
       datos.licenciasIds.length,
       urls.join(", "),
     ]);
+
+    registrarNovedad_('JUSTIFICACION', {
+      mensaje: `Justificación cargada por ${agente.apellidos} ${agente.nombres} (IDs: ${idsString})`,
+      dni: agente.dni,
+      numeroEmpleado: agente.numeroEmpleado || '',
+      apellidos: agente.apellidos,
+      nombres: agente.nombres,
+      idsSolicitudes: idsString,
+      origen: 'JUSTIFICACION'
+    });
 
     // Actualizar estado de todas las solicitudes seleccionadas
     datos.licenciasIds.forEach((id) => {
@@ -628,6 +704,39 @@ function enviarEmailJustificacion(agente, cantidadLicencias, archivoUrl, timesta
 // Obtener email del usuario actual
 function obtenerEmailUsuario() {
   return Session.getEffectiveUser().getEmail();
+}
+
+// Obtener novedades de la semana (desde lunes)
+function obtenerNovedadesSemana() {
+  const sheet = asegurarHojaNovedades_();
+  const data = sheet.getDataRange().getValues();
+  const lunes = obtenerLunesSemanaActual_();
+
+  const novedades = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const timestamp = data[i][0];
+    if (!(timestamp instanceof Date)) continue;
+
+    if (timestamp >= lunes) {
+      novedades.push({
+        timestamp: Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
+        tipo: String(data[i][1] || ''),
+        mensaje: String(data[i][2] || ''),
+        dni: String(data[i][3] || ''),
+        numeroEmpleado: String(data[i][4] || ''),
+        apellidos: String(data[i][5] || ''),
+        nombres: String(data[i][6] || ''),
+        idsSolicitudes: String(data[i][7] || ''),
+        origen: String(data[i][8] || '')
+      });
+    }
+  }
+
+  // Ordenar por más reciente primero
+  novedades.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  return novedades;
 }
 
 // Obtener todas las solicitudes
