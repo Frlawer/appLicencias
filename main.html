@@ -8,7 +8,7 @@
       <div class="flex gap-2">
         <input type="text" id="sol-dni" required placeholder="Ej: 12345678 o EMP001"
           class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        <button type="button" onclick="cargarCargosAgente()"
+        <button type="button" id="btn-buscar-cargos" onclick="cargarCargosAgente()"
           class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap">
           🔍 Buscar Cargos
         </button>
@@ -79,7 +79,7 @@
       </div>
     </div>
 
-    <button onclick="enviarSolicitud()"
+    <button id="btn-enviar-solicitud" onclick="enviarSolicitud()"
       class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
       ✓ Enviar Solicitud
     </button>

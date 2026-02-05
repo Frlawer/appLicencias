@@ -252,6 +252,27 @@
     }
 
     // Cargar cursos del agente según su DNI o N° Empleado
+    let cargandoCargos = false;
+
+    function setCargandoCargos(estado) {
+      cargandoCargos = estado;
+      const btnEnviar = document.getElementById('btn-enviar-solicitud');
+      const btnBuscar = document.getElementById('btn-buscar-cargos');
+
+      if (btnEnviar) {
+        btnEnviar.disabled = estado;
+        btnEnviar.classList.toggle('opacity-50', estado);
+        btnEnviar.classList.toggle('cursor-not-allowed', estado);
+      }
+
+      if (btnBuscar) {
+        btnBuscar.disabled = estado;
+        btnBuscar.classList.toggle('opacity-50', estado);
+        btnBuscar.classList.toggle('cursor-not-allowed', estado);
+        btnBuscar.textContent = estado ? '⏳ Buscando...' : '🔍 Buscar Cargos';
+      }
+    }
+
     function cargarCargosAgente() {
       const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
       const selectCurso = document.getElementById('sol-curso');
@@ -259,12 +280,14 @@
       if (!dniONumEmpleado) {
         selectCurso.innerHTML = '<option value="">Seleccione...</option>';
         selectCurso.disabled = true;
+        setCargandoCargos(false);
         return;
       }
 
       // Mostrar loading en el select
       selectCurso.innerHTML = '<option value="">Cargando cargos...</option>';
       selectCurso.disabled = true;
+      setCargandoCargos(true);
 
       google.script.run
         .withSuccessHandler(function(result) {
@@ -281,6 +304,11 @@
             selectCurso.innerHTML = '<option value="">Seleccione un curso...</option>';
             
             if (result.cargos && result.cargos.length > 0) {
+              const optionTodos = document.createElement('option');
+              optionTodos.value = 'Todos';
+              optionTodos.textContent = 'Todos';
+              selectCurso.appendChild(optionTodos);
+
               result.cargos.forEach(cargo => {
                 const option = document.createElement('option');
                 option.value = cargo.texto;
@@ -293,28 +321,46 @@
               selectCurso.innerHTML = '<option value="">No se encontraron cargos asignados</option>';
               mostrarToast('warning', 'Sin cargos', 'No se encontraron cargos asignados para este agente');
             }
+            setCargandoCargos(false);
           } else {
             selectCurso.innerHTML = '<option value="">Error al cargar cargos</option>';
             mostrarToast('error', 'Error', result.error || 'No se pudieron cargar los cargos');
+            setCargandoCargos(false);
           }
         })
         .withFailureHandler(function(error) {
           selectCurso.innerHTML = '<option value="">Error al cargar</option>';
           mostrarToast('error', 'Error', 'Error al obtener cargos: ' + error.message);
+          setCargandoCargos(false);
         })
         .obtenerCargosAgente(dniONumEmpleado);
     }
 
     function enviarSolicitud() {
+      if (cargandoCargos) {
+        mostrarToast('warning', 'Espere', 'Se están cargando los cargos. Intente nuevamente en unos segundos.');
+        return;
+      }
+
       const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
       const tipo = document.getElementById('sol-tipo').value;
       const desde = document.getElementById('sol-desde').value;
       const hasta = document.getElementById('sol-hasta').value;
       const curso = document.getElementById('sol-curso').value;
-      const articulacion = document.querySelector('input[name="sol-articulacion"]:checked').value;
+      const articulacionEl = document.querySelector('input[name="sol-articulacion"]:checked');
 
       if (!dniONumEmpleado || !tipo || !desde || !hasta) {
         mostrarToast('warning', 'Campos incompletos', 'Complete todos los campos obligatorios');
+        return;
+      }
+
+      if (!curso) {
+        mostrarToast('warning', 'Curso/Cargo requerido', 'Seleccione un curso/cargo antes de enviar');
+        return;
+      }
+
+      if (!articulacionEl) {
+        mostrarToast('warning', 'Articulación requerida', 'Seleccione si es horario de articulación');
         return;
       }
 
@@ -324,7 +370,7 @@
         fechaDesde: desde,
         fechaHasta: hasta,
         cursoOCargo: curso,
-        articulacion: articulacion
+        articulacion: articulacionEl.value
       };
 
       mostrarLoading(true);
