@@ -8,6 +8,7 @@ function doGet(e) {
     
     return HtmlService.createHtmlOutputFromFile('admin')
       .setTitle('Dashboard Admin - CPEM 25')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
   
@@ -15,6 +16,7 @@ function doGet(e) {
   return HtmlService.createTemplateFromFile('web')
     .evaluate()
     .setTitle('Sistema de Licencias CPEM 25')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
