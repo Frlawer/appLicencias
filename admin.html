@@ -1323,7 +1323,7 @@
           document.getElementById('loading').classList.add('hidden');
           
           if (result.success) {
-            const emailsList = result.emails.join('\n');
+            const emailsList = result.emails.join(',');
             document.getElementById('emails-box').textContent = emailsList;
             document.getElementById('modal-emails-jornada').classList.remove('hidden');
           } else {
