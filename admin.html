@@ -976,7 +976,7 @@
 
         tr.innerHTML = `
           <td class="px-3 py-3 text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
-          <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.nombres} ${sol.apellidos}</td>
+          <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.apellidos} ${sol.nombres}</td>
           <td class="px-3 py-3 text-sm text-gray-500">${sol.dni}</td>
           <td class="px-3 py-3 text-sm text-gray-900">${sol.numeroEmpleado}</td>
           <td class="px-3 py-3 text-sm text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
@@ -989,10 +989,10 @@
             <td class="px-3 py-3 text-sm">
               <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
                 class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
-              <button onclick="abrirModalEmail('${sol.email}', '${sol.nombres} ${sol.apellidos}')" 
+              <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos} ${sol.nombres}')" 
                 class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
               <div class="mt-1">
-                <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.nombres} ${sol.apellidos}')" 
+                <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos} ${sol.nombres}')" 
                   class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
               </div>
             </td>
@@ -1124,7 +1124,7 @@
 
         tr.innerHTML = `
           <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-900">${formatearFecha(just.timestamp)}</td>
-          <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${just.nombres} ${just.apellidos}</td>
+          <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${just.apellidos} ${just.nombres}</td>
           <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.dni}</td>
           <td class="px-3 py-4 text-sm text-gray-500">${renderIds(just.idsSolicitudes)}</td>
           <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.cantidadLicencias}
@@ -1133,7 +1133,7 @@
             ${renderArchivos(just.archivoUrl)}
           </td>
           <td class="px-3 py-4 whitespace-nowrap text-sm">
-            <button onclick="abrirModalEmail('${just.email}', '${just.nombres} ${just.apellidos}')" 
+                <button onclick="abrirModalEmail('${just.email}', '${just.apellidos} ${just.nombres}')" 
                     class="text-green-600 hover:text-green-800">📧 Email</button>
           </td>
         `;
@@ -1250,7 +1250,7 @@
 
         tr.innerHTML = `
           <td class="px-3 py-3 text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
-          <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.nombres} ${sol.apellidos}</td>
+          <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.apellidos} ${sol.nombres}</td>
           <td class="px-3 py-3 text-sm text-gray-500">${sol.dni}</td>
           <td class="px-3 py-3 text-sm text-gray-900">${sol.numeroEmpleado}</td>
           <td class="px-3 py-3 text-sm text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
@@ -1264,10 +1264,10 @@
           <td class="px-3 py-3 text-sm">
             <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
               class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
-            <button onclick="abrirModalEmail('${sol.email}', '${sol.nombres} ${sol.apellidos}')" 
+            <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos} ${sol.nombres}')" 
               class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
             <div class="mt-1">
-              <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.nombres} ${sol.apellidos}')" 
+              <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos} ${sol.nombres}')" 
                 class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
             </div>
           </td>
@@ -1654,7 +1654,7 @@
       cont.innerHTML = `
         <div><span class="text-gray-500">ID</span><div class="font-semibold">${sol.id}</div></div>
         <div><span class="text-gray-500">Estado</span><div><span class="px-2 py-1 text-xs font-semibold rounded ${estadoClass(sol.estado)}">${sol.estado}</span></div></div>
-        <div><span class="text-gray-500">Docente</span><div class="font-semibold">${sol.nombres} ${sol.apellidos}</div></div>
+        <div><span class="text-gray-500">Docente</span><div class="font-semibold">${sol.apellidos} ${sol.nombres}</div></div>
         <div><span class="text-gray-500">Email</span><div>${sol.email || '-'}</div></div>
         <div><span class="text-gray-500">DNI</span><div>${sol.dni}</div></div>
         <div><span class="text-gray-500">N° Empleado</span><div>${sol.numeroEmpleado}</div></div>
@@ -2216,7 +2216,7 @@
       } else {
         // Filtrar localmente
         solicitudesFiltradas = solicitudesData.filter(sol => {
-          const nombreCompleto = `${sol.nombres} ${sol.apellidos}`.toLowerCase();
+          const nombreCompleto = `${sol.apellidos} ${sol.nombres}`.toLowerCase();
           const cumpleNombre = !nombre || nombreCompleto.includes(nombre);
           const cumpleDni = !dni || sol.dni.toLowerCase().includes(dni);
           const cumpleEmpleado = !empleado || sol.numeroEmpleado.toLowerCase().includes(empleado);
@@ -2265,7 +2265,7 @@
       } else {
         // Filtrar localmente
         justificacionesFiltradas = justificacionesData.filter(just => {
-          const nombreCompleto = `${just.nombres} ${just.apellidos}`.toLowerCase();
+          const nombreCompleto = `${just.apellidos} ${just.nombres}`.toLowerCase();
           const cumpleNombre = !nombre || nombreCompleto.includes(nombre);
           const cumpleDni = !dni || just.dni.toLowerCase().includes(dni);
           const cumpleEmpleado = !empleado || (just.numeroEmpleado && just.numeroEmpleado.toLowerCase().includes(empleado));
