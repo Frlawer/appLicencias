@@ -1191,15 +1191,16 @@
     }
 
     function filtrarDescuentosInjustificados(solicitudes, justificaciones) {
-      const idsJustificados = obtenerIdsJustificados(justificaciones || []);
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
 
       return (solicitudes || []).filter(sol => {
         const estadoNorm = normalizarTexto(sol.estado);
-        const tipoNorm = normalizarTexto(sol.tipoLicencia);
-        const esDescuento = estadoNorm === 'descuento' || tipoNorm === 'descuento';
-        const estadoOk = estadoNorm === 'pendiente';
+        const estadoOk =
+          estadoNorm === 'injustificado' ||
+          estadoNorm === 'injustificada' ||
+          estadoNorm === 'autorizado' ||
+          estadoNorm === 'autorizada';
 
         const fechaHasta = parseFechaLocal(sol.fechaHasta);
         if (!fechaHasta) return false;
@@ -1207,10 +1208,7 @@
         const diffDias = (hoy - fechaHasta) / (1000 * 60 * 60 * 24);
         const fechaOk = diffDias > 3;
 
-        const id = String(sol.id || '').trim();
-        const sinJustificacion = id && !idsJustificados.has(id);
-
-        return esDescuento && estadoOk && fechaOk && sinJustificacion;
+        return estadoOk && fechaOk;
       });
     }
 
