@@ -87,6 +87,12 @@
           <span>Justificaciones</span>
         </a>
 
+        <a href="#" onclick="cambiarVista('descuentos'); return false;" id="menu-descuentos"
+          class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
+          <span>⚠️</span>
+          <span>Descuentos/injustificados</span>
+        </a>
+
         <a href="#" onclick="cambiarVista('jornada'); return false;" id="menu-jornada"
           class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-700">
           <span>📁</span>
@@ -377,6 +383,74 @@
         </div>
       </div>
 
+      <!-- Vista Descuentos/Injustificados -->
+      <div id="vista-descuentos" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="p-4 border-b bg-gray-50">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-700">🧾 Descuentos/Injustificados</h3>
+                <p class="text-xs text-gray-500">Estado/Tipo Descuento, estado ≠ Pendiente/Completado, fecha hasta con más de 3 días y sin justificación.</p>
+              </div>
+              <button onclick="cargarDescuentosInjustificados()"
+                class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                🔄 Actualizar
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ARRIBA) -->
+          <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Mostrando <span id="descuentos-inicio">1</span> a <span id="descuentos-fin">25</span> de <span id="descuentos-total">0</span> registros
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="paginaAnteriorDescuentos()" id="btn-anterior-descuentos"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Anterior
+              </button>
+              <div id="numeros-pagina-descuentos" class="flex gap-1">
+                <!-- Se llena dinámicamente -->
+              </div>
+              <button onclick="paginaSiguienteDescuentos()" id="btn-siguiente-descuentos"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Siguiente →
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Empleado</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechas</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curso/Cargo</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Articulación</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Licencia</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-descuentos" class="bg-white divide-y divide-gray-200">
+                <!-- Se llenará dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-t flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Página <span id="descuentos-pagina-actual">1</span> de <span id="descuentos-total-paginas">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Vista jornada -->
       <div id="vista-jornada" class="p-6 hidden">
         <div class="bg-white rounded-lg shadow p-6 mb-6">
@@ -655,6 +729,7 @@
   <script>
     let solicitudesData = [];
     let justificacionesData = [];
+    let descuentosInjustificadosData = [];
     let registroEditando = null;
     let emailData = null;
     let agentesJornadaData = [];
@@ -663,6 +738,7 @@
     // ========== VARIABLES DE PAGINACIÓN ==========
     let paginaActualSolicitudes = 1;
     let paginaActualJustificaciones = 1;
+    let paginaActualDescuentos = 1;
     const REGISTROS_POR_PAGINA = 25; // Cambiar a 20 o 50 según preferencia
 
     // ========== VARIABLES DE BÚSQUEDA Y FILTROS ==========
@@ -763,6 +839,7 @@
       document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
       document.getElementById('vista-solicitudes').classList.add('hidden');
       document.getElementById('vista-justificaciones').classList.add('hidden');
+      document.getElementById('vista-descuentos').classList.add('hidden');
       document.getElementById('vista-jornada').classList.add('hidden');
       document.getElementById('vista-siso').classList.add('hidden');
       document.getElementById('vista-agregar').classList.add('hidden');
@@ -779,6 +856,12 @@
         document.getElementById('subtitulo-seccion').textContent = 'Revise los archivos justificatorios';
         document.getElementById('vista-justificaciones').classList.remove('hidden');
         cargarJustificaciones();
+      } else if (vista === 'descuentos') {
+        document.getElementById('menu-descuentos').classList.add('active');
+        document.getElementById('titulo-seccion').textContent = 'Descuentos/Injustificados';
+        document.getElementById('subtitulo-seccion').textContent = 'Solicitudes con descuento sin justificación válida';
+        document.getElementById('vista-descuentos').classList.remove('hidden');
+        cargarDescuentosInjustificados();
       } else if (vista === 'jornada') {
         document.getElementById('menu-jornada').classList.add('active');
         document.getElementById('titulo-seccion').textContent = 'Registros de Jornada';
@@ -802,9 +885,18 @@
     function recargarDatos() {
       // Limpiar caché para forzar recarga desde GAS
       limpiarTodoCache();
-      
-      const vistaActual = document.getElementById('vista-solicitudes').classList.contains('hidden') ? 'justificaciones' : 'solicitudes';
+
+      const vistaActual = obtenerVistaActual();
       cambiarVista(vistaActual);
+    }
+
+    function obtenerVistaActual() {
+      const vistas = ['solicitudes', 'justificaciones', 'descuentos', 'jornada', 'siso', 'agregar'];
+      for (const vista of vistas) {
+        const el = document.getElementById(`vista-${vista}`);
+        if (el && !el.classList.contains('hidden')) return vista;
+      }
+      return 'solicitudes';
     }
 
     // Cargar solicitudes
@@ -1043,6 +1135,143 @@
           <td class="px-3 py-4 whitespace-nowrap text-sm">
             <button onclick="abrirModalEmail('${just.email}', '${just.nombres} ${just.apellidos}')" 
                     class="text-green-600 hover:text-green-800">📧 Email</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Cargar descuentos/injustificados
+    function cargarDescuentosInjustificados() {
+      document.getElementById('loading').classList.remove('hidden');
+      paginaActualDescuentos = 1; // Reset a página 1
+
+      const cacheSol = obtenerCacheSolicitudes();
+      const cacheJust = obtenerCacheJustificaciones();
+
+      if (cacheSol && cacheJust) {
+        solicitudesData = cacheSol;
+        justificacionesData = cacheJust;
+        document.getElementById('loading').classList.add('hidden');
+        actualizarDescuentosInjustificados();
+        mostrarToast('info', 'Caché', 'Datos cargados desde caché local (5 min)');
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function (dataSolicitudes) {
+          // Validar datos de solicitudes
+          solicitudesData = Array.isArray(dataSolicitudes) ? dataSolicitudes.reverse() : [];
+          guardarCacheSolicitudes(solicitudesData);
+
+          google.script.run
+            .withSuccessHandler(function (dataJustificaciones) {
+              justificacionesData = Array.isArray(dataJustificaciones) ? dataJustificaciones.reverse() : [];
+              guardarCacheJustificaciones(justificacionesData);
+              document.getElementById('loading').classList.add('hidden');
+              actualizarDescuentosInjustificados();
+              mostrarToast('success', 'Datos', `${descuentosInjustificadosData.length} solicitudes encontradas`);
+            })
+            .withFailureHandler(function (error) {
+              document.getElementById('loading').classList.add('hidden');
+              mostrarToast('error', 'Error', 'Error al cargar justificaciones: ' + error.message);
+            })
+            .obtenerTodasJustificaciones();
+        })
+        .withFailureHandler(function (error) {
+          document.getElementById('loading').classList.add('hidden');
+          mostrarToast('error', 'Error', 'Error al cargar solicitudes: ' + error.message);
+        })
+        .obtenerTodasSolicitudes();
+    }
+
+    function actualizarDescuentosInjustificados() {
+      descuentosInjustificadosData = filtrarDescuentosInjustificados(solicitudesData, justificacionesData);
+      renderizarDescuentosInjustificadosPaginadas();
+    }
+
+    function filtrarDescuentosInjustificados(solicitudes, justificaciones) {
+      const idsJustificados = obtenerIdsJustificados(justificaciones || []);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+
+      return (solicitudes || []).filter(sol => {
+        const estadoNorm = normalizarTexto(sol.estado);
+        const tipoNorm = normalizarTexto(sol.tipoLicencia);
+        const esDescuento = estadoNorm === 'descuento' || tipoNorm === 'descuento';
+        const estadoOk = estadoNorm === 'pendiente';
+
+        const fechaHasta = parseFechaLocal(sol.fechaHasta);
+        if (!fechaHasta) return false;
+        fechaHasta.setHours(0, 0, 0, 0);
+        const diffDias = (hoy - fechaHasta) / (1000 * 60 * 60 * 24);
+        const fechaOk = diffDias > 3;
+
+        const id = String(sol.id || '').trim();
+        const sinJustificacion = id && !idsJustificados.has(id);
+
+        return esDescuento && estadoOk && fechaOk && sinJustificacion;
+      });
+    }
+
+    function obtenerIdsJustificados(justificaciones) {
+      const ids = new Set();
+      justificaciones.forEach(just => {
+        const raw = String(just.idsSolicitudes || '');
+        raw.split(',').map(s => s.trim()).filter(Boolean).forEach(id => ids.add(id));
+      });
+      return ids;
+    }
+
+    function normalizarTexto(valor) {
+      return String(valor || '').trim().toLowerCase();
+    }
+
+    // Renderizar descuentos/injustificados
+    function renderizarDescuentosInjustificados(solicitudes) {
+      const tbody = document.getElementById('tabla-descuentos');
+      tbody.innerHTML = '';
+
+      if (!solicitudes || !Array.isArray(solicitudes)) {
+        tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+        return;
+      }
+
+      if (solicitudes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay solicitudes para mostrar</td></tr>';
+        return;
+      }
+
+      solicitudes.forEach(sol => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+
+        const estadoColor = sol.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
+          sol.estado === 'Autorizado' ? 'bg-green-100 text-green-800' :
+            'bg-blue-100 text-blue-800';
+
+        tr.innerHTML = `
+          <td class="px-3 py-3 text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
+          <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.nombres} ${sol.apellidos}</td>
+          <td class="px-3 py-3 text-sm text-gray-500">${sol.dni}</td>
+          <td class="px-3 py-3 text-sm text-gray-900">${sol.numeroEmpleado}</td>
+          <td class="px-3 py-3 text-sm text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
+          <td class="px-3 py-3 text-xs text-gray-500">${sol.cursoOCargo || '-'}</td>
+          <td class="px-3 py-3 text-sm text-gray-900">${sol.articulacion}</td>
+          <td class="px-3 py-3 text-sm text-gray-900">${sol.tipoLicencia}</td>
+          <td class="px-3 py-3 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
+          </td>
+          <td class="px-3 py-3 text-xs text-gray-600">${sol.id || '-'}</td>
+          <td class="px-3 py-3 text-sm">
+            <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
+              class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
+            <button onclick="abrirModalEmail('${sol.email}', '${sol.nombres} ${sol.apellidos}')" 
+              class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
+            <div class="mt-1">
+              <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.nombres} ${sol.apellidos}')" 
+                class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
@@ -1861,6 +2090,53 @@
       renderizarJustificacionesPaginadas();
     }
 
+    // ===== DESCUENTOS/INJUSTIFICADOS =====
+    function renderizarDescuentosInjustificadosPaginadas() {
+      const datosAMostrar = descuentosInjustificadosData || [];
+      const totalPaginas = obtenerTotalPaginas(datosAMostrar.length);
+
+      if (paginaActualDescuentos > totalPaginas) {
+        paginaActualDescuentos = Math.max(1, totalPaginas);
+      }
+
+      const registrosPagina = obtenerRegistrosPaginados(datosAMostrar, paginaActualDescuentos);
+      const inicio = (paginaActualDescuentos - 1) * REGISTROS_POR_PAGINA;
+      const fin = Math.min(inicio + REGISTROS_POR_PAGINA, datosAMostrar.length);
+
+      document.getElementById('descuentos-inicio').textContent = datosAMostrar.length === 0 ? 0 : inicio + 1;
+      document.getElementById('descuentos-fin').textContent = fin;
+      document.getElementById('descuentos-total').textContent = datosAMostrar.length;
+      document.getElementById('descuentos-pagina-actual').textContent = paginaActualDescuentos;
+      document.getElementById('descuentos-total-paginas').textContent = totalPaginas;
+
+      document.getElementById('btn-anterior-descuentos').disabled = paginaActualDescuentos === 1;
+      document.getElementById('btn-siguiente-descuentos').disabled = paginaActualDescuentos === totalPaginas;
+
+      generarNumerosPagina('descuentos', paginaActualDescuentos, totalPaginas);
+
+      renderizarDescuentosInjustificados(registrosPagina);
+    }
+
+    function paginaAnteriorDescuentos() {
+      if (paginaActualDescuentos > 1) {
+        paginaActualDescuentos--;
+        renderizarDescuentosInjustificadosPaginadas();
+      }
+    }
+
+    function paginaSiguienteDescuentos() {
+      const totalPaginas = obtenerTotalPaginas(descuentosInjustificadosData.length);
+      if (paginaActualDescuentos < totalPaginas) {
+        paginaActualDescuentos++;
+        renderizarDescuentosInjustificadosPaginadas();
+      }
+    }
+
+    function irAPaginaDescuentos(pagina) {
+      paginaActualDescuentos = pagina;
+      renderizarDescuentosInjustificadosPaginadas();
+    }
+
     // Generar números de página (máximo 7 botones)
     function generarNumerosPagina(tipo, paginaActual, totalPaginas) {
       const contenedor = document.getElementById(`numeros-pagina-${tipo}`);
@@ -1884,7 +2160,11 @@
             : 'border border-gray-300 hover:bg-gray-50'
         }`;
         btn.textContent = i;
-        btn.onclick = () => tipo === 'solicitudes' ? irAPaginaSolicitudes(i) : irAPaginaJustificaciones(i);
+        btn.onclick = () => {
+          if (tipo === 'solicitudes') return irAPaginaSolicitudes(i);
+          if (tipo === 'justificaciones') return irAPaginaJustificaciones(i);
+          if (tipo === 'descuentos') return irAPaginaDescuentos(i);
+        };
         contenedor.appendChild(btn);
       }
     }
@@ -1901,7 +2181,11 @@
       
       paginaActualSolicitudes = 1;
       paginaActualJustificaciones = 1;
+      paginaActualDescuentos = 1;
       renderizarSolicitudesPaginadas();
+      if (!document.getElementById('vista-descuentos').classList.contains('hidden')) {
+        renderizarDescuentosInjustificadosPaginadas();
+      }
       mostrarToast('info', 'Paginación', `Ahora mostrando ${valor} registros por página`);
     }
 
