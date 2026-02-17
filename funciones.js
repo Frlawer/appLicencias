@@ -36,6 +36,7 @@ const SHEET_SOLICITUDES = 'SOLICITUDES';
 const SHEET_JUSTIFICACIONES = 'JUSTIFICACIONES';
 const SHEET_SISO = 'SISO';
 const SHEET_NOVEDADES = 'NOVEDADES';
+const SHEET_LICENCIAS = 'LICENCIAS'; // Hoja de catálogo de licencias
 const FOLDER_ARCHIVOS_ID = '1-48O-hpqqbINKbqdvZPVLT0jjzTCOEBz'; // ID de la carpeta en Drive
 
 // ID de la plantilla de Gmail para emails
@@ -169,6 +170,49 @@ function obtenerAgente(dniONumEmpleado) {
   } catch (error) {
     Logger.log('Error al obtener agente: ' + error.toString());
     throw new Error('Error al acceder a la hoja de agentes: ' + error.toString());
+  }
+}
+
+// === OBTENER LICENCIAS (desde hoja LICENCIAS) ===
+// Lee la Sheet "LICENCIAS" y retorna array con: nombre, dias_totales, tipo_dias
+function obtenerLicencias() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_LICENCIAS);
+    
+    if (!sheet) {
+      Logger.log('Advertencia: No se encontró la hoja "' + SHEET_LICENCIAS + '"');
+      return [];
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const licencias = [];
+    
+    // Saltar encabezado (fila 0)
+    // Columna A (0): nombre licencia
+    // Columna B (1): dias_totales
+    // Columna C (2): tipo_dias (habiles/continuos)
+    // Columna D (3): activa (SI/NO)
+    for (let i = 1; i < data.length; i++) {
+      const nombre = data[i][0] ? data[i][0].toString().trim() : '';
+      const diasTotales = data[i][1];
+      const tipoDias = data[i][2] ? data[i][2].toString().trim().toLowerCase() : 'continuos';
+      const activa = data[i][3] ? data[i][3].toString().trim().toUpperCase() : 'SI';
+      
+      // Solo incluir si está activa y tiene nombre
+      if (nombre && activa === 'SI') {
+        licencias.push({
+          nombre: nombre,
+          dias_totales: diasTotales,
+          tipo_dias: tipoDias
+        });
+      }
+    }
+    
+    return licencias;
+  } catch (error) {
+    Logger.log('Error al obtener licencias: ' + error.toString());
+    return [];
   }
 }
 

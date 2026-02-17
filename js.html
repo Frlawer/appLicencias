@@ -3,6 +3,41 @@
     let agenteActual = null;
 
     // ========================================
+    // === CARGAR LICENCIAS DESDE LA SHEET ===
+    // ========================================
+    function cargarLicenciasEnSelect() {
+      const selectTipo = document.getElementById('sol-tipo');
+      
+      if (!selectTipo) return;
+      
+      google.script.run
+        .withSuccessHandler(function(licencias) {
+          console.log('Licencias cargadas:', licencias);
+          
+          if (!licencias || licencias.length === 0) {
+            selectTipo.innerHTML = '<option value="">No hay licencias disponibles</option>';
+            return;
+          }
+          
+          // Limpiar y agregar opción por defecto
+          selectTipo.innerHTML = '<option value="">Seleccione una licencia...</option>';
+          
+          // Agregar cada licencia como opción
+          licencias.forEach(lic => {
+            const option = document.createElement('option');
+            option.value = lic.nombre;
+            option.textContent = lic.nombre;
+            selectTipo.appendChild(option);
+          });
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error al cargar licencias:', error);
+          selectTipo.innerHTML = '<option value="">Error al cargar licencias</option>';
+        })
+        .obtenerLicencias();
+    }
+
+    // ========================================
     // === FUNCIONES DE OPTIMIZACIÓN DE ARCHIVOS ===
     // ========================================
 
@@ -593,6 +628,9 @@
 
     // Event listener para mostrar info del archivo seleccionado
     document.addEventListener('DOMContentLoaded', function() {
+      // Cargar licencias desde la Sheet
+      cargarLicenciasEnSelect();
+      
       const inputArchivo = document.getElementById('just-archivo');
       if (inputArchivo) {
         inputArchivo.addEventListener('change', function(e) {
