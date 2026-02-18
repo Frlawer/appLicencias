@@ -36,13 +36,12 @@
     <!-- Selector de formulario -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <button onclick="cambiarStep(1)" id="btn-step-1" 
-        class="btn-primary py-4 px-6 flex items-center justify-center gap-2 shadow-md">
+        class="section-toggle section-toggle--solicitud is-active py-4 px-6 flex items-center justify-center gap-2 shadow-md">
         <span class="material-icons">description</span>
         <span class="font-bold">Solicitar Licencia</span>
       </button>
       <button onclick="cambiarStep(2)" id="btn-step-2" 
-        class="py-4 px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
-        style="background: var(--text-secondary); color: white;">
+        class="section-toggle section-toggle--justificacion py-4 px-6 flex items-center justify-center gap-2">
         <span class="material-icons">upload_file</span>
         <span class="font-bold">Cargar Constancia de Justificación</span>
       </button>

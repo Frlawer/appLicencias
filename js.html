@@ -1,6 +1,7 @@
   <script>
     let solicitudesSeleccionadas = [];
     let agenteActual = null;
+    let currentStep = 1;
 
     // ========================================
     // === CARGAR LICENCIAS DESDE LA SHEET ===
@@ -246,22 +247,52 @@
       return `${dia}/${mes}/${anio}`;
     }
 
-    function cambiarStep(step) {
+    function actualizarBotonesSeccion(step) {
       const btn1 = document.getElementById('btn-step-1');
       const btn2 = document.getElementById('btn-step-2');
+
+      if (!btn1 || !btn2) return;
+
+      btn1.classList.toggle('is-active', step === 1);
+      btn2.classList.toggle('is-active', step === 2);
+    }
+
+    function mostrarSeccionConTransicion(formMostrar, formOcultar) {
+      if (!formMostrar || !formOcultar || formMostrar === formOcultar) return;
+
+      formOcultar.classList.remove('section-fade-in');
+      formOcultar.classList.add('section-fade-out');
+
+      setTimeout(() => {
+        formOcultar.classList.add('hidden');
+        formOcultar.classList.remove('section-fade-out');
+
+        formMostrar.classList.remove('hidden', 'section-fade-out');
+        formMostrar.classList.add('section-fade-in');
+
+        setTimeout(() => {
+          formMostrar.classList.remove('section-fade-in');
+        }, 320);
+      }, 180);
+    }
+
+    function cambiarStep(step) {
       const form1 = document.getElementById('form-solicitud');
       const form2 = document.getElementById('form-justificacion');
 
+      currentStep = step;
+      actualizarBotonesSeccion(step);
+
+      if (!form1 || !form2) return;
+
       if (step === 1) {
-        btn1.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-600 text-white shadow-lg';
-        btn2.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-300 text-gray-600 hover:bg-gray-50';
-        form1.classList.remove('hidden');
-        form2.classList.add('hidden');
+        if (form1.classList.contains('hidden')) {
+          mostrarSeccionConTransicion(form1, form2);
+        }
       } else {
-        btn1.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-300 text-gray-600 hover:bg-gray-50';
-        btn2.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-600 text-white shadow-lg';
-        form1.classList.add('hidden');
-        form2.classList.remove('hidden');
+        if (form2.classList.contains('hidden')) {
+          mostrarSeccionConTransicion(form2, form1);
+        }
       }
     }
 
@@ -276,8 +307,7 @@
         form2.classList.add('hidden');
       } else {
         loading.classList.add('hidden');
-        const step = document.getElementById('btn-step-1').className.includes('bg-blue-600') ? 1 : 2;
-        if (step === 1) {
+        if (currentStep === 1) {
           form1.classList.remove('hidden');
         } else {
           form2.classList.remove('hidden');
@@ -630,6 +660,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Cargar licencias desde la Sheet
       cargarLicenciasEnSelect();
+      actualizarBotonesSeccion(currentStep);
       
       const inputArchivo = document.getElementById('just-archivo');
       if (inputArchivo) {
