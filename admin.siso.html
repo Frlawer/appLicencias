@@ -1,0 +1,129 @@
+<script>
+  let csvData = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const inputCsv = document.getElementById('csv-siso');
+    if (inputCsv) {
+      inputCsv.addEventListener('change', function(e) {
+        const archivo = e.target.files[0];
+        if (archivo) {
+          if (!archivo.name.endsWith('.csv')) {
+            mostrarToast('error', 'Formato inválido', 'Solo se permiten archivos CSV');
+            e.target.value = '';
+            return;
+          }
+          procesarCSV(archivo);
+        }
+      });
+    }
+  });
+
+  function procesarCSV(archivo) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const contenido = e.target.result;
+      const lineas = contenido.split('\n').filter(l => l.trim());
+
+      if (lineas.length < 2) {
+        mostrarToast('error', 'CSV vacío', 'El archivo no contiene datos');
+        return;
+      }
+
+      const datos = lineas.map(linea => {
+        const campos = [];
+        let campoActual = '';
+        let dentroComillas = false;
+
+        for (let i = 0; i < linea.length; i++) {
+          const char = linea[i];
+          if (char === '"') {
+            dentroComillas = !dentroComillas;
+          } else if (char === ';' && !dentroComillas) {
+            campos.push(campoActual.trim());
+            campoActual = '';
+          } else {
+            campoActual += char;
+          }
+        }
+        campos.push(campoActual.trim());
+        return campos;
+      });
+
+      csvData = datos;
+      mostrarVistaPrevia(datos);
+      document.getElementById('btn-cargar-csv').disabled = false;
+    };
+    reader.onerror = function() {
+      mostrarToast('error', 'Error de lectura', 'No se pudo leer el archivo');
+    };
+    reader.readAsText(archivo);
+  }
+
+  function mostrarVistaPrevia(datos) {
+    const preview = document.getElementById('preview-csv');
+    const tabla = document.getElementById('tabla-preview-csv');
+    const info = document.getElementById('info-csv');
+
+    preview.classList.remove('hidden');
+
+    const filasMostrar = Math.min(5, datos.length);
+    let html = '';
+
+    if (datos.length > 0) {
+      html += '<thead class="bg-gray-100"><tr>';
+      datos[0].forEach(col => {
+        html += `<th class="px-3 py-2 text-left font-medium text-gray-700">${col}</th>`;
+      });
+      html += '</tr></thead>';
+    }
+
+    html += '<tbody class="divide-y divide-gray-200">';
+    for (let i = 1; i < filasMostrar; i++) {
+      html += '<tr class="hover:bg-gray-50">';
+      datos[i].forEach(celda => {
+        html += `<td class="px-3 py-2 text-gray-600">${celda}</td>`;
+      });
+      html += '</tr>';
+    }
+    html += '</tbody>';
+
+    tabla.innerHTML = html;
+    info.textContent = `Total: ${datos.length - 1} registros, ${datos[0].length} columnas`;
+  }
+
+  function cargarCSV() {
+    if (!csvData || csvData.length < 2) {
+      mostrarToast('warning', 'Sin datos', 'No hay datos para cargar');
+      return;
+    }
+
+    if (!confirm(`¿Guardar ${csvData.length - 1} registros en la hoja SISO?`)) {
+      return;
+    }
+
+    document.getElementById('loading').classList.remove('hidden');
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          mostrarToast('success', 'Datos guardados', `${result.registros} registros guardados en SISO`);
+          cancelarCSV();
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudieron guardar los datos');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al guardar: ' + error.message);
+      })
+      .guardarDatosCSV(csvData);
+  }
+
+  function cancelarCSV() {
+    document.getElementById('csv-siso').value = '';
+    document.getElementById('preview-csv').classList.add('hidden');
+    document.getElementById('btn-cargar-csv').disabled = true;
+    csvData = null;
+  }
+</script>

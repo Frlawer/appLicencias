@@ -10,6 +10,38 @@ https://script.google.com/macros/s/TU_DEPLOYMENT_ID/exec?page=admin
 
 **Importante:** Solo usuarios con permisos de edición en el script de Google Apps Script podrán acceder.
 
+## 🔒 Control de Acceso (lista blanca)
+
+Ahora el acceso administrativo también puede restringirse por propiedad de script:
+
+- Clave: `ADMIN_ALLOWED_EMAILS`
+- Valor: lista separada por comas, por ejemplo:
+
+```text
+admin1@dominio.com,admin2@dominio.com
+```
+
+Si la propiedad está vacía o no existe, se mantiene el comportamiento abierto para usuarios autenticados que lleguen al endpoint admin.
+
+## 🧩 Organización backend actual (modular)
+
+Se separaron responsabilidades en archivos `.gs` independientes:
+
+- `config.gs`: configuración y lecturas desde `ScriptProperties`
+- `auth.admin.gs`: autorización de operaciones administrativas
+- `novedades.service.gs`: registro y persistencia de novedades
+- `email.service.gs`: armado de borradores de correo
+- `siso.service.gs`: carga y formateo de CSV en hoja SISO
+- `agentes.service.gs`: consultas de agentes/cargos/emails y listado de jornada
+- `admin.service.gs`: consultas/acciones administrativas sobre solicitudes y justificaciones
+- `funciones.js`: flujo principal de negocio y endpoints
+- `admin.cache.html`: helpers de caché local del dashboard
+- `admin.novedades.html`: helpers del banner de actividad reciente
+- `admin.pagination.html`: paginación de solicitudes/justificaciones/descuentos
+- `admin.filters.html`: filtros locales del dashboard
+
+Funciones de pruebas manuales se movieron a `testing.dev.gs`.
+
 ## 📊 Funcionalidades del Dashboard
 
 ### 1. **Gestión de Solicitudes**

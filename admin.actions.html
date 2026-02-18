@@ -1,0 +1,292 @@
+<script>
+  function abrirModalEstado(rowIndex, tipo) {
+    registroEditando = { rowIndex, tipo };
+    document.getElementById('modal-estado').classList.remove('hidden');
+  }
+
+  function cerrarModal() {
+    document.getElementById('modal-estado').classList.add('hidden');
+    registroEditando = null;
+  }
+
+  function guardarCambioEstado() {
+    const nuevoEstado = document.getElementById('nuevo-estado').value;
+
+    if (!registroEditando) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          mostrarToast('success', 'Estado actualizado', 'Estado actualizado correctamente');
+          cerrarModal();
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo actualizar');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al actualizar: ' + error.message);
+      })
+      .actualizarEstadoFila(registroEditando.rowIndex, nuevoEstado);
+  }
+
+  function eliminarSolicitud(rowIndex, nombreDocente) {
+    const mensaje = `¿Eliminar la solicitud de ${nombreDocente}?\nEsta acción no se puede deshacer.`;
+    if (!confirm(mensaje)) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          mostrarToast('success', 'Solicitud eliminada', 'La solicitud fue eliminada correctamente');
+          limpiarTodoCache();
+          cargarSolicitudes();
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo eliminar la solicitud');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al eliminar: ' + error.message);
+      })
+      .eliminarSolicitud(rowIndex);
+  }
+
+  function abrirModalEmail(email, nombre) {
+    emailData = { email, nombre };
+    document.getElementById('email-docente').value = email;
+    document.getElementById('mensaje-email').value = '';
+    document.getElementById('modal-email').classList.remove('hidden');
+  }
+
+  function cerrarModalEmail() {
+    document.getElementById('modal-email').classList.add('hidden');
+    emailData = null;
+  }
+
+  function enviarEmailDocente() {
+    const mensaje = document.getElementById('mensaje-email').value.trim();
+
+    if (!mensaje) {
+      mostrarToast('warning', 'Falta mensaje', 'Por favor ingrese un mensaje');
+      return;
+    }
+
+    if (!emailData) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          mostrarToast('success', 'Email listo', 'Email enviado correctamente (borrador creado)');
+          cerrarModalEmail();
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo enviar el email');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al enviar: ' + error.message);
+      })
+      .enviarEmailAdmin(emailData.email, emailData.nombre, mensaje);
+  }
+
+  function buscarSolicitudPorId() {
+    const id = (document.getElementById('busqueda-solicitud-id').value || '').trim();
+    if (!id) {
+      mostrarToast('warning', 'ID requerido', 'Ingrese un ID de solicitud');
+      return;
+    }
+    verSolicitudPorId(id);
+  }
+
+  function verSolicitudPorId(idSolicitud) {
+    document.getElementById('loading').classList.remove('hidden');
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success && result.solicitud) {
+          abrirModalSolicitud(result.solicitud);
+        } else {
+          mostrarToast('error', 'No encontrada', result.error || 'No se encontró la solicitud');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al obtener la solicitud: ' + error.message);
+      })
+      .obtenerSolicitudPorId(idSolicitud);
+  }
+
+  function estadoClass(estado) {
+    switch (estado) {
+      case 'Pendiente': return 'bg-yellow-100 text-yellow-800';
+      case 'Autorizada': return 'bg-green-100 text-green-800';
+      case 'Justificada': return 'bg-blue-100 text-blue-800';
+      case 'Completada': return 'bg-gray-200 text-gray-800';
+      case 'Injustificada': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  function abrirModalSolicitud(sol) {
+    const cont = document.getElementById('detalle-solicitud');
+    cont.innerHTML = `
+      <div><span class="text-gray-500">ID</span><div class="font-semibold">${sol.id}</div></div>
+      <div><span class="text-gray-500">Estado</span><div><span class="px-2 py-1 text-xs font-semibold rounded ${estadoClass(sol.estado)}">${sol.estado}</span></div></div>
+      <div><span class="text-gray-500">Docente</span><div class="font-semibold">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</div></div>
+      <div><span class="text-gray-500">Email</span><div>${sol.email || '-'}</div></div>
+      <div><span class="text-gray-500">DNI</span><div>${sol.dni}</div></div>
+      <div><span class="text-gray-500">N° Empleado</span><div>${sol.numeroEmpleado}</div></div>
+      <div><span class="text-gray-500">Fecha Desde</span><div>${sol.fechaDesde}</div></div>
+      <div><span class="text-gray-500">Fecha Hasta</span><div>${sol.fechaHasta}</div></div>
+      <div><span class="text-gray-500">Curso/Cargo</span><div>${sol.cursoOCargo || '-'}</div></div>
+      <div><span class="text-gray-500">Articulación</span><div>${sol.articulacion}</div></div>
+      <div><span class="text-gray-500">Tipo Licencia</span><div>${sol.tipoLicencia}</div></div>
+      <div><span class="text-gray-500">Timestamp</span><div>${sol.timestamp}</div></div>
+    `;
+    document.getElementById('modal-solicitud').classList.remove('hidden');
+  }
+
+  function cerrarModalSolicitud() {
+    document.getElementById('modal-solicitud').classList.add('hidden');
+  }
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('main-content');
+    const toggleIcon = document.getElementById('toggle-icon');
+
+    sidebar.classList.toggle('hidden');
+    mainContent.classList.toggle('expanded');
+
+    if (sidebar.classList.contains('hidden')) {
+      toggleIcon.textContent = '☰';
+    } else {
+      toggleIcon.textContent = '✕';
+    }
+  }
+
+  function cargarCargosAgenteAdmin() {
+    const dni = (document.getElementById('agregar-dni').value || '').trim();
+    if (!dni) {
+      mostrarToast('warning', 'DNI requerido', 'Ingrese un DNI o N° de Empleado');
+      return;
+    }
+
+    document.getElementById('loading').classList.remove('hidden');
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+
+        if (result.success && result.agente) {
+          document.getElementById('agregar-docente').value = result.agente.nombre;
+          document.getElementById('agregar-email').value = result.agente.email;
+
+          const selectCurso = document.getElementById('agregar-curso');
+          selectCurso.innerHTML = '';
+
+          if (result.cargos && result.cargos.length > 0) {
+            const optionTodos = document.createElement('option');
+            optionTodos.value = 'Todos';
+            optionTodos.textContent = 'Todos';
+            selectCurso.appendChild(optionTodos);
+
+            result.cargos.forEach(cargo => {
+              const option = document.createElement('option');
+              option.value = cargo.texto;
+              option.textContent = cargo.texto;
+              selectCurso.appendChild(option);
+            });
+            selectCurso.disabled = false;
+          } else {
+            selectCurso.innerHTML = '<option value="">No se encontraron cargos</option>';
+          }
+        } else {
+          mostrarToast('error', 'No encontrado', result.error || 'No se encontró el agente');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al cargar cargos: ' + error.message);
+      })
+      .obtenerCargosAgente(dni);
+  }
+
+  function agregarSolicitudManual() {
+    const dni = (document.getElementById('agregar-dni').value || '').trim();
+    const tipo = (document.getElementById('agregar-tipo').value || '').trim();
+    const curso = (document.getElementById('agregar-curso').value || '').trim();
+    const articulacion = document.querySelector('input[name="agregar-articulacion"]:checked');
+    const desde = (document.getElementById('agregar-desde').value || '').trim();
+    const hasta = (document.getElementById('agregar-hasta').value || '').trim();
+
+    if (!dni) {
+      mostrarToast('warning', 'DNI requerido', 'Ingrese un DNI o N° de Empleado');
+      return;
+    }
+    if (!tipo) {
+      mostrarToast('warning', 'Tipo requerido', 'Ingrese el tipo de licencia');
+      return;
+    }
+    if (!curso) {
+      mostrarToast('warning', 'Curso requerido', 'Seleccione un curso o cargo');
+      return;
+    }
+    if (!articulacion) {
+      mostrarToast('warning', 'Articulación requerida', 'Seleccione si es horario de articulación');
+      return;
+    }
+    if (!desde) {
+      mostrarToast('warning', 'Fecha requerida', 'Ingrese la fecha desde');
+      return;
+    }
+    if (!hasta) {
+      mostrarToast('warning', 'Fecha requerida', 'Ingrese la fecha hasta');
+      return;
+    }
+
+    document.getElementById('loading').classList.remove('hidden');
+
+    const datos = {
+      dniONumEmpleado: dni,
+      tipoLicencia: tipo,
+      cursoOCargo: curso,
+      articulacion: articulacion.value,
+      fechaDesde: desde,
+      fechaHasta: hasta
+    };
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+
+        if (result.success) {
+          mostrarToast('success', 'Solicitud guardada', `Solicitud creada con ID: ${result.id}`);
+
+          document.getElementById('agregar-dni').value = '';
+          document.getElementById('agregar-docente').value = '';
+          document.getElementById('agregar-email').value = '';
+          document.getElementById('agregar-tipo').value = '';
+          document.getElementById('agregar-curso').innerHTML = '<option value="">Primero agregue su DNI o N° de empleado...</option>';
+          document.getElementById('agregar-curso').disabled = true;
+          document.querySelectorAll('input[name="agregar-articulacion"]').forEach(r => r.checked = false);
+          document.getElementById('agregar-desde').value = '';
+          document.getElementById('agregar-hasta').value = '';
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo guardar la solicitud');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al guardar: ' + error.message);
+      })
+      .guardarSolicitud(datos);
+  }
+</script>

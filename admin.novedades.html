@@ -1,0 +1,86 @@
+<script>
+  function obtenerOcultasNovedades() {
+    try {
+      const raw = sessionStorage.getItem('novedades_ocultas');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function guardarOcultasNovedades(lista) {
+    try {
+      sessionStorage.setItem('novedades_ocultas', JSON.stringify(lista));
+    } catch (e) {
+    }
+  }
+
+  function ocultarNovedad(id) {
+    const ocultas = obtenerOcultasNovedades();
+    if (!ocultas.includes(id)) {
+      ocultas.push(id);
+      guardarOcultasNovedades(ocultas);
+    }
+    const item = document.querySelector(`[data-novedad-id="${id}"]`);
+    if (item) item.remove();
+  }
+
+  function cargarNovedadesSemana() {
+    const contenedor = document.getElementById('novedades-contenedor');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = '<div class="text-sm text-gray-500">Cargando novedades...</div>';
+
+    google.script.run
+      .withSuccessHandler(function(novedades) {
+        renderizarNovedadesSemana(novedades || []);
+      })
+      .withFailureHandler(function(error) {
+        contenedor.innerHTML = '<div class="text-sm text-red-600">Error al cargar novedades</div>';
+        console.error('Error al cargar novedades:', error);
+      })
+      .obtenerNovedadesSemana();
+  }
+
+  function iconoNovedad(tipo) {
+    switch ((tipo || '').toUpperCase()) {
+      case 'SOLICITUD': return '📝';
+      case 'JUSTIFICACION': return '📎';
+      default: return '🔔';
+    }
+  }
+
+  function renderizarNovedadesSemana(novedades) {
+    const contenedor = document.getElementById('novedades-contenedor');
+    if (!contenedor) return;
+
+    const ocultas = obtenerOcultasNovedades();
+    const visibles = novedades.filter(n => {
+      const id = `${n.tipo}|${n.timestamp}|${n.idsSolicitudes}|${n.dni}`;
+      return !ocultas.includes(id);
+    });
+
+    if (!visibles.length) {
+      contenedor.innerHTML = '<div class="text-sm text-gray-500">Sin novedades esta semana.</div>';
+      return;
+    }
+
+    const html = visibles.map(n => {
+      const id = `${n.tipo}|${n.timestamp}|${n.idsSolicitudes}|${n.dni}`;
+      return `
+        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200" data-novedad-id="${id}">
+          <div class="text-xl">${iconoNovedad(n.tipo)}</div>
+          <div class="flex-1">
+            <div class="text-sm text-gray-800 font-medium">${n.mensaje || 'Novedad registrada'}</div>
+            <div class="text-xs text-gray-500 mt-1">${n.timestamp || ''}</div>
+          </div>
+          <button onclick="ocultarNovedad('${id}')" class="text-gray-400 hover:text-gray-700" title="Ocultar">
+            ✕
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    contenedor.innerHTML = html;
+  }
+</script>

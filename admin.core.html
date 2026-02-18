@@ -1,0 +1,570 @@
+<script>
+  // ========== VARIABLES GLOBALES PRINCIPALES ==========
+  let solicitudesData = [];
+  let justificacionesData = [];
+  let descuentosInjustificadosData = [];
+  let registroEditando = null;
+  let emailData = null;
+  let agentesJornadaData = [];
+  let todosSeleccionados = false;
+
+  // ========== VARIABLES DE PAGINACIÓN ==========
+  let paginaActualSolicitudes = 1;
+  let paginaActualJustificaciones = 1;
+  let paginaActualDescuentos = 1;
+  let registrosPorPagina = 25;
+
+  // ========== VARIABLES DE BÚSQUEDA Y FILTROS ==========
+  let solicitudesFiltradas = [];
+  let justificacionesFiltradas = [];
+  let filtroActivoSolicitudes = false;
+  let filtroActivoJustificaciones = false;
+
+  // ========== VARIABLES DE CACHÉ ==========
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos en milisegundos
+  let ultimaCargarSolicitudes = 0;
+  let ultimaCargarJustificaciones = 0;
+
+  // Toast helpers
+  function mostrarToast(tipo, titulo, texto, duracion = 5000) {
+    const toast = document.getElementById('toast-message-cta');
+    const icono = document.getElementById('iconoNotificacion');
+    const tituloElement = document.getElementById('tituloNotificacion');
+    const textoElement = document.getElementById('textoNotificacion');
+    
+    let iconoHTML = '';
+    let claseColor = '';
+    let fondoColor = '';
+    
+    switch(tipo) {
+      case 'success':
+        iconoHTML = '✓';
+        claseColor = 'text-green-600';
+        fondoColor = 'bg-green-300';
+        break;
+      case 'error':
+        iconoHTML = '✕';
+        claseColor = 'text-red-600';
+        fondoColor = 'bg-red-300';
+        break;
+      case 'warning':
+        iconoHTML = '⚠';
+        claseColor = 'text-yellow-600';
+        fondoColor = 'bg-yellow-300';
+        break;
+      case 'info':
+        iconoHTML = 'ℹ';
+        claseColor = 'text-blue-600';
+        fondoColor = 'bg-blue-300';
+        break;
+      default:
+        iconoHTML = '•';
+        claseColor = 'text-gray-600';
+        fondoColor = 'bg-gray-300';
+    }
+    
+    icono.innerHTML = iconoHTML;
+    icono.className = `text-2xl font-bold ${claseColor}`;
+    tituloElement.textContent = titulo;
+    textoElement.textContent = texto;
+    
+    toast.classList.remove('hidden');
+    toast.classList.add('animate-slide-in', fondoColor);
+    
+    if (duracion > 0) {
+      setTimeout(() => {
+        ocultarToast(fondoColor);
+      }, duracion);
+    }
+  }
+
+  function ocultarToast(fondoColor) {
+    const toast = document.getElementById('toast-message-cta');
+    toast.classList.add('animate-slide-out');
+    setTimeout(() => {
+      toast.classList.add('hidden');
+      toast.classList.remove('animate-slide-in', 'animate-slide-out', fondoColor);
+    }, 300);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const closeButton = document.querySelector('[data-dismiss-target="#toast-message-cta"]');
+    if (closeButton) {
+      closeButton.addEventListener('click', () => ocultarToast(''));
+    }
+    
+    // Inicializar vista de solicitudes al cargar la página
+    setTimeout(function() {
+      cambiarVista('solicitudes');
+      cargarNovedadesSemana();
+    }, 500);
+  });
+
+  // Cargar email del admin
+  google.script.run
+    .withSuccessHandler(function (email) {
+      document.getElementById('admin-email').textContent = email;
+    })
+    .obtenerEmailUsuario();
+
+  // Cambiar entre vistas
+  function cambiarVista(vista) {
+    document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+    document.getElementById('vista-solicitudes').classList.add('hidden');
+    document.getElementById('vista-justificaciones').classList.add('hidden');
+    document.getElementById('vista-descuentos').classList.add('hidden');
+    document.getElementById('vista-jornada').classList.add('hidden');
+    document.getElementById('vista-siso').classList.add('hidden');
+    document.getElementById('vista-agregar').classList.add('hidden');
+
+    if (vista === 'solicitudes') {
+      document.getElementById('menu-solicitudes').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Solicitudes de Licencia';
+      document.getElementById('subtitulo-seccion').textContent = 'Gestione las solicitudes pendientes';
+      document.getElementById('vista-solicitudes').classList.remove('hidden');
+      cargarSolicitudes();
+    } else if (vista === 'justificaciones') {
+      document.getElementById('menu-justificaciones').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Justificaciones Cargadas';
+      document.getElementById('subtitulo-seccion').textContent = 'Revise los archivos justificatorios';
+      document.getElementById('vista-justificaciones').classList.remove('hidden');
+      cargarJustificaciones();
+    } else if (vista === 'descuentos') {
+      document.getElementById('menu-descuentos').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Descuentos/Injustificados';
+      document.getElementById('subtitulo-seccion').textContent = 'Solicitudes con descuento sin justificación válida';
+      document.getElementById('vista-descuentos').classList.remove('hidden');
+      cargarDescuentosInjustificados();
+    } else if (vista === 'jornada') {
+      document.getElementById('menu-jornada').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Registros de Jornada';
+      document.getElementById('subtitulo-seccion').textContent = 'Revise los registros de jornada cargados';
+      document.getElementById('vista-jornada').classList.remove('hidden');
+    } else if (vista === 'siso') {
+      document.getElementById('menu-siso').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Cargar Datos SISO';
+      document.getElementById('subtitulo-seccion').textContent = 'Importar datos desde archivo CSV';
+      document.getElementById('vista-siso').classList.remove('hidden');
+    } else if (vista === 'agregar') {
+      document.getElementById('menu-agregar').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Agregar Solicitud Manual';
+      document.getElementById('subtitulo-seccion').textContent = 'Cargue una nueva solicitud manualmente';
+      document.getElementById('vista-agregar').classList.remove('hidden');
+    }
+  }
+
+  // Recargar datos
+  function recargarDatos() {
+    limpiarTodoCache();
+    const vistaActual = obtenerVistaActual();
+    cambiarVista(vistaActual);
+  }
+
+  function obtenerVistaActual() {
+    const vistas = ['solicitudes', 'justificaciones', 'descuentos', 'jornada', 'siso', 'agregar'];
+    for (const vista of vistas) {
+      const el = document.getElementById(`vista-${vista}`);
+      if (el && !el.classList.contains('hidden')) return vista;
+    }
+    return 'solicitudes';
+  }
+
+  // Cargar solicitudes
+  function cargarSolicitudes() {
+    document.getElementById('loading').classList.remove('hidden');
+    paginaActualSolicitudes = 1;
+
+    const datosEnCache = obtenerCacheSolicitudes();
+    if (datosEnCache) {
+      solicitudesData = datosEnCache;
+      solicitudesFiltradas = [...solicitudesData];
+      filtroActivoSolicitudes = false;
+      limpiarInputsFiltroSolicitudes();
+      document.getElementById('loading').classList.add('hidden');
+      renderizarSolicitudesPaginadas();
+      mostrarToast('info', 'Caché', 'Datos cargados desde caché local (5 min)');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function (data) {
+        document.getElementById('loading').classList.add('hidden');
+        
+        if (!data || !Array.isArray(data)) {
+          console.error('[ERROR] Datos inválidos recibidos:', data);
+          solicitudesData = [];
+          solicitudesFiltradas = [];
+          renderizarSolicitudesPaginadas();
+          return;
+        }
+
+        solicitudesData = data.reverse();
+        solicitudesFiltradas = [...solicitudesData];
+        filtroActivoSolicitudes = false;
+        limpiarInputsFiltroSolicitudes();
+        
+        guardarCacheSolicitudes(solicitudesData);
+        
+        renderizarSolicitudesPaginadas();
+        mostrarToast('success', 'Datos', `${solicitudesData.length} solicitudes cargadas`);
+      })
+      .withFailureHandler(function (error) {
+        document.getElementById('loading').classList.add('hidden');
+        console.error('[ERROR] Error al cargar solicitudes:', error);
+        mostrarToast('error', 'Error', 'Error al cargar solicitudes: ' + error.message);
+      })
+      .obtenerTodasSolicitudes();
+  }
+
+  // Renderizar solicitudes
+  function renderizarSolicitudes(solicitudes) {
+    const tbody = document.getElementById('tabla-solicitudes');
+    tbody.innerHTML = '';
+
+    if (!solicitudes || !Array.isArray(solicitudes)) {
+      tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+      return;
+    }
+
+    if (solicitudes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
+      return;
+    }
+
+    solicitudes.forEach(sol => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+
+      const estadoColor = obtenerClaseEstado(sol.estado);
+
+      tr.innerHTML = `
+        <td class="px-3 py-3 text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
+        <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</td>
+        <td class="px-3 py-3 text-sm text-gray-500">${sol.dni}</td>
+        <td class="px-3 py-3 text-sm text-gray-900">${sol.numeroEmpleado}</td>
+        <td class="px-3 py-3 text-sm text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
+        <td class="px-3 py-3 text-xs text-gray-500">${sol.cursoOCargo || '-'}</td>
+        <td class="px-3 py-3 text-sm text-gray-900">${sol.articulacion}</td>
+        <td class="px-3 py-3 text-sm text-gray-900">${sol.tipoLicencia}</td>
+        <td class="px-3 py-3 whitespace-nowrap">
+          <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
+        </td>
+        <td class="px-3 py-3 text-sm">
+          <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
+            class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
+          <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
+            class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
+          <div class="mt-1">
+            <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
+              class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function obtenerClaseEstado(estado) {
+    const normalizado = String(estado || '').trim().toLowerCase();
+
+    switch (normalizado) {
+      case 'pendiente':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'autorizado':
+      case 'autorizada':
+        return 'bg-green-100 text-green-800';
+      case 'completado':
+      case 'completada':
+        return 'bg-slate-100 text-slate-800';
+      case 'justificada':
+        return 'bg-blue-100 text-blue-800';
+      case 'injustificada':
+        return 'bg-red-100 text-red-800';
+      case 'descuento':
+        return 'bg-orange-100 text-orange-800';
+      case 'rechazado':
+      case 'rechazada':
+        return 'bg-rose-100 text-rose-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  }
+
+  // Cargar justificaciones
+  function cargarJustificaciones() {
+    document.getElementById('loading').classList.remove('hidden');
+    paginaActualJustificaciones = 1;
+
+    const datosEnCache = obtenerCacheJustificaciones();
+    if (datosEnCache) {
+      justificacionesData = datosEnCache;
+      justificacionesFiltradas = [...justificacionesData];
+      filtroActivoJustificaciones = false;
+      limpiarInputsFiltroJustificaciones();
+      document.getElementById('loading').classList.add('hidden');
+      renderizarJustificacionesPaginadas();
+      mostrarToast('info', 'Caché', 'Datos cargados desde caché local (5 min)');
+      return;
+    }
+    
+    google.script.run
+      .withSuccessHandler(function (data) {
+        document.getElementById('loading').classList.add('hidden');
+
+        if (!data || !Array.isArray(data)) {
+          console.error('Datos inválidos recibidos:', data);
+          justificacionesData = [];
+          justificacionesFiltradas = [];
+          renderizarJustificacionesPaginadas();
+          return;
+        }
+
+        justificacionesData = data.reverse();
+        justificacionesFiltradas = [...justificacionesData];
+        filtroActivoJustificaciones = false;
+        limpiarInputsFiltroJustificaciones();
+        
+        guardarCacheJustificaciones(justificacionesData);
+        
+        renderizarJustificacionesPaginadas();
+        mostrarToast('success', 'Datos', `${justificacionesData.length} justificaciones cargadas`);
+      })
+      .withFailureHandler(function (error) {
+        document.getElementById('loading').classList.add('hidden');
+        console.error('Error al cargar:', error);
+        mostrarToast('error', 'Error', 'Error al cargar justificaciones: ' + error.message);
+      })
+      .obtenerTodasJustificaciones();
+  }
+
+  // Renderizar justificaciones
+  function renderizarJustificaciones(justificaciones) {
+    const tbody = document.getElementById('tabla-justificaciones');
+    tbody.innerHTML = '';
+
+    if (!justificaciones || !Array.isArray(justificaciones)) {
+      tbody.innerHTML = '<tr><td colspan="7" class="px-3 py-3 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+      return;
+    }
+
+    if (justificaciones.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No hay justificaciones registradas</td></tr>';
+      return;
+    }
+
+    function renderArchivos(archivoUrl) {
+      if (!archivoUrl) return '-';
+      const urls = archivoUrl.split(',').map(u => u.trim()).filter(Boolean);
+      if (!urls.length) return '-';
+      return urls.map((u, idx) => `
+        <a href="${u}" target="_blank" class="flex items-center gap-1 text-blue-600 hover:text-blue-800">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M15.75 3.75h-7.5a2.25 2.25 0 0 0-2.25 2.25v12a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 18V6a2.25 2.25 0 0 0-2.25-2.25Zm-7.5-1.5A3.75 3.75 0 0 0 4.5 6v12A3.75 3.75 0 0 0 8.25 21.75h7.5A3.75 3.75 0 0 0 19.5 18V6a3.75 3.75 0 0 0-3.75-3.75h-7.5Z"/><path d="M9 7.5h6v1.5H9V7.5Zm0 3h6V12H9v-1.5Zm0 3h3v1.5H9V13.5Z"/></svg>
+          Archivo ${idx + 1}
+        </a>`).join('<br>');
+    }
+
+    function renderIds(idsString) {
+      if (!idsString) return '-';
+      const ids = idsString.split(',').map(i => i.trim()).filter(Boolean);
+      if (!ids.length) return '-';
+      return ids.map(id => `
+        <button class="text-blue-600 hover:text-blue-800 underline" onclick="verSolicitudPorId('${id}')">
+          ${id}
+        </button>
+      `).join('<br>');
+    }
+
+    justificaciones.forEach(just => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+
+      tr.innerHTML = `
+        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-900">${formatearFecha(just.timestamp)}</td>
+        <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}</td>
+        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.dni}</td>
+        <td class="px-3 py-4 text-sm text-gray-500">${renderIds(just.idsSolicitudes)}</td>
+        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.cantidadLicencias}</td>
+        <td class="px-3 py-4 whitespace-nowrap text-sm">
+          ${renderArchivos(just.archivoUrl)}
+        </td>
+        <td class="px-3 py-4 whitespace-nowrap text-sm">
+          <button onclick="abrirModalEmail('${just.email}', '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')" 
+            class="text-green-600 hover:text-green-800">📧 Email</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Cargar descuentos/injustificados
+  function cargarDescuentosInjustificados() {
+    document.getElementById('loading').classList.remove('hidden');
+    paginaActualDescuentos = 1;
+
+    const cacheSol = obtenerCacheSolicitudes();
+    const cacheJust = obtenerCacheJustificaciones();
+
+    if (cacheSol && cacheJust) {
+      solicitudesData = cacheSol;
+      justificacionesData = cacheJust;
+      document.getElementById('loading').classList.add('hidden');
+      actualizarDescuentosInjustificados();
+      mostrarToast('info', 'Caché', 'Datos cargados desde caché local (5 min)');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function (dataSolicitudes) {
+        solicitudesData = Array.isArray(dataSolicitudes) ? dataSolicitudes.reverse() : [];
+        guardarCacheSolicitudes(solicitudesData);
+
+        google.script.run
+          .withSuccessHandler(function (dataJustificaciones) {
+            justificacionesData = Array.isArray(dataJustificaciones) ? dataJustificaciones.reverse() : [];
+            guardarCacheJustificaciones(justificacionesData);
+            document.getElementById('loading').classList.add('hidden');
+            actualizarDescuentosInjustificados();
+            mostrarToast('success', 'Datos', `${descuentosInjustificadosData.length} solicitudes encontradas`);
+          })
+          .withFailureHandler(function (error) {
+            document.getElementById('loading').classList.add('hidden');
+            mostrarToast('error', 'Error', 'Error al cargar justificaciones: ' + error.message);
+          })
+          .obtenerTodasJustificaciones();
+      })
+      .withFailureHandler(function (error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al cargar solicitudes: ' + error.message);
+      })
+      .obtenerTodasSolicitudes();
+  }
+
+  function actualizarDescuentosInjustificados() {
+    descuentosInjustificadosData = filtrarDescuentosInjustificados(solicitudesData, justificacionesData);
+    renderizarDescuentosInjustificadosPaginadas();
+  }
+
+  function filtrarDescuentosInjustificados(solicitudes, justificaciones) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const idsJustificados = obtenerIdsJustificados(justificaciones || []);
+
+    return (solicitudes || []).filter(sol => {
+      const estadoNorm = normalizarTexto(sol.estado);
+      const estadoOk =
+        estadoNorm === 'injustificado' ||
+        estadoNorm === 'injustificada' ||
+        estadoNorm === 'autorizado' ||
+        estadoNorm === 'autorizada';
+
+      const fechaHasta = parseFechaLocal(sol.fechaHasta);
+      if (!fechaHasta) return false;
+      fechaHasta.setHours(0, 0, 0, 0);
+      const diffDias = (hoy - fechaHasta) / (1000 * 60 * 60 * 24);
+      const fechaOk = diffDias > 3;
+
+      const idSolicitud = String(sol.id || '').trim();
+      const noEstaJustificada = !idSolicitud || !idsJustificados.has(idSolicitud);
+
+      return estadoOk && fechaOk && noEstaJustificada;
+    });
+  }
+
+  function obtenerIdsJustificados(justificaciones) {
+    const ids = new Set();
+    justificaciones.forEach(just => {
+      const raw = String(just.idsSolicitudes || '');
+      raw.split(',').map(s => s.trim()).filter(Boolean).forEach(id => ids.add(id));
+    });
+    return ids;
+  }
+
+  function normalizarTexto(valor) {
+    return String(valor || '').trim().toLowerCase();
+  }
+
+  // Renderizar descuentos/injustificados
+  function renderizarDescuentosInjustificados(solicitudes) {
+    const tbody = document.getElementById('tabla-descuentos');
+    tbody.innerHTML = '';
+
+    if (!solicitudes || !Array.isArray(solicitudes)) {
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+      return;
+    }
+
+    if (solicitudes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay solicitudes para mostrar</td></tr>';
+      return;
+    }
+
+    solicitudes.forEach(sol => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+
+      const estadoColor = sol.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
+        sol.estado === 'Autorizado' ? 'bg-green-100 text-green-800' :
+          'bg-blue-100 text-blue-800';
+
+      tr.innerHTML = `
+        <td class="px-3 py-3 text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
+        <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</td>
+        <td class="px-3 py-3 text-sm text-gray-500">${sol.dni}</td>
+        <td class="px-3 py-3 text-sm text-gray-900">${sol.numeroEmpleado}</td>
+        <td class="px-3 py-3 text-sm text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
+        <td class="px-3 py-3 text-xs text-gray-500">${sol.cursoOCargo || '-'}</td>
+        <td class="px-3 py-3 text-sm text-gray-900">${sol.articulacion}</td>
+        <td class="px-3 py-3 text-sm text-gray-900">${sol.tipoLicencia}</td>
+        <td class="px-3 py-3 whitespace-nowrap">
+          <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
+        </td>
+        <td class="px-3 py-3 text-xs text-gray-600">${sol.id || '-'}</td>
+        <td class="px-3 py-3 text-sm">
+          <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
+            class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
+          <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
+            class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
+          <div class="mt-1">
+            <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
+              class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Parsear fecha sin desfase (yyyy-mm-dd)
+  function parseFechaLocal(fecha) {
+    if (!fecha) return null;
+    if (typeof fecha === 'string') {
+      const match = fecha.match(/^\d{4}-\d{2}-\d{2}$/);
+      if (match) {
+        const [y, m, d] = fecha.split('-').map(Number);
+        return new Date(y, m - 1, d);
+      }
+    }
+    const d = new Date(fecha);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Formatear fecha completa
+  function formatearFecha(fecha) {
+    const d = parseFechaLocal(fecha);
+    if (!d) return '-';
+    return d.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  // Formatear fecha corta
+  function formatearFechaCorta(fecha) {
+    const d = parseFechaLocal(fecha);
+    if (!d) return '-';
+    return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+</script>

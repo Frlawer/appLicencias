@@ -1,0 +1,293 @@
+function obtenerEmailUsuario() {
+  assertAdminAutorizado_();
+  return Session.getEffectiveUser().getEmail();
+}
+
+function obtenerNovedadesSemana() {
+  assertAdminAutorizado_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetSolicitudes = ss.getSheetByName(SHEET_SOLICITUDES);
+  const sheetJustificaciones = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+
+  const ahora = new Date();
+  const desde = new Date(ahora);
+  desde.setDate(ahora.getDate() - 3);
+  desde.setHours(0, 0, 0, 0);
+
+  const novedades = [];
+
+  if (sheetSolicitudes) {
+    const dataSol = sheetSolicitudes.getDataRange().getValues();
+    for (let i = 1; i < dataSol.length; i++) {
+      const ts = dataSol[i][0];
+      const timestamp = ts instanceof Date ? ts : new Date(ts);
+      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) continue;
+
+      if (timestamp >= desde) {
+        const apellidos = String(dataSol[i][4] || '');
+        const nombres = String(dataSol[i][5] || '');
+        const tipoLicencia = String(dataSol[i][10] || '');
+        const id = String(dataSol[i][12] || '');
+
+        novedades.push({
+          timestampObj: timestamp,
+          timestamp: Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
+          tipo: 'SOLICITUD',
+          mensaje: `Solicitud de licencia (${tipoLicencia}) - ${apellidos} ${nombres}`,
+          dni: String(dataSol[i][2] || ''),
+          numeroEmpleado: String(dataSol[i][3] || ''),
+          apellidos,
+          nombres,
+          idsSolicitudes: id,
+          origen: 'SOLICITUD'
+        });
+      }
+    }
+  }
+
+  if (sheetJustificaciones) {
+    const dataJust = sheetJustificaciones.getDataRange().getValues();
+    for (let i = 1; i < dataJust.length; i++) {
+      const ts = dataJust[i][0];
+      const timestamp = ts instanceof Date ? ts : new Date(ts);
+      if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) continue;
+
+      if (timestamp >= desde) {
+        const apellidos = String(dataJust[i][4] || '');
+        const nombres = String(dataJust[i][5] || '');
+        const ids = String(dataJust[i][6] || '');
+
+        novedades.push({
+          timestampObj: timestamp,
+          timestamp: Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
+          tipo: 'JUSTIFICACION',
+          mensaje: `Justificación cargada (IDs: ${ids}) - ${apellidos} ${nombres}`,
+          dni: String(dataJust[i][2] || ''),
+          numeroEmpleado: String(dataJust[i][3] || ''),
+          apellidos,
+          nombres,
+          idsSolicitudes: ids,
+          origen: 'JUSTIFICACION'
+        });
+      }
+    }
+  }
+
+  novedades.sort((a, b) => b.timestampObj - a.timestampObj);
+
+  return novedades.map(n => {
+    const { timestampObj, ...rest } = n;
+    return rest;
+  });
+}
+
+function obtenerTodasSolicitudes() {
+  assertAdminAutorizado_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const solicitudes = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const timestamp = data[i][0] instanceof Date
+      ? Utilities.formatDate(data[i][0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+      : (data[i][0] ? String(data[i][0]) : '');
+    const fechaDesde = data[i][6] instanceof Date
+      ? Utilities.formatDate(data[i][6], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : (data[i][6] ? String(data[i][6]) : '');
+    const fechaHasta = data[i][7] instanceof Date
+      ? Utilities.formatDate(data[i][7], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : (data[i][7] ? String(data[i][7]) : '');
+
+    solicitudes.push({
+      rowIndex: Number(i + 1),
+      timestamp: timestamp,
+      email: String(data[i][1] || ''),
+      dni: String(data[i][2] || ''),
+      numeroEmpleado: String(data[i][3] || ''),
+      apellidos: String(data[i][4] || ''),
+      nombres: String(data[i][5] || ''),
+      fechaDesde: fechaDesde,
+      fechaHasta: fechaHasta,
+      cursoOCargo: String(data[i][8] || ''),
+      articulacion: String(data[i][9] || ''),
+      tipoLicencia: String(data[i][10] || ''),
+      estado: String(data[i][11] || ''),
+      id: String(data[i][12] || '')
+    });
+  }
+  Logger.log('Solicitudes obtenidas: ' + solicitudes.length);
+  if (solicitudes.length) {
+    Logger.log('Primera solicitud normalizada: ' + JSON.stringify(solicitudes[0]));
+  }
+
+  return solicitudes;
+}
+
+function obtenerSolicitudPorId(idSolicitud) {
+  try {
+    assertAdminAutorizado_();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+    if (!sheet) {
+      return { success: false, error: 'Hoja de solicitudes no encontrada' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][12] || '') === String(idSolicitud)) {
+        const timestamp = data[i][0] instanceof Date
+          ? Utilities.formatDate(data[i][0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+          : (data[i][0] ? String(data[i][0]) : '');
+        const fechaDesde = data[i][6] instanceof Date
+          ? Utilities.formatDate(data[i][6], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+          : (data[i][6] ? String(data[i][6]) : '');
+        const fechaHasta = data[i][7] instanceof Date
+          ? Utilities.formatDate(data[i][7], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+          : (data[i][7] ? String(data[i][7]) : '');
+
+        const solicitud = {
+          rowIndex: Number(i + 1),
+          timestamp,
+          email: String(data[i][1] || ''),
+          dni: String(data[i][2] || ''),
+          numeroEmpleado: String(data[i][3] || ''),
+          apellidos: String(data[i][4] || ''),
+          nombres: String(data[i][5] || ''),
+          fechaDesde,
+          fechaHasta,
+          cursoOCargo: String(data[i][8] || ''),
+          articulacion: String(data[i][9] || ''),
+          tipoLicencia: String(data[i][10] || ''),
+          estado: String(data[i][11] || ''),
+          id: String(data[i][12] || '')
+        };
+        return { success: true, solicitud };
+      }
+    }
+
+    return { success: false, error: 'No se encontró la solicitud con ese ID' };
+  } catch (error) {
+    Logger.log('Error al obtener solicitud por ID: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function obtenerTodasJustificaciones() {
+  assertAdminAutorizado_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+
+  if (!sheet) return [];
+
+  const data = sheet.getDataRange().getValues();
+  const justificaciones = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const timestamp = data[i][0] instanceof Date
+      ? Utilities.formatDate(data[i][0], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss')
+      : (data[i][0] ? String(data[i][0]) : '');
+
+    justificaciones.push({
+      rowIndex: Number(i + 1),
+      timestamp: timestamp,
+      email: String(data[i][1] || ''),
+      dni: String(data[i][2] || ''),
+      numeroEmpleado: String(data[i][3] || ''),
+      apellidos: String(data[i][4] || ''),
+      nombres: String(data[i][5] || ''),
+      idsSolicitudes: String(data[i][6] || ''),
+      cantidadLicencias: Number(data[i][7]) || 0,
+      archivoUrl: String(data[i][8] || '')
+    });
+  }
+
+  return justificaciones;
+}
+
+function actualizarEstadoFila(rowIndex, nuevoEstado) {
+  try {
+    assertAdminAutorizado_();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+
+    if (!sheet) {
+      return { success: false, error: 'Hoja no encontrada' };
+    }
+
+    sheet.getRange(rowIndex, 12).setValue(nuevoEstado);
+
+    return { success: true };
+  } catch (error) {
+    Logger.log('Error al actualizar estado: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function eliminarSolicitud(rowIndex) {
+  try {
+    assertAdminAutorizado_();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
+
+    if (!sheet) {
+      return { success: false, error: 'Hoja no encontrada' };
+    }
+
+    if (!rowIndex || rowIndex < 2 || rowIndex > sheet.getLastRow()) {
+      return { success: false, error: 'Índice de fila inválido' };
+    }
+
+    sheet.deleteRow(rowIndex);
+    return { success: true };
+  } catch (error) {
+    Logger.log('Error al eliminar solicitud: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+function inicializarSheets() {
+  assertAdminAutorizado_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  let sheetSolicitudes = ss.getSheetByName(SHEET_SOLICITUDES);
+  if (!sheetSolicitudes) {
+    sheetSolicitudes = ss.insertSheet(SHEET_SOLICITUDES);
+    sheetSolicitudes.appendRow([
+      'Timestamp',
+      'Email',
+      'DNI',
+      'N° Empleado',
+      'Apellidos',
+      'Nombres',
+      'Fecha Desde',
+      'Fecha Hasta',
+      'Curso/Cargo',
+      'Articulación',
+      'Tipo Licencia',
+      'Estado',
+      'ID'
+    ]);
+  }
+
+  let sheetJustificaciones = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+  if (!sheetJustificaciones) {
+    sheetJustificaciones = ss.insertSheet(SHEET_JUSTIFICACIONES);
+    sheetJustificaciones.appendRow([
+      'Timestamp',
+      'Email',
+      'DNI',
+      'N° Empleado',
+      'Apellidos',
+      'Nombres',
+      'IDs Solicitudes',
+      'Cantidad Licencias',
+      'URL Archivo'
+    ]);
+  }
+
+  Logger.log('Sheets inicializados correctamente');
+}
