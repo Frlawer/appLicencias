@@ -87,25 +87,34 @@
     }, 300);
   }
 
+  // Stub functions (serán reemplazadas por los parciales)
+  // Estos son placeholders que se ejecutan si se llaman antes de que se carguen los parciales
+  window._parcialesReady = false;
+
   document.addEventListener('DOMContentLoaded', function() {
     const closeButton = document.querySelector('[data-dismiss-target="#toast-message-cta"]');
     if (closeButton) {
       closeButton.addEventListener('click', () => ocultarToast(''));
     }
     
-    // Inicializar vista de solicitudes al cargar la página
+    // Esperar a que todos los parciales se carguen (5000ms = 5 segundos)
+    // Da tiempo suficiente a que los navegadores ejecuten todos los scripts
     setTimeout(function() {
-      cambiarVista('solicitudes');
-      cargarNovedadesSemana();
-    }, 500);
+      window._parcialesReady = true;
+      
+      // Inicializar con validaciones
+      if (typeof cambiarVista === 'function') {
+        cambiarVista('solicitudes');
+      }
+      
+      // Cargar novedades después de un pequeño delay
+      setTimeout(function() {
+        if (typeof cargarNovedadesSemana === 'function') {
+          cargarNovedadesSemana();
+        }
+      }, 500);
+    }, 5000);
   });
-
-  // Cargar email del admin
-  google.script.run
-    .withSuccessHandler(function (email) {
-      document.getElementById('admin-email').textContent = email;
-    })
-    .obtenerEmailUsuario();
 
   // Cambiar entre vistas
   function cambiarVista(vista) {

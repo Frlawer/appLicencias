@@ -10,7 +10,9 @@ function doGet(e) {
         .setTitle('Acceso denegado');
     }
     
-    return HtmlService.createHtmlOutputFromFile('admin')
+    // Usar createTemplateFromFile para procesar los <?!= ?> tags
+    return HtmlService.createTemplateFromFile('admin')
+      .evaluate()
       .setTitle('Dashboard Admin - CPEM 25')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
   }
