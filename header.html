@@ -1,17 +1,25 @@
-  <div id="app" class="mx-auto">
+  <div id="app" class="mx-auto max-w-5xl">
 
     <!-- Header -->
-    <div class="bg-[#2f6fb2] rounded-lg shadow-lg p-6 mb-6 text-center text-white">
-      <div class="flex items-center justify-center gap-3 mb-2">
+    <div class="card p-8 mb-6 text-center" style="background: var(--primary); color: white;">
+      <div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-3">
         <img src="https://cpem25.wordpress.com/wp-content/uploads/2024/11/logo-png.png?w=240&h=216"
-          alt="Logo CPEM 25" class="h-12 w-auto" loading="lazy" />
-        <h1 class="text-3xl font-bold text-white">Sistema de Gestión de Licencias CPEM Nº 25</h1>
+          alt="Logo CPEM 25" class="h-16 w-auto" loading="lazy" />
+        <div class="text-center md:text-left">
+          <h1 class="text-3xl md:text-4xl font-bold text-white">Sistema de Gestión de Licencias</h1>
+          <p class="text-lg font-medium text-white/90 mt-1">CPEM Nº 25</p>
+        </div>
       </div>
-      <p class="text-white/90">Complete los formularios según corresponda</p>
-      <p><a class="text-white underline" href="https://www.neuquen.edu.ar/wp-content/uploads/2022/07/RegimenLicenciasJustificacionesFranquicias.pdf" target="_blank" rel="noopener noreferrer">🚨 📢 LINK AL Régimen de Licencias, Justificaciones y Franquicias Decreto N° 1.429/73</a></p>
+      <p class="text-white/80 text-sm mb-3">Complete los formularios según corresponda</p>
+      <a class="inline-flex items-center gap-2 text-white/90 hover:text-white underline text-sm font-medium transition-colors" 
+         href="https://www.neuquen.edu.ar/wp-content/uploads/2022/07/RegimenLicenciasJustificacionesFranquicias.pdf" 
+         target="_blank" rel="noopener noreferrer">
+        <span class="material-icons text-base">info</span>
+        <span>Régimen de Licencias, Justificaciones y Franquicias Decreto N° 1.429/73</span>
+      </a>
 
       <!-- Toast de notificaciones -->
-       <div id="toast-message-cta" class="hidden flex fixed top-4 right-4 z-50 items-center w-full max-w-xs p-4 text-body rounded-base shadow-xs border border-neutral-200" role="alert">
+       <div id="toast-message-cta" class="hidden flex fixed top-4 right-4 z-50 items-center w-full max-w-sm p-4 rounded-xl shadow-lg border border-gray-200 bg-white" role="alert" style="animation: slideIn 0.3s ease-out;">
           <div class="icono-notificacion"><i id="iconoNotificacion"></i></div>
           <div class="ms-2.5 text-sm border-s border-default ps-3.5">
             <span class="text-base font-semibold text-heading" id="tituloNotificacion"></span>
@@ -26,17 +34,22 @@
     </div>
 
     <!-- Selector de formulario -->
-    <div class="flex gap-4 mb-6">
-      <button onclick="cambiarStep(1)" id="btn-step-1" class="flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-[#2f6fb2] text-white shadow-lg">
-        📝 Solicitar Licencia
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <button onclick="cambiarStep(1)" id="btn-step-1" 
+        class="btn-primary py-4 px-6 flex items-center justify-center gap-2 shadow-md">
+        <span class="material-icons">description</span>
+        <span class="font-bold">Solicitar Licencia</span>
       </button>
-      <button onclick="cambiarStep(2)" id="btn-step-2" class="flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-[#2f6fb2] text-white hover:bg-[#295f99]">
-        📥 Cargar Constancia de Justificación
+      <button onclick="cambiarStep(2)" id="btn-step-2" 
+        class="py-4 px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+        style="background: var(--text-secondary); color: white;">
+        <span class="material-icons">upload_file</span>
+        <span class="font-bold">Cargar Constancia de Justificación</span>
       </button>
     </div>
 
     <!-- Loading -->
-    <div id="loading" class="hidden bg-white rounded-lg shadow-lg p-8 text-center">
+    <div id="loading" class="hidden card p-8 text-center">
       <div class="spinner mx-auto mb-4"></div>
-      <p class="text-gray-600">Procesando...</p>
+      <p class="font-semibold" style="color: var(--text-secondary);">Procesando...</p>
     </div>

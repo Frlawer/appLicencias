@@ -1,113 +1,135 @@
 <!-- Formulario 1 - Solicitud -->
-<div id="form-solicitud" class="bg-white rounded-lg shadow-lg p-8">
-  <h2 class="text-2xl font-bold text-gray-800 mb-6">📅 Solicitud de Licencia</h2>
+<div id="form-solicitud" class="card p-8">
+  <div class="flex items-center gap-3 mb-6">
+    <span class="material-icons text-3xl" style="color: var(--primary);">event_note</span>
+    <h2 class="text-2xl font-bold" style="color: var(--primary);">Solicitud de Licencia</h2>
+  </div>
 
-  <div class="space-y-4">
+  <div class="space-y-5">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">DNI o N° de Empleado *</label>
+      <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">DNI o N° de Empleado *</label>
       <div class="flex gap-2">
         <input type="text" id="sol-dni" required placeholder="Ej: 12345678 o EMP001"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all"
+          style="focus:border-color: var(--primary);">
         <button type="button" id="btn-buscar-cargos" onclick="cargarCargosAgente()"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap">
-          🔍 Buscar Cargos
+          class="btn-primary px-5 py-3 flex items-center gap-2 whitespace-nowrap">
+          <span class="material-icons text-sm">search</span>
+          <span>Buscar Cargos</span>
         </button>
       </div>
-      <p class="text-xs text-gray-500 mt-1">Ingrese su DNI o Número de Empleado y haga clic en "Buscar Cargos"</p>
+      <p class="text-xs mt-2" style="color: var(--text-secondary);">Ingrese su DNI o Número de Empleado y haga clic en "Buscar Cargos"</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Licencia *</label>
+        <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Tipo de Licencia *</label>
         <select id="sol-tipo" required
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all">
           <option value="">Cargando licencias...</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Curso/Cargo *</label>
+        <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Curso/Cargo *</label>
         <select id="sol-curso" disabled
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed">
-          <option value="">Primero agregue su dni o N° de empleado...</option>
+          class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed">
+          <option value="">Primero agregue su DNI o N° de empleado...</option>
         </select>
-        <p class="text-xs text-gray-500 mt-1">Los cargos se cargarán según su DNI/N° Empleado</p>
+        <p class="text-xs mt-2" style="color: var(--text-secondary);">Los cargos se cargarán según su DNI/N° Empleado</p>
       </div>
       
       <div class="col-span-full">
-        <p class="block text-sm font-medium text-gray-700 mb-2">¿Es horario de Articulación? *</p>
+        <p class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">¿Es horario de Articulación? *</p>
         <div class="grid grid-cols-2 gap-3">
-          <label class="relative flex items-center justify-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-100 has-[:checked]:ring-2 has-[:checked]:ring-blue-200">
+          <label class="relative flex items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all hover:border-[var(--primary)] hover:bg-gray-50 has-[:checked]:bg-[var(--primary)] has-[:checked]:text-white has-[:checked]:border-[var(--primary)]">
             <input type="radio" name="sol-articulacion" id="sol-articulacion-si" value="Si" class="sr-only">
-            <span class="text-base font-semibold text-gray-700">✓ Sí</span>
+            <span class="text-base font-semibold flex items-center gap-2">
+              <span class="material-icons text-sm">check_circle</span>
+              <span>Sí</span>
+            </span>
           </label>
-          <label class="relative flex items-center justify-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-100 has-[:checked]:ring-2 has-[:checked]:ring-blue-200">
+          <label class="relative flex items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all hover:border-[var(--primary)] hover:bg-gray-50 has-[:checked]:bg-[var(--primary)] has-[:checked]:text-white has-[:checked]:border-[var(--primary)]">
             <input type="radio" name="sol-articulacion" id="sol-articulacion-no" value="No" class="sr-only">
-            <span class="text-base font-semibold text-gray-700">✕ No</span>
+            <span class="text-base font-semibold flex items-center gap-2">
+              <span class="material-icons text-sm">cancel</span>
+              <span>No</span>
+            </span>
           </label>
         </div>
       </div>
       
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Desde *</label>
+        <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Fecha Desde *</label>
         <input type="date" id="sol-desde" required
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Hasta *</label>
+        <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Fecha Hasta *</label>
         <input type="date" id="sol-hasta" required
-          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all">
       </div>
     </div>
 
     <button id="btn-enviar-solicitud" onclick="enviarSolicitud()"
-      class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-      ✓ Enviar Solicitud
+      class="btn-primary w-full py-4 flex items-center justify-center gap-2 mt-6 text-base">
+      <span class="material-icons">send</span>
+      <span class="font-bold">Enviar Solicitud</span>
     </button>
   </div>
 </div>
 
 <!-- Formulario 2 - Justificación -->
-<div id="form-justificacion" class="hidden bg-white rounded-lg shadow-lg p-8">
-  <h2 class="text-2xl font-bold text-gray-800 mb-6">📤 Cargar Justificación</h2>
+<div id="form-justificacion" class="hidden card p-8">
+  <div class="flex items-center gap-3 mb-6">
+    <span class="material-icons text-3xl" style="color: var(--primary);">cloud_upload</span>
+    <h2 class="text-2xl font-bold" style="color: var(--primary);">Cargar Justificación</h2>
+  </div>
 
-  <div class="space-y-4">
+  <div class="space-y-5">
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">DNI o N° de Empleado *</label>
+      <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">DNI o N° de Empleado *</label>
       <input type="text" id="just-dni" required placeholder="Ej: 12345678 o EMP001"
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-      <p class="text-xs text-gray-500 mt-1">Ingrese su DNI o Número de Empleado</p>
+        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all">
+      <p class="text-xs mt-2" style="color: var(--text-secondary);">Ingrese su DNI o Número de Empleado</p>
     </div>
 
     <div>
       <button onclick="cargarSolicitudes()"
-        class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
-        🔍 Buscar mis solicitudes pendientes
+        class="btn-primary w-full py-3 flex items-center justify-center gap-2">
+        <span class="material-icons">search</span>
+        <span class="font-semibold">Buscar mis solicitudes pendientes</span>
       </button>
     </div>
 
     <div id="licencias-container" class="hidden">
-      <label class="block text-sm font-medium text-gray-700 mb-3">
+      <label class="block text-sm font-semibold mb-3" style="color: var(--text-primary);">
         Seleccione las Licencias (puede seleccionar varias) *
       </label>
-      <div id="licencias-list" class="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto bg-gray-50">
+      <div id="licencias-list" class="border-2 border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto bg-gray-50">
         <!-- Se llenará dinámicamente -->
       </div>
-      <p id="contador-licencias" class="text-sm text-blue-600 mt-2"></p>
+      <p id="contador-licencias" class="text-sm font-semibold mt-2" style="color: var(--primary);"></p>
     </div>
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Archivos Justificatorios *</label>
+      <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Archivos Justificatorios *</label>
       <input type="file" id="just-archivo" accept=".jpg,.jpeg,.png,.pdf" multiple
-        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-      <p class="text-xs text-gray-500 mt-1">Formatos aceptados: JPG, JPEG, PNG, PDF (múltiples archivos)</p>
-      <p class="text-xs text-blue-600 mt-1">💡 Las imágenes se optimizarán automáticamente para reducir el tamaño. Los PDF se suben sin cambios.</p>
+        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-semibold cursor-pointer"
+        style="file:background-color: var(--primary); file:color: white;">
+      <p class="text-xs mt-2" style="color: var(--text-secondary);">Formatos aceptados: JPG, JPEG, PNG, PDF (múltiples archivos)</p>
+      <div class="flex items-start gap-2 mt-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
+        <span class="material-icons text-blue-600 text-sm">info</span>
+        <p class="text-xs text-blue-800">Las imágenes se optimizarán automáticamente para reducir el tamaño. Los PDF se suben sin cambios.</p>
+      </div>
     </div>
 
     <button onclick="enviarJustificacion()"
-      class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors">
-      ✓ Enviar Justificación
+      class="w-full py-4 rounded-lg font-bold transition-all flex items-center justify-center gap-2 mt-6 text-base"
+      style="background: #10b981; color: white; box-shadow: var(--shadow-sm);">
+      <span class="material-icons">check_circle</span>
+      <span>Enviar Justificación</span>
     </button>
   </div>
 </div>
