@@ -200,7 +200,8 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
               data[i][11] === 'Pendiente' ||
               data[i][11] === 'Completada' ||
               data[i][11] === 'Justificada' ||
-              data[i][11] === 'Injustificada')) {
+              data[i][11] === 'Injustificada' ||
+              data[i][11] === 'Descuento')) {
       solicitudes.push({
         id: data[i][12],
         rowIndex: i + 1,

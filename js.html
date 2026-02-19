@@ -505,7 +505,7 @@
           } else {
             let html = '';
             solicitudes.forEach(sol => {
-              const esInjustificada = sol.estado === 'Injustificada' || sol.estado === 'Completada';
+              const esInjustificada = sol.estado === 'Injustificada' || sol.estado === 'Completada' || sol.estado === 'Descuento';
               const onclickAttr = esInjustificada ? '' : `onclick="toggleLicencia('${sol.id}')"`;
               const cursorClass = esInjustificada ? 'cursor-not-allowed opacity-50' : 'cursor-pointer';
               const checkboxHTML = esInjustificada ? '' : `<div id="check-${sol.id}" class="w-5 h-5 rounded border-2 mr-3 flex items-center justify-center border-gray-300"></div>`;
