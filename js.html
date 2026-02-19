@@ -1,5 +1,6 @@
   <script>
     let solicitudesSeleccionadas = [];
+    let solicitudesDisponibles = [];
     let agenteActual = null;
     let currentStep = 1;
 
@@ -495,6 +496,7 @@
         .withSuccessHandler(function(solicitudes) {
           mostrarLoading(false);
           solicitudesSeleccionadas = [];
+          solicitudesDisponibles = Array.isArray(solicitudes) ? solicitudes : [];
           
           const container = document.getElementById('licencias-container');
           const list = document.getElementById('licencias-list');
@@ -595,9 +597,17 @@
         return;
       }
 
+      const licenciasSeleccionadas = solicitudesSeleccionadas.map(id => {
+        const licencia = solicitudesDisponibles.find(sol => String(sol.id) === String(id));
+        return {
+          id: String(id),
+          rowIndex: licencia && licencia.rowIndex ? licencia.rowIndex : null
+        };
+      });
+
       const datos = {
         dniONumEmpleado: dniONumEmpleado,
-        licenciasIds: solicitudesSeleccionadas
+        licencias: licenciasSeleccionadas
       };
 
       const hayImagen = archivos.some(a => a.type.match(/image\/(jpeg|jpg|png)/i));
@@ -626,6 +636,7 @@
                 document.getElementById('just-archivo').value = '';
                 document.getElementById('licencias-container').classList.add('hidden');
                 solicitudesSeleccionadas = [];
+                solicitudesDisponibles = [];
               } else {
                 mostrarToast('error', 'Error', result.error);
               }

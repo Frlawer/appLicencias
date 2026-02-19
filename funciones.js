@@ -274,8 +274,21 @@ function guardarJustificacion(datos, archivos) {
       });
     }
 
+    const licenciasSeleccionadas = Array.isArray(datos.licencias)
+      ? datos.licencias
+      : (Array.isArray(datos.licenciasIds)
+          ? datos.licenciasIds.map((id) => ({ id: String(id), rowIndex: null }))
+          : []);
+
+    if (!licenciasSeleccionadas.length) {
+      return {
+        success: false,
+        error: "No se recibieron licencias para justificar",
+      };
+    }
+
     const timestamp = new Date();
-    const idsString = datos.licenciasIds.join(", ");
+    const idsString = licenciasSeleccionadas.map((lic) => lic.id).join(", ");
 
     sheet.appendRow([
       timestamp,
@@ -285,7 +298,7 @@ function guardarJustificacion(datos, archivos) {
       agente.apellidos,
       agente.nombres,
       idsString,
-      datos.licenciasIds.length,
+      licenciasSeleccionadas.length,
       urls.join(", "),
     ]);
 
@@ -300,8 +313,8 @@ function guardarJustificacion(datos, archivos) {
     });
 
     // Actualizar estado de todas las solicitudes seleccionadas
-    datos.licenciasIds.forEach((id) => {
-      actualizarEstadoSolicitud(id, "Justificada");
+    licenciasSeleccionadas.forEach((licencia) => {
+      actualizarEstadoSolicitud(licencia, "Justificada");
     });
 
     // Enviar email al agente
@@ -309,7 +322,7 @@ function guardarJustificacion(datos, archivos) {
       const urlsTexto = urls.join(', ');
       enviarEmailJustificacion(
         agente,
-        datos.licenciasIds.length,
+        licenciasSeleccionadas.length,
         urlsTexto,
         timestamp
       );
@@ -337,10 +350,22 @@ function actualizarEstadoSolicitud(idSolicitud, nuevoEstado) {
   if (!sheet) return { success: false, error: 'Hoja no encontrada' };
   
   const data = sheet.getDataRange().getValues();
+  const solicitud = (idSolicitud && typeof idSolicitud === 'object')
+    ? idSolicitud
+    : { id: idSolicitud, rowIndex: null };
+
+  if (solicitud.rowIndex && Number(solicitud.rowIndex) > 1) {
+    const fila = Number(solicitud.rowIndex);
+    const idEnFila = String(sheet.getRange(fila, 13).getValue() || '');
+    if (!solicitud.id || idEnFila === String(solicitud.id)) {
+      sheet.getRange(fila, 12).setValue(nuevoEstado);
+      return { success: true };
+    }
+  }
   
   // Buscar la solicitud por su ID único
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][12] || '') === String(idSolicitud)) {
+    if (String(data[i][12] || '') === String(solicitud.id || '')) {
       sheet.getRange(i + 1, 12).setValue(nuevoEstado); // Columna L (Estado)
       return { success: true };
     }
