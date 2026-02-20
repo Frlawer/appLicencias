@@ -40,6 +40,37 @@
     }
 
     // ========================================
+    // === MOSTRAR/OCULTAR TEXTAREA MOTIVO ===
+    // ========================================
+    function configurarMostrarMotivoSiRazonesPart() {
+      const selectTipo = document.getElementById('sol-tipo');
+      const contenedorMotivo = document.getElementById('sol-motivo-container');
+      const textareaMotivo = document.getElementById('sol-motivo');
+
+      if (!selectTipo || !contenedorMotivo || !textareaMotivo) return;
+
+      selectTipo.addEventListener('change', function() {
+        const valorSeleccionado = this.value;
+        const esRazonesPart = valorSeleccionado && valorSeleccionado.includes('*');
+
+        if (esRazonesPart) {
+          // Mostrar con fade in
+          contenedorMotivo.classList.remove('hidden');
+          setTimeout(() => {
+            contenedorMotivo.classList.add('opacity-100');
+          }, 10);
+        } else {
+          // Ocultar y limpiar
+          contenedorMotivo.classList.remove('opacity-100');
+          setTimeout(() => {
+            contenedorMotivo.classList.add('hidden');
+            textareaMotivo.value = ''; // Limpiar contenido
+          }, 300);
+        }
+      });
+    }
+
+    // ========================================
     // === FUNCIONES DE OPTIMIZACIÓN DE ARCHIVOS ===
     // ========================================
 
@@ -428,6 +459,7 @@
       const desde = document.getElementById('sol-desde').value;
       const hasta = document.getElementById('sol-hasta').value;
       const curso = document.getElementById('sol-curso').value;
+      const motivo = document.getElementById('sol-motivo').value.trim();
       const articulacionEl = document.querySelector('input[name="sol-articulacion"]:checked');
 
       if (!dniONumEmpleado || !tipo || !desde || !hasta) {
@@ -445,13 +477,22 @@
         return;
       }
 
+      // Validación especial para RAZONES PARTICULARES
+      if (tipo.includes('*')) {
+        if (!motivo) {
+          mostrarToast('warning', 'Motivo requerido', 'Debe incluir el motivo de su solicitud de razones particulares');
+          return;
+        }
+      }
+
       const datos = {
         dniONumEmpleado: dniONumEmpleado,
         tipoLicencia: tipo,
         fechaDesde: desde,
         fechaHasta: hasta,
         cursoOCargo: curso,
-        articulacion: articulacionEl.value
+        articulacion: articulacionEl.value,
+        motivo: motivo || ''
       };
 
       mostrarLoading(true);
@@ -469,7 +510,16 @@
             document.getElementById('sol-desde').value = '';
             document.getElementById('sol-hasta').value = '';
             document.getElementById('sol-curso').value = '';
+            document.getElementById('sol-motivo').value = '';
             document.querySelector('input[name="sol-articulacion"]:checked').checked = false;
+            // Ocultar motivo si estaba visible
+            const contenedorMotivo = document.getElementById('sol-motivo-container');
+            if (contenedorMotivo) {
+              contenedorMotivo.classList.remove('opacity-100');
+              setTimeout(() => {
+                contenedorMotivo.classList.add('hidden');
+              }, 300);
+            }
           } else {
             console.log("error");
             mostrarToast('error', 'Error', result.error);
@@ -672,6 +722,7 @@
       // Cargar licencias desde la Sheet
       cargarLicenciasEnSelect();
       actualizarBotonesSeccion(currentStep);
+      configurarMostrarMotivoSiRazonesPart();
       
       const inputArchivo = document.getElementById('just-archivo');
       if (inputArchivo) {

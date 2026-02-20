@@ -110,7 +110,8 @@ function guardarSolicitud(datos) {
         'Articulación',
         'Tipo Licencia',
         'Estado',
-        'ID'
+        'ID',
+        'Motivo'
       ]);
     }
     
@@ -136,7 +137,8 @@ function guardarSolicitud(datos) {
       datos.articulacion,
       datos.tipoLicencia,
       'Pendiente',
-      id
+      id,
+      datos.motivo || ''
     ]);
 
     registrarNovedad_('SOLICITUD', {

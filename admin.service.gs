@@ -116,7 +116,8 @@ function obtenerTodasSolicitudes() {
       articulacion: String(data[i][9] || ''),
       tipoLicencia: String(data[i][10] || ''),
       estado: String(data[i][11] || ''),
-      id: String(data[i][12] || '')
+      id: String(data[i][12] || ''),
+      motivo: String(data[i][13] || '')
     });
   }
   Logger.log('Solicitudes obtenidas: ' + solicitudes.length);
@@ -163,7 +164,8 @@ function obtenerSolicitudPorId(idSolicitud) {
           articulacion: String(data[i][9] || ''),
           tipoLicencia: String(data[i][10] || ''),
           estado: String(data[i][11] || ''),
-          id: String(data[i][12] || '')
+          id: String(data[i][12] || ''),
+          motivo: String(data[i][13] || '')
         };
         return { success: true, solicitud };
       }
@@ -291,3 +293,167 @@ function inicializarSheets() {
 
   Logger.log('Sheets inicializados correctamente');
 }
+
+// ========================================
+// === FUNCIONES RAZONES PARTICULARES ===
+// ========================================
+
+function obtenerSolicitudesRazonesPart() {
+  try {
+    assertAdminAutorizado_();
+    const todasSolicitudes = obtenerTodasSolicitudes();
+    
+    // Filtrar solo solicitudes que contengan "*" en el tipo de licencia (RAZONES PARTICULARES)
+    const rpSolicitudes = todasSolicitudes.filter(sol => {
+      return sol.tipoLicencia && sol.tipoLicencia.includes('*');
+    });
+
+    return rpSolicitudes;
+  } catch (error) {
+    Logger.log('Error al obtener solicitudes de RP: ' + error.toString());
+    return [];
+  }
+}
+
+function generarReporteRP() {
+  try {
+    assertAdminAutorizado_();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Crear o limpiar la hoja "RP"
+    let sheetRP = ss.getSheetByName('RP');
+    if (!sheetRP) {
+      sheetRP = ss.insertSheet('RP');
+    } else {
+      // Limpiar la hoja excepto el encabezado
+      const lastRow = sheetRP.getLastRow();
+      if (lastRow > 1) {
+        sheetRP.deleteRows(2, lastRow - 1);
+      }
+    }
+
+    // Crear encabezados si la hoja está vacía
+    if (sheetRP.getLastRow() === 0) {
+      sheetRP.appendRow([
+        'N° Empleado',
+        'Agente',
+        'Cargo',
+        'Curso',
+        'División',
+        'Solicitudes Anuales',
+        'Solicitudes Mensuales',
+        'Límite Anual (6)',
+        'Límite Mensual (2)'
+      ]);
+      // Dar formato al encabezado
+      const headerRange = sheetRP.getRange(1, 1, 1, 9);
+      headerRange.setFontWeight('bold');
+      headerRange.setBackground('#2B3E4C');
+      headerRange.setFontColor('#FFFFFF');
+    }
+
+    // Obtener todas las solicitudes de RP
+    const solicitudesRP = obtenerSolicitudesRazonesPart();
+    
+    if (solicitudesRP.length === 0) {
+      return { success: true, mensaje: 'No hay solicitudes de Razones Particulares registradas', registros: 0 };
+    }
+
+    // Agrupar por agente + cargo
+    const reportePorAgenteYCargo = {};
+    
+    for (const solicitud of solicitudesRP) {
+      // Obtener datos del agente desde la clave maestra
+      const agenteData = obtenerAgente(solicitud.numeroEmpleado);
+      if (!agenteData) continue;
+
+      // Obtener cargos del agente
+      const cargosData = obtenerCargosAgente(solicitud.numeroEmpleado);
+      if (!cargosData.success || !cargosData.cargos.length) continue;
+
+      // Para cada cargo, contar las solicitudes
+      for (const cargo of cargosData.cargos) {
+        const clave = `${solicitud.numeroEmpleado}|${cargo.texto}`;
+        
+        if (!reportePorAgenteYCargo[clave]) {
+          reportePorAgenteYCargo[clave] = {
+            numeroEmpleado: solicitud.numeroEmpleado,
+            agente: agenteData.nombre,
+            cargo: cargo.texto,
+            seccion: cargo.seccion,
+            solicitudesAño: 0,
+            solicitudesMes: 0,
+            solicitudes: []
+          };
+        }
+
+        // Contar por año calendario
+        const fechaSolicitud = new Date(solicitud.timestamp);
+        const mesActual = new Date().getMonth();
+        const anoActual = new Date().getFullYear();
+        const anoSolicitud = fechaSolicitud.getFullYear();
+        const mesSolicitud = fechaSolicitud.getMonth();
+
+        // Solicitudes del año calendario actual
+        if (anoSolicitud === anoActual) {
+          reportePorAgenteYCargo[clave].solicitudesAño++;
+        }
+
+        // Solicitudes del mes actual
+        if (anoSolicitud === anoActual && mesSolicitud === mesActual) {
+          reportePorAgenteYCargo[clave].solicitudesMes++;
+        }
+
+        reportePorAgenteYCargo[clave].solicitudes.push({
+          timestamp: solicitud.timestamp,
+          motivo: solicitud.motivo,
+          estado: solicitud.estado
+        });
+      }
+    }
+
+    // Agregar filas al reporte
+    for (const clave in reportePorAgenteYCargo) {
+      const item = reportePorAgenteYCargo[clave];
+      
+      // Extraer Curso y División de la sección (formato: "División - Curso")
+      const partes = item.seccion.split('-');
+      const division = partes[0] ? partes[0].trim() : '';
+      const curso = partes.length > 1 ? partes[1].trim() : item.seccion;
+
+      sheetRP.appendRow([
+        item.numeroEmpleado,
+        item.agente,
+        item.cargo,
+        curso,
+        division,
+        item.solicitudesAño,
+        item.solicitudesMes,
+        item.solicitudesAño >= 6 ? '✗ LÍMITE ALCANZADO' : item.solicitudesAño + '/6',
+        item.solicitudesMes >= 2 ? '✗ LÍMITE ALCANZADO' : item.solicitudesMes + '/2'
+      ]);
+    }
+
+    // Ajustar anchos de columna
+    sheetRP.setColumnWidth(1, 120);
+    sheetRP.setColumnWidth(2, 200);
+    sheetRP.setColumnWidth(3, 250);
+    sheetRP.setColumnWidth(4, 150);
+    sheetRP.setColumnWidth(5, 150);
+    sheetRP.setColumnWidth(6, 120);
+    sheetRP.setColumnWidth(7, 120);
+    sheetRP.setColumnWidth(8, 150);
+    sheetRP.setColumnWidth(9, 150);
+
+    return { 
+      success: true, 
+      mensaje: `Reporte generado exitosamente con ${Object.keys(reportePorAgenteYCargo).length} registros`, 
+      registros: Object.keys(reportePorAgenteYCargo).length 
+    };
+
+  } catch (error) {
+    Logger.log('Error al generar reporte RP: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+

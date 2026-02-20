@@ -124,6 +124,7 @@
     document.getElementById('vista-descuentos').classList.add('hidden');
     document.getElementById('vista-jornada').classList.add('hidden');
     document.getElementById('vista-siso').classList.add('hidden');
+    document.getElementById('vista-razonespart').classList.add('hidden');
     document.getElementById('vista-agregar').classList.add('hidden');
 
     if (vista === 'solicitudes') {
@@ -154,6 +155,12 @@
       document.getElementById('titulo-seccion').textContent = 'Cargar Datos SISO';
       document.getElementById('subtitulo-seccion').textContent = 'Importar datos desde archivo CSV';
       document.getElementById('vista-siso').classList.remove('hidden');
+    } else if (vista === 'razonespart') {
+      document.getElementById('menu-razonespart').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Razones Particulares';
+      document.getElementById('subtitulo-seccion').textContent = 'Solicitudes y reporte de razones particulares';
+      document.getElementById('vista-razonespart').classList.remove('hidden');
+      recargarSolicitudesRP();
     } else if (vista === 'agregar') {
       document.getElementById('menu-agregar').classList.add('active');
       document.getElementById('titulo-seccion').textContent = 'Agregar Solicitud Manual';
@@ -170,7 +177,7 @@
   }
 
   function obtenerVistaActual() {
-    const vistas = ['solicitudes', 'justificaciones', 'descuentos', 'jornada', 'siso', 'agregar'];
+    const vistas = ['solicitudes', 'justificaciones', 'descuentos', 'jornada', 'siso', 'razonespart', 'agregar'];
     for (const vista of vistas) {
       const el = document.getElementById(`vista-${vista}`);
       if (el && !el.classList.contains('hidden')) return vista;

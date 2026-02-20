@@ -1,0 +1,138 @@
+<script>
+  // ========================================
+  // === RAZONES PARTICULARES ===
+  // ========================================
+
+  let solicitudesRPData = [];
+
+  function recargarSolicitudesRP() {
+    const tabla = document.getElementById('tabla-razonespart');
+    const info = document.getElementById('razonespart-info');
+    const infoText = document.getElementById('razonespart-info-text');
+
+    if (!tabla) return;
+
+    tabla.innerHTML = '<tr><td colspan="7" class="px-3 py-4 text-sm text-gray-600 text-center">Cargando...</td></tr>';
+    info.classList.add('hidden');
+
+    google.script.run
+      .withSuccessHandler(function(solicitudes) {
+        solicitudesRPData = solicitudes || [];
+
+        if (solicitudesRPData.length === 0) {
+          tabla.innerHTML = '<tr><td colspan="7" class="px-3 py-4 text-sm text-gray-600 text-center">No hay solicitudes de Razones Particulares registradas</td></tr>';
+          infoText.textContent = 'No hay datos para mostrar';
+          info.classList.remove('hidden');
+          return;
+        }
+
+        // Mostrar información
+        infoText.innerHTML = `<strong>${solicitudesRPData.length} solicitud(es)</strong> de Razones Particulares encontrada(s)`;
+        info.classList.remove('hidden');
+
+        // Llenar tabla
+        tabla.innerHTML = '';
+        solicitudesRPData.forEach((sol, index) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="px-3 py-2 text-xs text-gray-600">${sol.timestamp}</td>
+            <td class="px-3 py-2 text-sm font-medium text-gray-900">${sol.apellidos} ${sol.nombres}</td>
+            <td class="px-3 py-2 text-sm text-gray-700">${sol.numeroEmpleado}</td>
+            <td class="px-3 py-2 text-sm text-gray-700">${sol.tipoLicencia}</td>
+            <td class="px-3 py-2 text-sm text-gray-700 max-w-xs truncate" title="${sol.motivo}">${sol.motivo || '—'}</td>
+            <td class="px-3 py-2">
+              <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+                sol.estado === 'Autorizada' ? 'bg-green-100 text-green-800' :
+                sol.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                sol.estado === 'Justificada' ? 'bg-blue-100 text-blue-800' :
+                sol.estado === 'Completada' ? 'bg-indigo-100 text-indigo-800' :
+                sol.estado === 'Injustificada' ? 'bg-red-100 text-red-800' :
+                sol.estado === 'Descuento' ? 'bg-orange-100 text-orange-800' :
+                'bg-gray-100 text-gray-800'
+              }">
+                ${sol.estado}
+              </span>
+            </td>
+            <td class="px-3 py-2 text-sm">
+              <button onclick="verDetalleRP(${index})" class="text-blue-600 hover:text-blue-800 font-semibold">
+                Ver
+              </button>
+            </td>
+          `;
+          tabla.appendChild(row);
+        });
+      })
+      .withFailureHandler(function(error) {
+        console.error('Error:', error);
+        tabla.innerHTML = `<tr><td colspan="7" class="px-3 py-4 text-sm text-red-600 text-center">Error al cargar: ${error.message}</td></tr>`;
+        mostrarToast('error', 'Error', 'No se pudieron cargar las solicitudes: ' + error.message);
+      })
+      .obtenerSolicitudesRazonesPart();
+  }
+
+  function generarReporteRP() {
+    if (!confirm('¿Desea generar el reporte de Razones Particulares? Se creará/actualizará la hoja "RP" con el resumen de solicitudes y límites.')) {
+      return;
+    }
+
+    const btnGenerar = event.target;
+    btnGenerar.disabled = true;
+    btnGenerar.textContent = 'Generando...';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        btnGenerar.disabled = false;
+        btnGenerar.textContent = '📊 Generar Reporte RP';
+
+        if (result.success) {
+          mostrarToast('success', 'Reporte generado', `${result.mensaje} (${result.registros} registros)`);
+          recargarSolicitudesRP(); // Recargar la tabla
+        } else {
+          mostrarToast('error', 'Error al generar', result.error);
+        }
+      })
+      .withFailureHandler(function(error) {
+        btnGenerar.disabled = false;
+        btnGenerar.textContent = '📊 Generar Reporte RP';
+        console.error('Error:', error);
+        mostrarToast('error', 'Error', 'Error al generar reporte: ' + error.message);
+      })
+      .generarReporteRP();
+  }
+
+  function verDetalleRP(index) {
+    const sol = solicitudesRPData[index];
+    if (!sol) return;
+
+    const detalles = document.getElementById('detalle-solicitud');
+    detalles.innerHTML = `
+      <div class="col-span-full"><h4 class="font-semibold text-gray-800 border-b pb-2">Información del Docente</h4></div>
+      <div><strong>Nombre:</strong> ${sol.apellidos} ${sol.nombres}</div>
+      <div><strong>Email:</strong> ${sol.email}</div>
+      <div><strong>DNI:</strong> ${sol.dni}</div>
+      <div><strong>N° Empleado:</strong> ${sol.numeroEmpleado}</div>
+      
+      <div class="col-span-full mt-3"><h4 class="font-semibold text-gray-800 border-b pb-2">Detalles de la Solicitud</h4></div>
+      <div><strong>Tipo Licencia:</strong> ${sol.tipoLicencia}</div>
+      <div><strong>Curso/Cargo:</strong> ${sol.cursoOCargo}</div>
+      <div><strong>Articulación:</strong> ${sol.articulacion}</div>
+      
+      <div class="col-span-full"><strong>Fechas:</strong> ${sol.fechaDesde} a ${sol.fechaHasta}</div>
+      <div class="col-span-full"><strong>Estado:</strong> ${sol.estado}</div>
+      <div class="col-span-full"><strong>Timestamp:</strong> ${sol.timestamp}</div>
+      
+      <div class="col-span-full mt-3"><h4 class="font-semibold text-gray-800 border-b pb-2">Motivo de Razones Particulares</h4></div>
+      <div class="col-span-full bg-gray-100 p-3 rounded text-gray-700 whitespace-pre-wrap">
+        ${sol.motivo || 'No especificado'}
+      </div>
+    `;
+
+    const modal = document.getElementById('modal-solicitud');
+    if (modal) {
+      modal.classList.remove('hidden');
+    }
+  }
+
+  // Cargar solicitudes RP cuando se abre la vista
+  window._razonesPartReady = true;
+</script>
