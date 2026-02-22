@@ -398,7 +398,9 @@
         </td>
         <td class="px-3 py-4 whitespace-nowrap text-sm">
           <button onclick="abrirModalEmail('${just.email}', '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')" 
-            class="text-green-600 hover:text-green-800">📧 Email</button>
+            class="text-green-600 hover:text-green-800 mr-3">📧 Email</button>
+          <button onclick="eliminarJustificacion(${just.rowIndex}, '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')"
+            class="text-red-600 hover:text-red-800">🗑️ Eliminar</button>
         </td>
       `;
       tbody.appendChild(tr);

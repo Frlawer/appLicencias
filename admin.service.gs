@@ -249,6 +249,76 @@ function eliminarSolicitud(rowIndex) {
   }
 }
 
+function extraerIdsArchivosDrive_(archivoUrl) {
+  const urls = String(archivoUrl || '')
+    .split(',')
+    .map(u => u.trim())
+    .filter(Boolean);
+
+  const ids = new Set();
+
+  urls.forEach(url => {
+    let id = '';
+    const matchPath = url.match(/\/d\/([a-zA-Z0-9_-]{25,})/);
+    const matchQuery = url.match(/[?&]id=([a-zA-Z0-9_-]{25,})/);
+
+    if (matchPath && matchPath[1]) {
+      id = matchPath[1];
+    } else if (matchQuery && matchQuery[1]) {
+      id = matchQuery[1];
+    } else {
+      const fallback = url.match(/[a-zA-Z0-9_-]{25,}/);
+      if (fallback && fallback[0]) id = fallback[0];
+    }
+
+    if (id) ids.add(id);
+  });
+
+  return Array.from(ids);
+}
+
+function eliminarJustificacion(rowIndex) {
+  try {
+    assertAdminAutorizado_();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+
+    if (!sheet) {
+      return { success: false, error: 'Hoja de justificaciones no encontrada' };
+    }
+
+    if (!rowIndex || rowIndex < 2 || rowIndex > sheet.getLastRow()) {
+      return { success: false, error: 'Índice de fila inválido' };
+    }
+
+    const archivoUrl = String(sheet.getRange(rowIndex, 9).getValue() || '');
+    const fileIds = extraerIdsArchivosDrive_(archivoUrl);
+
+    for (let i = 0; i < fileIds.length; i++) {
+      const fileId = fileIds[i];
+      try {
+        DriveApp.getFileById(fileId);
+      } catch (errorFile) {
+        return { success: false, error: 'No se pudo acceder al archivo de Drive: ' + fileId };
+      }
+    }
+
+    fileIds.forEach(fileId => {
+      DriveApp.getFileById(fileId).setTrashed(true);
+    });
+
+    sheet.deleteRow(rowIndex);
+
+    return {
+      success: true,
+      archivosEliminados: fileIds.length
+    };
+  } catch (error) {
+    Logger.log('Error al eliminar justificación: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
 function inicializarSheets() {
   assertAdminAutorizado_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();

@@ -55,6 +55,33 @@
       .eliminarSolicitud(rowIndex);
   }
 
+  function eliminarJustificacion(rowIndex, nombreDocente) {
+    const mensaje = `¿Eliminar la justificación de ${nombreDocente}?\nTambién se eliminarán los archivos relacionados en Drive.\nEsta acción no se puede deshacer.`;
+    if (!confirm(mensaje)) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          const totalArchivos = Number(result.archivosEliminados || 0);
+          const detalle = totalArchivos > 0
+            ? `La justificación y ${totalArchivos} archivo(s) fueron eliminados correctamente`
+            : 'La justificación fue eliminada correctamente';
+          mostrarToast('success', 'Justificación eliminada', detalle);
+          limpiarTodoCache();
+          cargarJustificaciones();
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo eliminar la justificación');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al eliminar: ' + error.message);
+      })
+      .eliminarJustificacion(rowIndex);
+  }
+
   function abrirModalEmail(email, nombre) {
     emailData = { email, nombre };
     document.getElementById('email-docente').value = email;
