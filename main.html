@@ -10,8 +10,7 @@
       <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">DNI o N° de Empleado *</label>
       <div class="flex gap-2">
         <input type="text" id="sol-dni" required placeholder="Ej: 12345678 o EMP001"
-          class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all"
-          style="focus:border-color: var(--primary);">
+          class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all">
         <button type="button" id="btn-buscar-cargos" onclick="cargarCargosAgente()"
           class="btn-primary px-5 py-3 flex items-center gap-2 whitespace-nowrap">
           <span class="material-icons text-sm">search</span>
@@ -31,6 +30,16 @@
       </div>
 
       <!-- Textarea Motivo (solo para RAZONES PARTICULARES) -->
+      
+      <div>
+        <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Curso/Cargo *</label>
+        <select id="sol-curso" disabled
+        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed" required>
+        <option value="">Primero agregue su DNI o N° de empleado...</option>
+      </select>
+        <p class="text-xs mt-2" style="color: var(--text-secondary);">Los cargos se cargarán según su DNI/N° Empleado</p>
+      </div>
+
       <div id="sol-motivo-container" class="hidden col-span-full opacity-0 transition-opacity duration-300">
         <label class="block text-sm font-semibold mb-2" style="color: var(--primary);">
           <span class="material-icons text-sm align-middle">message</span>
@@ -38,18 +47,9 @@
         </label>
         <textarea id="sol-motivo" placeholder="Describa el motivo de su solicitud de razones particulares..."
           class="w-full px-4 py-3 border-2 rounded-lg focus:ring-2 transition-all min-h-32 resize-none"
-          style="border-color: var(--primary); focus:border-color: var(--primary);">
+          style="border-color: var(--primary);" required>
         </textarea>
         <p class="text-xs mt-2" style="color: var(--text-secondary);">Este campo es obligatorio para solicitudes de razones particulares</p>
-      </div>
-
-      <div>
-        <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">Curso/Cargo *</label>
-        <select id="sol-curso" disabled
-          class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed">
-          <option value="">Primero agregue su DNI o N° de empleado...</option>
-        </select>
-        <p class="text-xs mt-2" style="color: var(--text-secondary);">Los cargos se cargarán según su DNI/N° Empleado</p>
       </div>
       
       <div class="col-span-full">
