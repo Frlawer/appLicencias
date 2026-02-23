@@ -15,6 +15,7 @@ function obtenerNovedadesSemana() {
   desde.setHours(0, 0, 0, 0);
 
   const novedades = [];
+  const tiposPorId = {};
 
   if (sheetSolicitudes) {
     const dataSol = sheetSolicitudes.getDataRange().getValues();
@@ -29,6 +30,10 @@ function obtenerNovedadesSemana() {
         const tipoLicencia = String(dataSol[i][10] || '');
         const id = String(dataSol[i][12] || '');
 
+        if (id) {
+          tiposPorId[id] = tipoLicencia;
+        }
+
         novedades.push({
           timestampObj: timestamp,
           timestamp: Utilities.formatDate(timestamp, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
@@ -38,6 +43,7 @@ function obtenerNovedadesSemana() {
           numeroEmpleado: String(dataSol[i][3] || ''),
           apellidos,
           nombres,
+          tipoLicencia,
           idsSolicitudes: id,
           origen: 'SOLICITUD'
         });
@@ -56,6 +62,15 @@ function obtenerNovedadesSemana() {
         const apellidos = String(dataJust[i][4] || '');
         const nombres = String(dataJust[i][5] || '');
         const ids = String(dataJust[i][6] || '');
+        const idsSeparados = ids
+          .split(',')
+          .map(id => String(id || '').trim())
+          .filter(Boolean);
+        const tiposRelacionados = idsSeparados
+          .map(id => tiposPorId[id])
+          .filter(Boolean);
+        const tiposUnicos = [...new Set(tiposRelacionados)];
+        const tipoLicencia = tiposUnicos.join(', ');
 
         novedades.push({
           timestampObj: timestamp,
@@ -66,6 +81,7 @@ function obtenerNovedadesSemana() {
           numeroEmpleado: String(dataJust[i][3] || ''),
           apellidos,
           nombres,
+          tipoLicencia,
           idsSolicitudes: ids,
           origen: 'JUSTIFICACION'
         });
