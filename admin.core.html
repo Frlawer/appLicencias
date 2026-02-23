@@ -258,17 +258,17 @@
         <td class="px-3 py-3 whitespace-nowrap">
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
         </td>
-        <td class="px-3 py-3 text-sm">
+        <td class="px-3 py-3 text-sm grid gap-1">
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
-            class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap min-w-6">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M11 4H7.2C6.0799 4 5.51984 4 5.09202 4.21799C4.71569 4.40974 4.40973 4.7157 4.21799 5.09202C4 5.51985 4 6.0799 4 7.2V16.8C4 17.9201 4 18.4802 4.21799 18.908C4.40973 19.2843 4.71569 19.5903 5.09202 19.782C5.51984 20 6.0799 20 7.2 20H16.8C17.9201 20 18.4802 20 18.908 19.782C19.2843 19.5903 19.5903 19.2843 19.782 18.908C20 18.4802 20 17.9201 20 16.8V12.5M15.5 5.5L18.3284 8.32843M10.7627 10.2373L17.411 3.58902C18.192 2.80797 19.4584 2.80797 20.2394 3.58902C21.0205 4.37007 21.0205 5.6364 20.2394 6.41745L13.3774 13.2794C12.6158 14.0411 12.235 14.4219 11.8012 14.7247C11.4162 14.9936 11.0009 15.2162 10.564 15.3882C10.0717 15.582 9.54378 15.6885 8.48793 15.9016L8 16L8.04745 15.6678C8.21536 14.4925 8.29932 13.9048 8.49029 13.3561C8.65975 12.8692 8.89125 12.4063 9.17906 11.9786C9.50341 11.4966 9.92319 11.0768 10.7627 10.2373Z" stroke="#2B3E4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg></button>
+            class="text-primary min-w-6">
+            <span class="material-icons">edit</span></button>
           <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-            class="text-green-600 hover:text-green-800 whitespace-nowrap min-w-6">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 8L8.44992 11.6333C9.73295 12.4886 10.3745 12.9163 11.0678 13.0825C11.6806 13.2293 12.3194 13.2293 12.9322 13.0825C13.6255 12.9163 14.2671 12.4886 15.5501 11.6333L21 8M6.2 19H17.8C18.9201 19 19.4802 19 19.908 18.782C20.2843 18.5903 20.5903 18.2843 20.782 17.908C21 17.4802 21 16.9201 21 15.8V8.2C21 7.0799 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V15.8C3 16.9201 3 17.4802 3.21799 17.908C3.40973 18.2843 3.71569 18.5903 4.09202 18.782C4.51984 19 5.07989 19 6.2 19Z" stroke="#2B3E4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg></button>
+            class="text-primary min-w-6">
+            <span class="material-icons">email</span></button>
           <div class="mt-1">
             <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-              class="text-red-600 hover:text-red-800 whitespace-nowrap min-w-6">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M18 6V16.2C18 17.8802 18 18.7202 17.673 19.362C17.3854 19.9265 16.9265 20.3854 16.362 20.673C15.7202 21 14.8802 21 13.2 21H10.8C9.11984 21 8.27976 21 7.63803 20.673C7.07354 20.3854 6.6146 19.9265 6.32698 19.362C6 18.7202 6 17.8802 6 16.2V6M14 10V17M10 10V17" stroke="#2B3E4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg></button>
+              class="text-primary min-w-6">
+              <span class="material-icons">delete</span></button>
           </div>
         </td>
       `;
@@ -369,8 +369,9 @@
       const urls = archivoUrl.split(',').map(u => u.trim()).filter(Boolean);
       if (!urls.length) return '-';
       return urls.map((u, idx) => `
-        <a href="${u}" target="_blank" class="flex items-center gap-1 text-blue-600 hover:text-blue-800">
-          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" class="w-4 h-4"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M9 17H13M9 13H13M9 9H10M17 18V21M17 15H17.01M13 3H8.2C7.0799 3 6.51984 3 6.09202 3.21799C5.71569 3.40973 5.40973 3.71569 5.21799 4.09202C5 4.51984 5 5.0799 5 6.2V17.8C5 18.9201 5 19.4802 5.21799 19.908C5.40973 20.2843 5.71569 20.5903 6.09202 20.782C6.51984 21 7.0799 21 8.2 21H13M13 3L19 9M13 3V7.4C13 7.96005 13 8.24008 13.109 8.45399C13.2049 8.64215 13.3578 8.79513 13.546 8.89101C13.7599 9 14.0399 9 14.6 9H19M19 9V11.5" stroke="#2b3e4c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+        <a href="${u}" target="_blank" class="flex items-center gap-1 text-primary">
+          <span class="material-icons">file_open</span></button>
+
            ${idx + 1}
         </a>`).join('<br>');
     }
@@ -380,7 +381,7 @@
       const ids = idsString.split(',').map(i => i.trim()).filter(Boolean);
       if (!ids.length) return '-';
       return ids.map(id => `
-        <button class="text-blue-600 hover:text-blue-800 underline" onclick="verSolicitudPorId('${id}')">
+        <button class="text-primary underline" onclick="verSolicitudPorId('${id}')">
           ${id}
         </button>
       `).join('<br>');
@@ -399,17 +400,15 @@
         <td class="px-3 py-4 whitespace-nowrap text-sm">
           ${renderArchivos(just.archivoUrl)}
         </td>
-        <td class="px-3 py-4 whitespace-nowrap text-sm space-x-2">
+        <td class="px-3 py-4 text-sm space-x-2 grid gap-1">
           <button onclick="abrirModalEmail('${just.email}', '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')" 
-            class="text-green-600 hover:text-green-800 inline-flex items-center gap-1">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" stroke="currentColor" stroke-width="2"><path d="M3 8L8.44992 11.6333C9.73295 12.4886 10.3745 12.9163 11.0678 13.0825C11.6806 13.2293 12.3194 13.2293 12.9322 13.0825C13.6255 12.9163 14.2671 12.4886 15.5501 11.6333L21 8M6.2 19H17.8C18.9201 19 19.4802 19 19.908 18.782C20.2843 18.5903 20.5903 18.2843 20.782 17.908C21 17.4802 21 16.9201 21 15.8V8.2C21 7.0799 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V15.8C3 16.9201 3 17.4802 3.21799 17.908C3.40973 18.2843 3.71569 18.5903 4.09202 18.782C4.51984 19 5.07989 19 6.2 19Z" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-            <span></span>
+            class="inline-flex items-center gap-1 text-primary">
+            <span class="material-icons">email</span></button>
+
           </button>
           <button onclick="eliminarJustificacion(${just.rowIndex}, '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')"
-            class="text-red-600 hover:text-red-800 inline-flex items-center gap-1 min-w-6">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" stroke="currentColor" stroke-width="2"><path d="M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M18 6V16.2C18 17.8802 18 18.7202 17.673 19.362C17.3854 19.9265 16.9265 20.3854 16.362 20.673C15.7202 21 14.8802 21 13.2 21H10.8C9.11984 21 8.27976 21 7.63803 20.673C7.07354 20.3854 6.6146 19.9265 6.32698 19.362C6 18.7202 6 17.8802 6 16.2V6M14 10V17M10 10V17" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-            <span></span>
-          </button>
+            class="inline-flex items-center gap-1 min-w-6 text-primary">
+            <span class="material-icons">delete</span></button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -539,17 +538,17 @@
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
         </td>
         <td class="px-3 py-3 text-xs text-gray-600">${sol.id || '-'}</td>
-        <td class="px-3 py-3 text-sm">
+        <td class="px-3 py-3 text-sm grid gap-1">
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
-            class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap min-w-6">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M11 4H7.2C6.0799 4 5.51984 4 5.09202 4.21799C4.71569 4.40974 4.40973 4.7157 4.21799 5.09202C4 5.51985 4 6.0799 4 7.2V16.8C4 17.9201 4 18.4802 4.21799 18.908C4.40973 19.2843 4.71569 19.5903 5.09202 19.782C5.51984 20 6.0799 20 7.2 20H16.8C17.9201 20 18.4802 20 18.908 19.782C19.2843 19.5903 19.5903 19.2843 19.782 18.908C20 18.4802 20 17.9201 20 16.8V12.5M15.5 5.5L18.3284 8.32843M10.7627 10.2373L17.411 3.58902C18.192 2.80797 19.4584 2.80797 20.2394 3.58902C21.0205 4.37007 21.0205 5.6364 20.2394 6.41745L13.3774 13.2794C12.6158 14.0411 12.235 14.4219 11.8012 14.7247C11.4162 14.9936 11.0009 15.2162 10.564 15.3882C10.0717 15.582 9.54378 15.6885 8.48793 15.9016L8 16L8.04745 15.6678C8.21536 14.4925 8.29932 13.9048 8.49029 13.3561C8.65975 12.8692 8.89125 12.4063 9.17906 11.9786C9.50341 11.4966 9.92319 11.0768 10.7627 10.2373Z" stroke="#2B3E4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg></button>
+            class="text-primary min-w-6">
+            <span class="material-icons">edit</span></button>
           <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-            class="text-green-600 hover:text-green-800 whitespace-nowrap min-w-6">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M3 8L8.44992 11.6333C9.73295 12.4886 10.3745 12.9163 11.0678 13.0825C11.6806 13.2293 12.3194 13.2293 12.9322 13.0825C13.6255 12.9163 14.2671 12.4886 15.5501 11.6333L21 8M6.2 19H17.8C18.9201 19 19.4802 19 19.908 18.782C20.2843 18.5903 20.5903 18.2843 20.782 17.908C21 17.4802 21 16.9201 21 15.8V8.2C21 7.0799 21 6.51984 20.782 6.09202C20.5903 5.71569 20.2843 5.40973 19.908 5.21799C19.4802 5 18.9201 5 17.8 5H6.2C5.0799 5 4.51984 5 4.09202 5.21799C3.71569 5.40973 3.40973 5.71569 3.21799 6.09202C3 6.51984 3 7.07989 3 8.2V15.8C3 16.9201 3 17.4802 3.21799 17.908C3.40973 18.2843 3.71569 18.5903 4.09202 18.782C4.51984 19 5.07989 19 6.2 19Z" stroke="#2B3E4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg></button>
+            class="text-primary min-w-6">
+            <span class="material-icons">email</span></button>
           <div class="mt-1">
             <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-              class="text-red-600 hover:text-red-800 whitespace-nowrap min-w-6">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M4 6H20M16 6L15.7294 5.18807C15.4671 4.40125 15.3359 4.00784 15.0927 3.71698C14.8779 3.46013 14.6021 3.26132 14.2905 3.13878C13.9376 3 13.523 3 12.6936 3H11.3064C10.477 3 10.0624 3 9.70951 3.13878C9.39792 3.26132 9.12208 3.46013 8.90729 3.71698C8.66405 4.00784 8.53292 4.40125 8.27064 5.18807L8 6M18 6V16.2C18 17.8802 18 18.7202 17.673 19.362C17.3854 19.9265 16.9265 20.3854 16.362 20.673C15.7202 21 14.8802 21 13.2 21H10.8C9.11984 21 8.27976 21 7.63803 20.673C7.07354 20.3854 6.6146 19.9265 6.32698 19.362C6 18.7202 6 17.8802 6 16.2V6M14 10V17M10 10V17" stroke="#2B3E4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg></button>
+              class="text-primary min-w-6">
+              <span class="material-icons">delete</span></button>
           </div>
         </td>
       `;

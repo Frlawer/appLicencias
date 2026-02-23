@@ -17,6 +17,13 @@
   
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <style>
+    @theme {
+      --primary: #2B3E4C;
+      --primary-light: #3d5468;
+      --primary-dark: #1f2d38;
+    }
+
+
     * {
       font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
@@ -183,7 +190,7 @@
 
 <body>
   <!-- Toast notifications -->
-  <div id="toast-message-cta" class="hidden flex fixed top-4 right-4 z-50 items-center w-full max-w-sm p-4 rounded-xl shadow-lg border border-gray-200 bg-white" role="alert" style="animation: slideIn 0.3s ease-out;">
+  <div id="toast-message-cta" class="hidden flex fixed inset-x-1/2 z-50 items-center w-full max-w-sm p-4 rounded-xl shadow-lg border border-gray-200 bg-white" role="alert" style="animation: slideIn 0.3s ease-out;">
     <div class="icono-notificacion"><i id="iconoNotificacion"></i></div>
     <div class="ms-2.5 text-sm border-s border-default ps-3.5">
       <span class="text-base font-semibold text-heading" id="tituloNotificacion"></span>
@@ -320,9 +327,9 @@
         <div class="bg-white rounded-lg shadow overflow-hidden">
           <!-- BUSCADOR Y FILTROS -->
           <div class="p-1 border-b bg-gray-50">
-            <div class="flex items-center justify-between gap-1">
+            <div onclick="toggleFiltrosSolicitudes()" class="flex items-center justify-between gap-1">
               <h3 class="text-sm font-semibold text-gray-700">🔍 Buscar y Filtrar</h3>
-              <button onclick="toggleFiltrosSolicitudes()"
+              <button
                 class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
                 Mostrar/Ocultar
               </button>
@@ -358,26 +365,6 @@
             </div>
           </div>
 
-          <!-- CONTROLES DE PAGINACIÓN (ARRIBA) -->
-          <div class="p-1 border-b flex flex-wrap items-center justify-between gap-3">
-            <div class="text-sm text-gray-600">
-              Mostrando <span id="solicitudes-inicio">1</span> a <span id="solicitudes-fin">25</span> de <span id="solicitudes-total">0</span> registros
-            </div>
-            <div class="flex gap-2 flex-wrap">
-              <button onclick="paginaAnteriorSolicitudes()" id="btn-anterior-solicitudes"
-                class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                ← Anterior
-              </button>
-              <div id="numeros-pagina-solicitudes" class="flex gap-1">
-                <!-- Se llena dinámicamente -->
-              </div>
-              <button onclick="paginaSiguienteSolicitudes()" id="btn-siguiente-solicitudes"
-                class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                Siguiente →
-              </button>
-            </div>
-          </div>
-
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
@@ -400,6 +387,26 @@
               </tbody>
             </table>
           </div>
+          
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-1 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Mostrando <span id="solicitudes-inicio">1</span> a <span id="solicitudes-fin">25</span> de <span id="solicitudes-total">0</span> registros
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="paginaAnteriorSolicitudes()" id="btn-anterior-solicitudes"
+                class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Anterior
+              </button>
+              <div id="numeros-pagina-solicitudes" class="flex gap-1">
+                <!-- Se llena dinámicamente -->
+              </div>
+              <button onclick="paginaSiguienteSolicitudes()" id="btn-siguiente-solicitudes"
+                class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Siguiente →
+              </button>
+            </div>
+          </div>
 
           <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
           <div class="p-4 border-t flex flex-wrap items-center justify-between gap-3">
@@ -421,21 +428,10 @@
         <div class="bg-white rounded-lg shadow overflow-hidden">
           <!-- BUSCADOR DE ID Y FILTROS -->
           <div class="p-1 border-b bg-gray-50">
-            <div class="mb-3">
-              <h3 class="text-sm font-semibold text-gray-700 mb-2">🔍 Buscar por ID de Solicitud</h3>
-              <div class="flex gap-2">
-                <input id="busqueda-solicitud-id" type="text" placeholder="Buscar solicitud por ID"
-                  class="flex-1 px-4 py-2 border border-gray-300 rounded-lg">
-                <button onclick="buscarSolicitudPorId()"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 whitespace-nowrap">
-                  <span>🔍</span><span>Buscar</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between gap-3 mb-1">
+            
+            <div onclick="toggleFiltrosJustificaciones()" class="flex items-center justify-between gap-3 mb-1">
               <h3 class="text-sm font-semibold text-gray-700">🔍 Buscar y Filtrar</h3>
-              <button onclick="toggleFiltrosJustificaciones()"
+              <button
                 class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
                 Mostrar/Ocultar
               </button>
@@ -471,26 +467,6 @@
             </div>
           </div>
 
-          <!-- CONTROLES DE PAGINACIÓN (ARRIBA) -->
-          <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
-            <div class="text-sm text-gray-600">
-              Mostrando <span id="justificaciones-inicio">1</span> a <span id="justificaciones-fin">25</span> de <span id="justificaciones-total">0</span> registros
-            </div>
-            <div class="flex gap-2 flex-wrap">
-              <button onclick="paginaAnteriorJustificaciones()" id="btn-anterior-justificaciones"
-                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                ← Anterior
-              </button>
-              <div id="numeros-pagina-justificaciones" class="flex gap-1">
-                <!-- Se llena dinámicamente -->
-              </div>
-              <button onclick="paginaSiguienteJustificaciones()" id="btn-siguiente-justificaciones"
-                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                Siguiente →
-              </button>
-            </div>
-          </div>
-
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
@@ -514,6 +490,26 @@
                 <!-- Se llenará dinámicamente -->
               </tbody>
             </table>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Mostrando <span id="justificaciones-inicio">1</span> a <span id="justificaciones-fin">25</span> de <span id="justificaciones-total">0</span> registros
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="paginaAnteriorJustificaciones()" id="btn-anterior-justificaciones"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Anterior
+              </button>
+              <div id="numeros-pagina-justificaciones" class="flex gap-1">
+                <!-- Se llena dinámicamente -->
+              </div>
+              <button onclick="paginaSiguienteJustificaciones()" id="btn-siguiente-justificaciones"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Siguiente →
+              </button>
+            </div>
           </div>
 
           <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
@@ -541,26 +537,6 @@
             </div>
           </div>
 
-          <!-- CONTROLES DE PAGINACIÓN (ARRIBA) -->
-          <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
-            <div class="text-sm text-gray-600">
-              Mostrando <span id="descuentos-inicio">1</span> a <span id="descuentos-fin">25</span> de <span id="descuentos-total">0</span> registros
-            </div>
-            <div class="flex gap-2 flex-wrap">
-              <button onclick="paginaAnteriorDescuentos()" id="btn-anterior-descuentos"
-                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                ← Anterior
-              </button>
-              <div id="numeros-pagina-descuentos" class="flex gap-1">
-                <!-- Se llena dinámicamente -->
-              </div>
-              <button onclick="paginaSiguienteDescuentos()" id="btn-siguiente-descuentos"
-                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                Siguiente →
-              </button>
-            </div>
-          </div>
-
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
@@ -582,6 +558,26 @@
                 <!-- Se llenará dinámicamente -->
               </tbody>
             </table>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Mostrando <span id="descuentos-inicio">1</span> a <span id="descuentos-fin">25</span> de <span id="descuentos-total">0</span> registros
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="paginaAnteriorDescuentos()" id="btn-anterior-descuentos"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Anterior
+              </button>
+              <div id="numeros-pagina-descuentos" class="flex gap-1">
+                <!-- Se llena dinámicamente -->
+              </div>
+              <button onclick="paginaSiguienteDescuentos()" id="btn-siguiente-descuentos"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Siguiente →
+              </button>
+            </div>
           </div>
 
           <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
@@ -661,8 +657,8 @@
                 <input type="text" id="agregar-dni" placeholder="Ej: 12345678 o EMP001"
                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 <button type="button" onclick="cargarCargosAgenteAdmin()"
-                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap">
-                  🔍 Cargar
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                  <span class="material-icons text-sm">search</span>
                 </button>
               </div>
             </div>
