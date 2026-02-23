@@ -34,13 +34,17 @@
         tabla.innerHTML = '';
         solicitudesRPData.forEach((sol, index) => {
           const row = document.createElement('tr');
+          row.className = 'hover:bg-gray-50';
+          
+          const fechasConcatenadas = `${sol.fechaDesde || '-'} a ${sol.fechaHasta || '-'}`;
+          
           row.innerHTML = `
-            <td class="px-3 py-2 text-xs text-gray-600">${sol.timestamp}</td>
-            <td class="px-3 py-2 text-sm font-medium text-gray-900">${sol.apellidos} ${sol.nombres}</td>
-            <td class="px-3 py-2 text-sm text-gray-700">${sol.numeroEmpleado}</td>
-            <td class="px-3 py-2 text-sm text-gray-700">${sol.tipoLicencia}</td>
-            <td class="px-3 py-2 text-sm text-gray-700 max-w-xs truncate" title="${sol.motivo}">${sol.motivo || '—'}</td>
-            <td class="px-3 py-2">
+            <td class="px-3 py-3 text-xs text-gray-600">${formatearFecha(sol.timestamp)}</td>
+            <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</td>
+            <td class="px-3 py-3 text-sm text-gray-700">${sol.numeroEmpleado}</td>
+            <td class="px-3 py-3 text-sm text-gray-700">${fechasConcatenadas}</td>
+            <td class="px-3 py-3 text-sm text-gray-700 max-w-xs truncate" title="${sol.motivo || ''}">${sol.motivo || '—'}</td>
+            <td class="px-3 py-3">
               <span class="px-2 py-1 text-xs font-semibold rounded-full ${
                 sol.estado === 'Autorizada' ? 'bg-green-100 text-green-800' :
                 sol.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
@@ -53,9 +57,18 @@
                 ${sol.estado}
               </span>
             </td>
-            <td class="px-3 py-2 text-sm">
-              <button onclick="verDetalleRP(${index})" class="text-blue-600 hover:text-blue-800 font-semibold">
-                Ver
+            <td class="px-3 py-3 text-sm grid gap-2 text-primary">
+              <button onclick="abrirModalEstadoRP(${sol.rowIndex})" 
+                class="min-w-6" title="Editar estado">
+                <span class="material-icons">edit</span>
+              </button>
+              <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
+                class="min-w-6" title="Enviar email">
+                <span class="material-icons">email</span>
+              </button>
+              <button onclick="eliminarSolicitudRP(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
+                class="min-w-6" title="Eliminar">
+                <span class="material-icons">delete</span>
               </button>
             </td>
           `;
@@ -131,6 +144,33 @@
     if (modal) {
       modal.classList.remove('hidden');
     }
+  }
+
+  function abrirModalEstadoRP(rowIndex) {
+    registroEditando = { rowIndex, tipo: 'razonespart' };
+    document.getElementById('modal-estado').classList.remove('hidden');
+  }
+
+  function eliminarSolicitudRP(rowIndex, nombreDocente) {
+    const mensaje = `¿Eliminar la solicitud de Razones Particulares de ${nombreDocente}?\nEsta acción no se puede deshacer.`;
+    if (!confirm(mensaje)) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          mostrarToast('success', 'Solicitud eliminada', 'La solicitud fue eliminada correctamente');
+          recargarSolicitudesRP();
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo eliminar la solicitud');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al eliminar: ' + error.message);
+      })
+      .eliminarSolicitud(rowIndex);
   }
 
   // Cargar solicitudes RP cuando se abre la vista
