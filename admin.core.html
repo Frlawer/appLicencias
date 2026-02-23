@@ -265,14 +265,17 @@
         <td class="px-3 py-3 whitespace-nowrap">
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
         </td>
-        <td class="px-3 py-3 text-sm">
+        <td class="px-3 py-3 text-sm grid gap-1">
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
-            class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
+            class="text-primary min-w-6">
+            <span class="material-icons">edit</span></button>
           <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-            class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
+            class="text-primary min-w-6">
+            <span class="material-icons">email</span></button>
           <div class="mt-1">
             <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-              class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
+              class="text-primary min-w-6">
+              <span class="material-icons">delete</span></button>
           </div>
         </td>
       `;
@@ -373,9 +376,10 @@
       const urls = archivoUrl.split(',').map(u => u.trim()).filter(Boolean);
       if (!urls.length) return '-';
       return urls.map((u, idx) => `
-        <a href="${u}" target="_blank" class="flex items-center gap-1 text-blue-600 hover:text-blue-800">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M15.75 3.75h-7.5a2.25 2.25 0 0 0-2.25 2.25v12a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 18V6a2.25 2.25 0 0 0-2.25-2.25Zm-7.5-1.5A3.75 3.75 0 0 0 4.5 6v12A3.75 3.75 0 0 0 8.25 21.75h7.5A3.75 3.75 0 0 0 19.5 18V6a3.75 3.75 0 0 0-3.75-3.75h-7.5Z"/><path d="M9 7.5h6v1.5H9V7.5Zm0 3h6V12H9v-1.5Zm0 3h3v1.5H9V13.5Z"/></svg>
-          Archivo ${idx + 1}
+        <a href="${u}" target="_blank" class="flex items-center gap-1 text-primary">
+          <span class="material-icons">file_open</span></button>
+
+           ${idx + 1}
         </a>`).join('<br>');
     }
 
@@ -384,7 +388,7 @@
       const ids = idsString.split(',').map(i => i.trim()).filter(Boolean);
       if (!ids.length) return '-';
       return ids.map(id => `
-        <button class="text-blue-600 hover:text-blue-800 underline" onclick="verSolicitudPorId('${id}')">
+        <button class="text-primary underline" onclick="verSolicitudPorId('${id}')">
           ${id}
         </button>
       `).join('<br>');
@@ -403,9 +407,15 @@
         <td class="px-3 py-4 whitespace-nowrap text-sm">
           ${renderArchivos(just.archivoUrl)}
         </td>
-        <td class="px-3 py-4 whitespace-nowrap text-sm">
+        <td class="px-3 py-4 text-sm space-x-2 grid gap-1">
           <button onclick="abrirModalEmail('${just.email}', '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')" 
-            class="text-green-600 hover:text-green-800">📧 Email</button>
+            class="inline-flex items-center gap-1 text-primary">
+            <span class="material-icons">email</span></button>
+
+          </button>
+          <button onclick="eliminarJustificacion(${just.rowIndex}, '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')"
+            class="inline-flex items-center gap-1 min-w-6 text-primary">
+            <span class="material-icons">delete</span></button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -535,14 +545,17 @@
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
         </td>
         <td class="px-3 py-3 text-xs text-gray-600">${sol.id || '-'}</td>
-        <td class="px-3 py-3 text-sm">
+        <td class="px-3 py-3 text-sm grid gap-1">
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
-            class="text-blue-600 hover:text-blue-800 mr-3 whitespace-nowrap">✏️ Editar</button>
+            class="text-primary min-w-6">
+            <span class="material-icons">edit</span></button>
           <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-            class="text-green-600 hover:text-green-800 whitespace-nowrap">📧 Email</button>
+            class="text-primary min-w-6">
+            <span class="material-icons">email</span></button>
           <div class="mt-1">
             <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
-              class="text-red-600 hover:text-red-800 whitespace-nowrap">🗑️ Eliminar</button>
+              class="text-primary min-w-6">
+              <span class="material-icons">delete</span></button>
           </div>
         </td>
       `;

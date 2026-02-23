@@ -55,6 +55,33 @@
       .eliminarSolicitud(rowIndex);
   }
 
+  function eliminarJustificacion(rowIndex, nombreDocente) {
+    const mensaje = `¿Eliminar la justificación de ${nombreDocente}?\nTambién se eliminarán los archivos relacionados en Drive.\nEsta acción no se puede deshacer.`;
+    if (!confirm(mensaje)) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          const totalArchivos = Number(result.archivosEliminados || 0);
+          const detalle = totalArchivos > 0
+            ? `La justificación y ${totalArchivos} archivo(s) fueron eliminados correctamente`
+            : 'La justificación fue eliminada correctamente';
+          mostrarToast('success', 'Justificación eliminada', detalle);
+          limpiarTodoCache();
+          cargarJustificaciones();
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo eliminar la justificación');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al eliminar: ' + error.message);
+      })
+      .eliminarJustificacion(rowIndex);
+  }
+
   function abrirModalEmail(email, nombre) {
     emailData = { email, nombre };
     document.getElementById('email-docente').value = email;
@@ -135,11 +162,72 @@
     }
   }
 
+  function opcionesEstadoSelect(estadoActual) {
+    const estados = ['Pendiente', 'Autorizada', 'Justificada', 'Completada', 'Injustificada', 'Descuento'];
+    return estados
+      .map(estado => `<option value="${estado}" ${estado === estadoActual ? 'selected' : ''}>${estado}</option>`)
+      .join('');
+  }
+
+  function refrescarVistaActualTrasCambioEstado() {
+    const vistaActual = obtenerVistaActual();
+    if (vistaActual === 'solicitudes') {
+      cargarSolicitudes();
+      return;
+    }
+    if (vistaActual === 'justificaciones') {
+      cargarJustificaciones();
+      return;
+    }
+    if (vistaActual === 'descuentos') {
+      cargarDescuentosInjustificados();
+    }
+  }
+
+  function guardarEstadoDesdeDetalle(rowIndex, idSolicitud) {
+    const selectEstado = document.getElementById('detalle-nuevo-estado');
+    if (!selectEstado) return;
+
+    const nuevoEstado = selectEstado.value;
+    if (!nuevoEstado) return;
+
+    document.getElementById('loading').classList.remove('hidden');
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          mostrarToast('success', 'Estado actualizado', 'Estado actualizado correctamente');
+          limpiarTodoCache();
+          refrescarVistaActualTrasCambioEstado();
+          verSolicitudPorId(idSolicitud);
+        } else {
+          mostrarToast('error', 'Error', result.error || 'No se pudo actualizar el estado');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al actualizar: ' + error.message);
+      })
+      .actualizarEstadoFila(rowIndex, nuevoEstado);
+  }
+
   function abrirModalSolicitud(sol) {
     const cont = document.getElementById('detalle-solicitud');
     cont.innerHTML = `
       <div><span class="text-gray-500">ID</span><div class="font-semibold">${sol.id}</div></div>
-      <div><span class="text-gray-500">Estado</span><div><span class="px-2 py-1 text-xs font-semibold rounded ${estadoClass(sol.estado)}">${sol.estado}</span></div></div>
+      <div>
+        <span class="text-gray-500">Estado</span>
+        <div class="mt-1">
+          <span class="px-2 py-1 text-xs font-semibold rounded ${estadoClass(sol.estado)}">${sol.estado}</span>
+        </div>
+        <div class="mt-2 flex items-center gap-2">
+          <select id="detalle-nuevo-estado" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+            ${opcionesEstadoSelect(sol.estado)}
+          </select>
+          <button onclick="guardarEstadoDesdeDetalle(${sol.rowIndex}, '${sol.id}')"
+            class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Guardar</button>
+        </div>
+      </div>
       <div><span class="text-gray-500">Docente</span><div class="font-semibold">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</div></div>
       <div><span class="text-gray-500">Email</span><div>${sol.email || '-'}</div></div>
       <div><span class="text-gray-500">DNI</span><div>${sol.dni}</div></div>
