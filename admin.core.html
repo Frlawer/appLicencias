@@ -272,11 +272,9 @@
           <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
             class="text-primary min-w-6">
             <span class="material-icons">email</span></button>
-          <div class="mt-1">
             <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
               class="text-primary min-w-6">
               <span class="material-icons">delete</span></button>
-          </div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -552,11 +550,9 @@
           <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
             class="text-primary min-w-6">
             <span class="material-icons">email</span></button>
-          <div class="mt-1">
             <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
               class="text-primary min-w-6">
               <span class="material-icons">delete</span></button>
-          </div>
         </td>
       `;
       tbody.appendChild(tr);
