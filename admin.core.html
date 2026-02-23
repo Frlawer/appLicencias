@@ -118,6 +118,12 @@
 
   // Cambiar entre vistas
   function cambiarVista(vista) {
+    // Contraer sidebar automáticamente
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && !sidebar.classList.contains('collapsed')) {
+      sidebar.classList.add('collapsed');
+    }
+
     document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
     document.getElementById('vista-solicitudes').classList.add('hidden');
     document.getElementById('vista-justificaciones').classList.add('hidden');

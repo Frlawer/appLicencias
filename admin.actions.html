@@ -248,17 +248,7 @@
 
   function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('main-content');
-    const toggleIcon = document.getElementById('toggle-icon');
-
-    sidebar.classList.toggle('hidden');
-    mainContent.classList.toggle('expanded');
-
-    if (sidebar.classList.contains('hidden')) {
-      toggleIcon.textContent = '☰';
-    } else {
-      toggleIcon.textContent = '✕';
-    }
+    sidebar.classList.toggle('collapsed');
   }
 
   function cargarCargosAgenteAdmin() {
