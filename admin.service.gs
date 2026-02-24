@@ -543,3 +543,163 @@ function generarReporteRP() {
   }
 }
 
+// === GUARDAR JUSTIFICACIÓN CON ARCHIVOS EN DRIVE ===
+function guardarJustificacionBackend(datos, archivos) {
+  try {
+    // Validar datos básicos
+    if (!datos || !datos.dniONumEmpleado) {
+      return { success: false, error: 'DNI o Número de Empleado requerido' };
+    }
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheetJust = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+
+    // Crear sheet si no existe
+    if (!sheetJust) {
+      sheetJust = ss.insertSheet(SHEET_JUSTIFICACIONES);
+      sheetJust.appendRow([
+        'Timestamp',
+        'Email',
+        'DNI',
+        'N° Empleado',
+        'Apellidos',
+        'Nombres',
+        'IDs Solicitudes',
+        'Cantidad Licencias',
+        'URLs Archivos'
+      ]);
+    }
+
+    // Buscar agente
+    const agente = obtenerAgente(datos.dniONumEmpleado);
+    if (!agente) {
+      return { 
+        success: false, 
+        error: 'DNI o Número de Empleado no encontrado en la base de datos' 
+      };
+    }
+
+    // Procesar y subir archivos a Drive
+    const urls = [];
+    const licenciasIds = (datos.licenciasIds && Array.isArray(datos.licenciasIds)) 
+      ? datos.licenciasIds 
+      : (datos.licencias && Array.isArray(datos.licencias) 
+          ? datos.licencias.map(l => l.id || l) 
+          : []);
+
+    if (archivos && Array.isArray(archivos) && archivos.length > 0) {
+      try {
+        const folder = DriveApp.getFolderById(FOLDER_ARCHIVOS_ID);
+        
+        archivos.forEach((archivoData, idx) => {
+          try {
+            if (!archivoData.archivoBase64) {
+              Logger.log(`Archivo ${idx + 1} sin contenido base64`);
+              return;
+            }
+
+            // Separar data URL si existe
+            const dataParte = archivoData.archivoBase64.includes(',') 
+              ? archivoData.archivoBase64.split(',')[1] 
+              : archivoData.archivoBase64;
+
+            const mimeType = archivoData.mimeType || 'application/octet-stream';
+            const extension = mimeType.includes('pdf') ? 'pdf' : 'jpg';
+            const timestamp = new Date().getTime();
+            const nombreArchivo = `${agente.dni}_${licenciasIds.join('-')}_${timestamp}_${idx + 1}.${extension}`;
+
+            // Decodificar y crear archivo en Drive
+            const blob = Utilities.newBlob(
+              Utilities.base64Decode(dataParte),
+              mimeType,
+              nombreArchivo
+            );
+            
+            const file = folder.createFile(blob);
+            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            const fileUrl = file.getUrl();
+            urls.push(fileUrl);
+
+            Logger.log(`Archivo subido: ${nombreArchivo} - ${fileUrl}`);
+          } catch (fileError) {
+            Logger.log(`Error al procesar archivo ${idx + 1}: ${fileError.toString()}`);
+          }
+        });
+      } catch (driveError) {
+        Logger.log(`Error al acceder a Drive: ${driveError.toString()}`);
+        return { 
+          success: false, 
+          error: `Error al subir archivos: ${driveError.toString()}` 
+        };
+      }
+    }
+
+    // Guardar registro en sheet de justificaciones
+    const timestamp = new Date();
+    const idsString = licenciasIds.join(', ');
+
+    try {
+      sheetJust.appendRow([
+        timestamp,
+        agente.email,
+        agente.dni,
+        agente.numeroEmpleado,
+        agente.apellidos,
+        agente.nombres,
+        idsString,
+        licenciasIds.length,
+        urls.join(', ', )
+      ]);
+    } catch (sheetError) {
+      Logger.log(`Error al guardar en sheet: ${sheetError.toString()}`);
+      return { 
+        success: false, 
+        error: `Error al guardar justificación: ${sheetError.toString()}` 
+      };
+    }
+
+    // Actualizar estado de solicitudes
+    const sheetSol = ss.getSheetByName(SHEET_SOLICITUDES);
+    if (sheetSol && licenciasIds.length > 0) {
+      const dataSol = sheetSol.getDataRange().getValues();
+      for (let i = 1; i < dataSol.length; i++) {
+        const idEnFila = String(dataSol[i][12] || '');
+        if (licenciasIds.includes(idEnFila) || licenciasIds.find(id => String(id) === idEnFila)) {
+          sheetSol.getRange(i + 1, 12).setValue('Justificada');
+        }
+      }
+    }
+
+    // Registrar novedad
+    registrarNovedad_('JUSTIFICACION', {
+      dni: agente.dni,
+      numeroEmpleado: agente.numeroEmpleado || '',
+      apellidos: agente.apellidos,
+      nombres: agente.nombres,
+      idsSolicitudes: idsString,
+      origen: 'JUSTIFICACION'
+    });
+
+    // Enviar email al agente
+    try {
+      const urlsTexto = urls.join(', ');
+      enviarEmailJustificacion(agente, licenciasIds.length, urlsTexto, timestamp);
+    } catch (emailError) {
+      Logger.log('Error al enviar email de justificación: ' + emailError.toString());
+      // No fallar la operación si el email falla
+    }
+
+    return { 
+      success: true, 
+      email: agente.email,
+      archivosSubidos: urls.length,
+      mensaje: `Justificación guardada con ${urls.length} archivo(s)` 
+    };
+
+  } catch (error) {
+    Logger.log('Error en guardarJustificacionBackend: ' + error.toString());
+    return { success: false, error: error.toString() };
+  }
+}
+
+
