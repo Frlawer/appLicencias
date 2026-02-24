@@ -25,7 +25,7 @@ function enviarEmailSolicitud(agente, datos, timestamp, idSolicitud) {
 
 function enviarEmailJustificacion(agente, cantidadLicencias, archivoUrl, timestamp) {
   try {
-    const asunto = 'Confirmación de Licencia - CPEM N° 25';
+    const asunto = `Presentación Contancia ${agente.nombre} - CPEM N° 25`;
     const draftId = PLANTILLA_JUSTIFICACION;
 
     const borrador = GmailApp.getDraft(draftId);
@@ -56,7 +56,7 @@ function enviarEmailJustificacion(agente, cantidadLicencias, archivoUrl, timesta
 function enviarEmailAdmin(emailDocente, nombreDocente, mensaje) {
   try {
     assertAdminAutorizado_();
-    const asunto = `Respuesta solicitud de licencia ${nombreDocente} - CPEM N° 25`;
+    const asunto = `Respuesta Licencia ${nombreDocente} - CPEM N° 25`;
     const draftId = PLANTILLA_ADMIN;
 
     const borrador = GmailApp.getDraft(draftId);
