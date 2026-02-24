@@ -260,18 +260,18 @@
       const estadoColor = obtenerClaseEstado(sol.estado);
 
       tr.innerHTML = `
-        <td class="px-3 py-3 text-sm text-gray-900">${formatearFecha(sol.timestamp)}</td>
-        <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</td>
-        <td class="px-3 py-3 text-sm text-gray-500">${sol.dni}</td>
-        <td class="px-3 py-3 text-sm text-gray-900">${sol.numeroEmpleado}</td>
-        <td class="px-3 py-3 text-sm text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
-        <td class="px-3 py-3 text-xs text-gray-500">${sol.cursoOCargo || '-'}</td>
-        <td class="px-3 py-3 text-sm text-gray-900">${sol.articulacion}</td>
-        <td class="px-3 py-3 text-sm text-gray-900">${sol.tipoLicencia}</td>
-        <td class="px-3 py-3 whitespace-nowrap">
+        <td class="px-2 py-3 text-xs text-gray-900">${formatearFecha(sol.timestamp)}</td>
+        <td class="px-2 py-3 text-xs font-medium text-gray-900">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</td>
+        <td class="px-2 py-3 text-xs text-gray-500">${sol.dni}</td>
+        <td class="px-2 py-3 text-xs text-gray-900">${sol.numeroEmpleado}</td>
+        <td class="px-2 py-3 text-xs text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
+        <td class="px-2 py-3 text-xs text-gray-500">${sol.cursoOCargo || '-'}</td>
+        <td class="px-2 py-3 text-xs text-gray-900">${sol.articulacion}</td>
+        <td class="px-2 py-3 text-xs text-gray-900">${sol.tipoLicencia}</td>
+        <td class="px-2 py-3 text-xs">
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
         </td>
-        <td class="px-3 py-3 text-sm grid gap-1">
+        <td class="px-2 py-3 text-xs grid gap-1">
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
             class="text-primary min-w-6">
             <span class="material-icons">edit</span></button>
@@ -403,15 +403,15 @@
       tr.className = 'hover:bg-gray-50';
 
       tr.innerHTML = `
-        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-900">${formatearFecha(just.timestamp)}</td>
-        <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}</td>
-        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.dni}</td>
-        <td class="px-3 py-4 text-sm text-gray-500">${renderIds(just.idsSolicitudes)}</td>
-        <td class="px-3 py-4 whitespace-nowrap text-sm text-gray-500">${just.cantidadLicencias}</td>
-        <td class="px-3 py-4 whitespace-nowrap text-sm">
+        <td class="px-2 py-4 text-xs text-gray-900">${formatearFecha(just.timestamp)}</td>
+        <td class="px-2 py-4 text-xs font-medium text-gray-900">${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}</td>
+        <td class="px-2 py-4 text-xs text-gray-500">${just.dni}</td>
+        <td class="px-2 py-4 text-xs text-gray-500">${renderIds(just.idsSolicitudes)}</td>
+        <td class="px-2 py-4 text-xs text-gray-500">${just.cantidadLicencias}</td>
+        <td class="px-2 py-4 text-xs">
           ${renderArchivos(just.archivoUrl)}
         </td>
-        <td class="px-3 py-4 text-sm space-x-2 grid gap-1">
+        <td class="px-2 py-4 text-xs space-x-2 grid gap-1">
           <button onclick="abrirModalEmail('${just.email}', '${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}')" 
             class="inline-flex items-center gap-1 text-primary">
             <span class="material-icons">email</span></button>
@@ -545,7 +545,7 @@
         <td class="px-3 py-3 text-xs text-gray-500">${sol.cursoOCargo || '-'}</td>
         <td class="px-3 py-3 text-sm text-gray-900">${sol.articulacion}</td>
         <td class="px-3 py-3 text-sm text-gray-900">${sol.tipoLicencia}</td>
-        <td class="px-3 py-3 whitespace-nowrap">
+        <td class="px-3 py-3 text-sm">
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
         </td>
         <td class="px-3 py-3 text-xs text-gray-600">${sol.id || '-'}</td>
