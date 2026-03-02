@@ -393,34 +393,47 @@
                 Mostrar/Ocultar
               </button>
             </div>
-            <div id="filtros-solicitudes" class="hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Por Nombre</label>
-                <input type="text" id="filtro-nombre-solicitud" placeholder="Ej: Juan Pérez"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onkeyup="aplicarFiltrosSolicitudes()">
+            <div id="filtros-solicitudes" class="hidden mt-2">
+              <div class="flex flex-wrap items-end gap-2">
+                <div class="w-full sm:w-44">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+                  <input type="text" id="filtro-nombre-solicitud" placeholder="Juan Pérez"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosSolicitudes()">
+                </div>
+                <div class="w-full sm:w-32">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">DNI</label>
+                  <input type="text" id="filtro-dni-solicitud" placeholder="12345678"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosSolicitudes()">
+                </div>
+                <div class="w-full sm:w-36">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">N° Empleado</label>
+                  <input type="text" id="filtro-empleado-solicitud" placeholder="EMP001"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosSolicitudes()">
+                </div>
+                <div class="w-full sm:w-36">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Estado</label>
+                  <select id="filtro-estado-solicitud"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onchange="aplicarFiltrosSolicitudes()">
+                    <option value="">Todos</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="autorizado">Autorizado/a</option>
+                    <option value="completado">Completado/a</option>
+                    <option value="justificada">Justificada</option>
+                    <option value="injustificada">Injustificada</option>
+                    <option value="descuento">Descuento</option>
+                    <option value="rechazado">Rechazado/a</option>
+                  </select>
+                </div>
+                <button onclick="limpiarFiltrosSolicitudes()"
+                  class="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors whitespace-nowrap">
+                  ✕ Limpiar Filtros
+                </button>
+                <span id="info-filtro-solicitud" class="text-xs text-gray-600 flex items-center"></span>
               </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Por DNI</label>
-                <input type="text" id="filtro-dni-solicitud" placeholder="Ej: 12345678"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onkeyup="aplicarFiltrosSolicitudes()">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">Por N° Empleado</label>
-                <input type="text" id="filtro-empleado-solicitud" placeholder="Ej: EMP001"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  onkeyup="aplicarFiltrosSolicitudes()">
-              </div>
-            </div>
-            <div class="flex gap-2 mt-3">
-              <button onclick="limpiarFiltrosSolicitudes()"
-                class="px-3 py-2 text-sm bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors">
-                ✕ Limpiar Filtros
-              </button>
-              <span id="info-filtro-solicitud" class="text-xs text-gray-600 flex items-center"></span>
-            </div>
             </div>
           </div>
 

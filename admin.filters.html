@@ -15,8 +15,9 @@
     const nombre = (document.getElementById('filtro-nombre-solicitud').value || '').toLowerCase().trim();
     const dni = (document.getElementById('filtro-dni-solicitud').value || '').toLowerCase().trim();
     const empleado = (document.getElementById('filtro-empleado-solicitud').value || '').toLowerCase().trim();
+    const estado = (document.getElementById('filtro-estado-solicitud').value || '').toLowerCase().trim();
 
-    if (!nombre && !dni && !empleado) {
+    if (!nombre && !dni && !empleado && !estado) {
       solicitudesFiltradas = [...solicitudesData];
       filtroActivoSolicitudes = false;
     } else {
@@ -25,8 +26,13 @@
         const cumpleNombre = !nombre || nombreCompleto.includes(nombre);
         const cumpleDni = !dni || sol.dni.toLowerCase().includes(dni);
         const cumpleEmpleado = !empleado || sol.numeroEmpleado.toLowerCase().includes(empleado);
+        const estadoNormalizado = String(sol.estado || '').toLowerCase().trim();
+        const cumpleEstado = !estado || estadoNormalizado === estado ||
+          (estado === 'autorizado' && estadoNormalizado === 'autorizada') ||
+          (estado === 'completado' && estadoNormalizado === 'completada') ||
+          (estado === 'rechazado' && estadoNormalizado === 'rechazada');
 
-        return cumpleNombre && cumpleDni && cumpleEmpleado;
+        return cumpleNombre && cumpleDni && cumpleEmpleado && cumpleEstado;
       });
       filtroActivoSolicitudes = true;
     }
@@ -46,6 +52,7 @@
     document.getElementById('filtro-nombre-solicitud').value = '';
     document.getElementById('filtro-dni-solicitud').value = '';
     document.getElementById('filtro-empleado-solicitud').value = '';
+    document.getElementById('filtro-estado-solicitud').value = '';
     document.getElementById('info-filtro-solicitud').innerHTML = '';
 
     solicitudesFiltradas = [...solicitudesData];
@@ -103,6 +110,7 @@
     document.getElementById('filtro-nombre-solicitud').value = '';
     document.getElementById('filtro-dni-solicitud').value = '';
     document.getElementById('filtro-empleado-solicitud').value = '';
+    document.getElementById('filtro-estado-solicitud').value = '';
     document.getElementById('info-filtro-solicitud').innerHTML = '';
   }
 
