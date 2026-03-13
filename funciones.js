@@ -2,7 +2,7 @@
 function doGet(e) {
   // Verificar si es petición al dashboard admin
   if (e && e.parameter && e.parameter.page === 'admin') {
-    const userEmail = Session.getEffectiveUser().getEmail();
+    const userEmail = obtenerEmailSesionSeguro_();
     Logger.log('Usuario accediendo al admin: ' + userEmail);
 
     if (!esAdminAutorizado_()) {
