@@ -25,7 +25,7 @@ function enviarEmailSolicitud(agente, datos, timestamp, idSolicitud) {
 
 function enviarEmailJustificacion(agente, cantidadLicencias, archivoUrl, timestamp) {
   try {
-    const asunto = `Presentación Contancia ${agente.nombre} - CPEM N° 25`;
+    const asunto = `Presentación Constancia ${agente.nombre} - CPEM N° 25`;
     const draftId = PLANTILLA_JUSTIFICACION;
 
     const borrador = GmailApp.getDraft(draftId);

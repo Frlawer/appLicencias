@@ -25,6 +25,27 @@
   let ultimaCargarSolicitudes = 0;
   let ultimaCargarJustificaciones = 0;
 
+  // Mapa de constancias: solicitudId -> [archivoUrls]
+  let mapConstanciasPorSolicitud = new Map();
+
+  function construirMapaConstancias(justificaciones) {
+    const mapa = new Map();
+    if (!Array.isArray(justificaciones)) return mapa;
+    justificaciones.forEach(just => {
+      const urls = String(just.archivoUrl || '').split(',').map(u => u.trim()).filter(Boolean);
+      if (!urls.length) return;
+      const ids = String(just.idsSolicitudes || '').split(',').map(i => i.trim()).filter(Boolean);
+      ids.forEach(id => {
+        if (mapa.has(id)) {
+          mapa.set(id, [...mapa.get(id), ...urls]);
+        } else {
+          mapa.set(id, urls);
+        }
+      });
+    });
+    return mapa;
+  }
+
   // Toast helpers
   function mostrarToast(tipo, titulo, texto, duracion = 5000) {
     const toast = document.getElementById('toast-message-cta');
@@ -196,6 +217,31 @@
     document.getElementById('loading').classList.remove('hidden');
     paginaActualSolicitudes = 1;
 
+    // Primero cargar justificaciones para construir el mapa de constancias
+    const justCache = obtenerCacheJustificaciones();
+    if (justCache) {
+      justificacionesData = justCache;
+      mapConstanciasPorSolicitud = construirMapaConstancias(justificacionesData);
+      _continuarCargaSolicitudes();
+    } else {
+      google.script.run
+        .withSuccessHandler(function (dataJust) {
+          justificacionesData = Array.isArray(dataJust) ? dataJust.reverse() : [];
+          guardarCacheJustificaciones(justificacionesData);
+          mapConstanciasPorSolicitud = construirMapaConstancias(justificacionesData);
+          _continuarCargaSolicitudes();
+        })
+        .withFailureHandler(function () {
+          // Continuar sin justificaciones si falla
+          justificacionesData = [];
+          mapConstanciasPorSolicitud = new Map();
+          _continuarCargaSolicitudes();
+        })
+        .obtenerTodasJustificaciones();
+    }
+  }
+
+  function _continuarCargaSolicitudes() {
     const datosEnCache = obtenerCacheSolicitudes();
     if (datosEnCache) {
       solicitudesData = datosEnCache;
@@ -211,7 +257,7 @@
     google.script.run
       .withSuccessHandler(function (data) {
         document.getElementById('loading').classList.add('hidden');
-        
+
         if (!data || !Array.isArray(data)) {
           console.error('[ERROR] Datos inválidos recibidos:', data);
           solicitudesData = [];
@@ -224,9 +270,9 @@
         solicitudesFiltradas = [...solicitudesData];
         filtroActivoSolicitudes = false;
         limpiarInputsFiltroSolicitudes();
-        
+
         guardarCacheSolicitudes(solicitudesData);
-        
+
         renderizarSolicitudesPaginadas();
         mostrarToast('success', 'Datos', `${solicitudesData.length} solicitudes cargadas`);
       })
@@ -273,8 +319,10 @@
         </td>
         <td class="px-2 py-3 text-xs">
           ${(function() {
-            if (!sol.archivoUrl) return '<span class="text-gray-400">-</span>';
-            const urls = sol.archivoUrl.split(',').map(u => u.trim()).filter(Boolean);
+            const solId = String(sol.id || '').trim();
+            const urls = (solId && mapConstanciasPorSolicitud.has(solId))
+              ? mapConstanciasPorSolicitud.get(solId)
+              : (sol.archivoUrl ? sol.archivoUrl.split(',').map(u => u.trim()).filter(Boolean) : []);
             if (!urls.length) return '<span class="text-gray-400">-</span>';
             return `<div class="flex flex-wrap items-center gap-1">${urls.map((u, idx) =>
               `<a href="${u}" target="_blank" rel="noopener noreferrer"
