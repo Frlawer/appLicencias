@@ -244,12 +244,12 @@
     tbody.innerHTML = '';
 
     if (!solicitudes || !Array.isArray(solicitudes)) {
-      tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
       return;
     }
 
     if (solicitudes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
       return;
     }
 
@@ -270,6 +270,20 @@
         <td class="px-2 py-3 text-xs text-gray-900">${sol.tipoLicencia}</td>
         <td class="px-2 py-3 text-xs">
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
+        </td>
+        <td class="px-2 py-3 text-xs">
+          ${(function() {
+            if (!sol.archivoUrl) return '<span class="text-gray-400">-</span>';
+            const urls = sol.archivoUrl.split(',').map(u => u.trim()).filter(Boolean);
+            if (!urls.length) return '<span class="text-gray-400">-</span>';
+            return `<div class="flex flex-wrap items-center gap-1">${urls.map((u, idx) =>
+              `<a href="${u}" target="_blank" rel="noopener noreferrer"
+                  title="Constancia ${urls.length > 1 ? idx + 1 : ''}"
+                  class="inline-flex items-center gap-1 text-primary">
+                <span class="material-icons">file_open</span>${urls.length > 1 ? `<span class="text-xs">${idx + 1}</span>` : ''}
+              </a>`
+            ).join('')}</div>`;
+          })()}
         </td>
         <td class="px-2 py-3 text-xs grid gap-1">
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 

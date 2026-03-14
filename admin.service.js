@@ -104,6 +104,43 @@ function obtenerTodasSolicitudes() {
 
   if (!sheet) return [];
 
+  // Prioridad de cruce:
+  // 1) idsSolicitudes de la justificación -> id de la solicitud
+  // 2) numeroEmpleado solo como respaldo cuando la justificación no tiene IDs válidos
+  const justMapPorId = {};
+  const justMapPorEmpleado = {};
+  const sheetJust = ss.getSheetByName(SHEET_JUSTIFICACIONES);
+  if (sheetJust) {
+    const justData = sheetJust.getDataRange().getValues();
+    for (let j = 1; j < justData.length; j++) {
+      const rawUrls = String(justData[j][8] || '').trim();
+      if (!rawUrls) continue;
+
+      const ids = String(justData[j][6] || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const numeroEmpleado = String(justData[j][3] || '').trim();
+      const urls = rawUrls.split(',').map(s => s.trim()).filter(Boolean);
+
+      if (ids.length) {
+        ids.forEach(id => {
+          if (!justMapPorId[id]) justMapPorId[id] = [];
+          urls.forEach(u => {
+            if (!justMapPorId[id].includes(u)) justMapPorId[id].push(u);
+          });
+        });
+        continue;
+      }
+
+      if (!numeroEmpleado) continue;
+      if (!justMapPorEmpleado[numeroEmpleado]) justMapPorEmpleado[numeroEmpleado] = [];
+      urls.forEach(u => {
+        if (!justMapPorEmpleado[numeroEmpleado].includes(u)) justMapPorEmpleado[numeroEmpleado].push(u);
+      });
+    }
+  }
+
   const data = sheet.getDataRange().getValues();
   const solicitudes = [];
 
@@ -118,12 +155,18 @@ function obtenerTodasSolicitudes() {
       ? Utilities.formatDate(data[i][7], Session.getScriptTimeZone(), 'yyyy-MM-dd')
       : (data[i][7] ? String(data[i][7]) : '');
 
+    const numeroEmpleado = String(data[i][3] || '').trim();
+    const id = String(data[i][12] || '').trim();
+    const urlsJustificacion = (justMapPorId[id] && justMapPorId[id].length)
+      ? justMapPorId[id]
+      : (justMapPorEmpleado[numeroEmpleado] || []);
+
     solicitudes.push({
       rowIndex: Number(i + 1),
       timestamp: timestamp,
       email: String(data[i][1] || ''),
       dni: String(data[i][2] || ''),
-      numeroEmpleado: String(data[i][3] || ''),
+      numeroEmpleado: numeroEmpleado,
       apellidos: String(data[i][4] || ''),
       nombres: String(data[i][5] || ''),
       fechaDesde: fechaDesde,
@@ -132,8 +175,9 @@ function obtenerTodasSolicitudes() {
       articulacion: String(data[i][9] || ''),
       tipoLicencia: String(data[i][10] || ''),
       estado: String(data[i][11] || ''),
-      id: String(data[i][12] || ''),
-      motivo: String(data[i][13] || '')
+      id: id,
+      motivo: String(data[i][13] || ''),
+      archivoUrl: urlsJustificacion.join(', ')
     });
   }
   Logger.log('Solicitudes obtenidas: ' + solicitudes.length);

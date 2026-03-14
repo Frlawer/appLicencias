@@ -28,9 +28,17 @@
         return null;
       }
 
+      const datos = Array.isArray(cacheData.datos) ? cacheData.datos : [];
+      const requiereSchemaNuevo = datos.length > 0 && !Object.prototype.hasOwnProperty.call(datos[0], 'archivoUrl');
+      if (requiereSchemaNuevo) {
+        console.log('⏰ Caché de solicitudes invalidado por cambio de esquema');
+        sessionStorage.removeItem('cache_solicitudes');
+        return null;
+      }
+
       console.log(`✓ Caché de solicitudes válido (${Math.floor(edadCache / 1000)}s atrás)`);
       ultimaCargarSolicitudes = cacheData.timestamp;
-      return cacheData.datos;
+      return datos;
     } catch (error) {
       console.warn('Error al leer caché de solicitudes:', error);
       return null;
