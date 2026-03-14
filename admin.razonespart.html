@@ -5,6 +5,27 @@
 
   let solicitudesRPData = [];
 
+  function formatearFechaDMY(fecha) {
+    if (!fecha) return '-';
+
+    const valor = String(fecha).trim();
+    const soloFecha = valor.split(' ')[0];
+
+    // Soporta formato ISO: yyyy-mm-dd
+    if (/^\d{4}-\d{2}-\d{2}$/.test(soloFecha)) {
+      const [yyyy, mm, dd] = soloFecha.split('-');
+      return `${dd}-${mm}-${yyyy}`;
+    }
+
+    const date = new Date(valor);
+    if (isNaN(date.getTime())) return valor;
+
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
   function recargarSolicitudesRP() {
     const tabla = document.getElementById('tabla-razonespart');
     const info = document.getElementById('razonespart-info');
@@ -12,7 +33,7 @@
 
     if (!tabla) return;
 
-    tabla.innerHTML = '<tr><td colspan="7" class="px-3 py-4 text-sm text-gray-600 text-center">Cargando...</td></tr>';
+    tabla.innerHTML = '<tr><td colspan="9" class="px-3 py-4 text-sm text-gray-600 text-center">Cargando...</td></tr>';
     info.classList.add('hidden');
 
     google.script.run
@@ -20,7 +41,7 @@
         solicitudesRPData = solicitudes || [];
 
         if (solicitudesRPData.length === 0) {
-          tabla.innerHTML = '<tr><td colspan="7" class="px-3 py-4 text-sm text-gray-600 text-center">No hay solicitudes de Razones Particulares registradas</td></tr>';
+          tabla.innerHTML = '<tr><td colspan="9" class="px-3 py-4 text-sm text-gray-600 text-center">No hay solicitudes de Razones Particulares registradas</td></tr>';
           infoText.textContent = 'No hay datos para mostrar';
           info.classList.remove('hidden');
           return;
@@ -36,14 +57,20 @@
           const row = document.createElement('tr');
           row.className = 'hover:bg-gray-50';
           
-          const fechasConcatenadas = `${sol.fechaDesde || '-'} a ${sol.fechaHasta || '-'}`;
+          const fechaDesde = formatearFechaDMY(sol.fechaDesde);
+          const fechaHasta = formatearFechaDMY(sol.fechaHasta);
+          const fechasConcatenadas = `${fechaDesde} a ${fechaHasta}`;
+          const articulacionTexto = String(sol.articulacion || '—');
+          const esArticulacionSi = articulacionTexto.trim().toUpperCase() === 'SI' || articulacionTexto.trim().toUpperCase() === 'SÍ';
           
           row.innerHTML = `
             <td class="px-3 py-3 text-xs text-gray-600">${formatearFecha(sol.timestamp)}</td>
             <td class="px-3 py-3 text-sm font-medium text-gray-900">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</td>
             <td class="px-3 py-3 text-sm text-gray-700">${sol.numeroEmpleado}</td>
             <td class="px-3 py-3 text-sm text-gray-700">${fechasConcatenadas}</td>
-            <td class="px-3 py-3 text-sm text-gray-700 max-w-xs truncate" title="${sol.motivo || ''}">${sol.motivo || '—'}</td>
+            <td class="px-3 py-3 text-sm text-gray-700">${sol.cursoOCargo || '—'}</td>
+            <td class="px-3 py-3 text-sm text-gray-700 ${esArticulacionSi ? 'font-bold' : ''}">${articulacionTexto}</td>
+            <td class="px-3 py-3 text-sm text-gray-700 whitespace-pre-wrap break-words">${sol.motivo || '—'}</td>
             <td class="px-3 py-3">
               <span class="px-2 py-1 text-xs font-semibold rounded-full ${
                 sol.estado === 'Autorizada' ? 'bg-green-100 text-green-800' :
@@ -77,7 +104,7 @@
       })
       .withFailureHandler(function(error) {
         console.error('Error:', error);
-        tabla.innerHTML = `<tr><td colspan="7" class="px-3 py-4 text-sm text-red-600 text-center">Error al cargar: ${error.message}</td></tr>`;
+        tabla.innerHTML = `<tr><td colspan="9" class="px-3 py-4 text-sm text-red-600 text-center">Error al cargar: ${error.message}</td></tr>`;
         mostrarToast('error', 'Error', 'No se pudieron cargar las solicitudes: ' + error.message);
       })
       .obtenerSolicitudesRazonesPart();
@@ -118,6 +145,10 @@
     if (!sol) return;
 
     const detalles = document.getElementById('detalle-solicitud');
+    const fechaDesde = formatearFechaDMY(sol.fechaDesde);
+    const fechaHasta = formatearFechaDMY(sol.fechaHasta);
+    const articulacionTexto = String(sol.articulacion || '—');
+    const esArticulacionSi = articulacionTexto.trim().toUpperCase() === 'SI' || articulacionTexto.trim().toUpperCase() === 'SÍ';
     detalles.innerHTML = `
       <div class="col-span-full"><h4 class="font-semibold text-gray-800 border-b pb-2">Información del Docente</h4></div>
       <div><strong>Nombre:</strong> ${sol.apellidos} ${sol.nombres}</div>
@@ -128,9 +159,9 @@
       <div class="col-span-full mt-3"><h4 class="font-semibold text-gray-800 border-b pb-2">Detalles de la Solicitud</h4></div>
       <div><strong>Tipo Licencia:</strong> ${sol.tipoLicencia}</div>
       <div><strong>Curso/Cargo:</strong> ${sol.cursoOCargo}</div>
-      <div><strong>Articulación:</strong> ${sol.articulacion}</div>
+      <div><strong>Articulación:</strong> <span class="${esArticulacionSi ? 'font-bold' : ''}">${articulacionTexto}</span></div>
       
-      <div class="col-span-full"><strong>Fechas:</strong> ${sol.fechaDesde} a ${sol.fechaHasta}</div>
+      <div class="col-span-full"><strong>Fechas:</strong> ${fechaDesde} a ${fechaHasta}</div>
       <div class="col-span-full"><strong>Estado:</strong> ${sol.estado}</div>
       <div class="col-span-full"><strong>Timestamp:</strong> ${sol.timestamp}</div>
       

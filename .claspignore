@@ -1,0 +1,11 @@
+# Excluir los .js que tienen su gemelo .gs para evitar conflicto de nombres duplicados
+admin.service.js
+agentes.service.js
+auth.admin.js
+config.js
+email.service.js
+novedades.service.js
+siso.service.js
+testing.dev.js
+utils.service.js
+validation.service.js
