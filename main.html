@@ -8,13 +8,13 @@
   <div class="space-y-5">
     <div>
       <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">DNI o N° de Empleado *</label>
-      <div class="flex gap-2">
-        <input type="text" id="sol-dni" required placeholder="Ej: 12345678 o EMP001"
+      <div class="flex flex-col gap-2">
+        <input type="text" id="sol-dni" required placeholder="Luego de cargar el número, haga clic en 'Buscar Cargos'"
           class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 transition-all">
         <button type="button" id="btn-buscar-cargos" onclick="cargarCargosAgente()"
-          class="btn-primary px-5 py-3 flex items-center gap-2 whitespace-nowrap">
-          <span class="material-icons text-sm">search</span>
-          <span>Buscar Cargos</span>
+          class="btn-primary px-5 py-3 flex items-center justify-center gap-2 whitespace-nowrap">
+          <span><span class="material-icons text-sm">search</span>
+            Buscar Cargos</span>
         </button>
       </div>
       <p class="text-xs mt-2" style="color: var(--text-secondary);">Ingrese su DNI o Número de Empleado y haga clic en "Buscar Cargos"</p>
