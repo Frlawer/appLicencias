@@ -192,6 +192,28 @@
   }
 
   // Cargar solicitudes
+  // Carga justificaciones en segundo plano si no están en memoria, luego re-renderiza solicitudes
+  function asegurarJustificacionesCargadas(callback) {
+    if (justificacionesData && justificacionesData.length > 0) {
+      callback();
+      return;
+    }
+    const cache = obtenerCacheJustificaciones();
+    if (cache) {
+      justificacionesData = cache;
+      callback();
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function (data) {
+        justificacionesData = Array.isArray(data) ? data.reverse() : [];
+        guardarCacheJustificaciones(justificacionesData);
+        callback();
+      })
+      .withFailureHandler(function () { callback(); })
+      .obtenerTodasJustificaciones();
+  }
+
   function cargarSolicitudes() {
     document.getElementById('loading').classList.remove('hidden');
     paginaActualSolicitudes = 1;
@@ -203,7 +225,9 @@
       filtroActivoSolicitudes = false;
       limpiarInputsFiltroSolicitudes();
       document.getElementById('loading').classList.add('hidden');
-      renderizarSolicitudesPaginadas();
+      asegurarJustificacionesCargadas(function () {
+        renderizarSolicitudesPaginadas();
+      });
       mostrarToast('info', 'Caché', 'Datos cargados desde caché local (5 min)');
       return;
     }
@@ -224,11 +248,12 @@
         solicitudesFiltradas = [...solicitudesData];
         filtroActivoSolicitudes = false;
         limpiarInputsFiltroSolicitudes();
-        
         guardarCacheSolicitudes(solicitudesData);
-        
-        renderizarSolicitudesPaginadas();
-        mostrarToast('success', 'Datos', `${solicitudesData.length} solicitudes cargadas`);
+
+        asegurarJustificacionesCargadas(function () {
+          renderizarSolicitudesPaginadas();
+          mostrarToast('success', 'Datos', `${solicitudesData.length} solicitudes cargadas`);
+        });
       })
       .withFailureHandler(function (error) {
         document.getElementById('loading').classList.add('hidden');
@@ -244,13 +269,30 @@
     tbody.innerHTML = '';
 
     if (!solicitudes || !Array.isArray(solicitudes)) {
-      tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
       return;
     }
 
     if (solicitudes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
       return;
+    }
+
+    function renderConstanciaSolicitud(sol) {
+      if (!Array.isArray(justificacionesData) || !justificacionesData.length) return '';
+      const justConArchivo = justificacionesData.filter(just => {
+        if (!just.archivoUrl) return false;
+        const ids = String(just.idsSolicitudes || '').split(',').map(s => s.trim()).filter(Boolean);
+        return ids.includes(String(sol.id));
+      });
+      if (!justConArchivo.length) return '';
+      const urls = justConArchivo.flatMap(just =>
+        just.archivoUrl.split(',').map(u => u.trim()).filter(Boolean)
+      );
+      return urls.map((u, idx) => `
+        <a href="${u}" target="_blank" class="flex items-center gap-1 text-primary" title="Constancia adjunta">
+          <span class="material-icons text-base">file_open</span>${urls.length > 1 ? idx + 1 : ''}
+        </a>`).join('');
     }
 
     solicitudes.forEach(sol => {
@@ -258,6 +300,7 @@
       tr.className = 'hover:bg-gray-50';
 
       const estadoColor = obtenerClaseEstado(sol.estado);
+      const constanciaHtml = renderConstanciaSolicitud(sol);
 
       tr.innerHTML = `
         <td class="px-2 py-3 text-xs text-gray-900">${formatearFecha(sol.timestamp)}</td>
@@ -271,6 +314,7 @@
         <td class="px-2 py-3 text-xs">
           <span class="px-2 py-1 text-xs font-semibold rounded-full ${estadoColor}">${sol.estado}</span>
         </td>
+        <td class="px-2 py-3 text-xs">${constanciaHtml}</td>
         <td class="px-2 py-3 text-xs grid gap-1">
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
             class="text-primary min-w-6">
