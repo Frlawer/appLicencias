@@ -216,6 +216,9 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
     }
   }
   
+  // Mostrar primero las solicitudes mas nuevas (fila mayor = registro mas reciente).
+  solicitudes.sort((a, b) => (b.rowIndex || 0) - (a.rowIndex || 0));
+
   return solicitudes;
 }
 
