@@ -385,6 +385,35 @@
       }
     }
 
+    function mostrarAgenteNoEncontrado(cardId) {
+      const card = document.getElementById(cardId);
+      card.innerHTML = `
+        <div class="flex items-start gap-2">
+          <span class="material-icons text-amber-600 text-sm mt-0.5">warning</span>
+          <p class="text-sm font-semibold text-amber-800">Debe completar el formulario de Datos personales para poder solicitar licencias o cargar constancias.</p>
+        </div>`;
+      card.style.borderColor = '#d97706';
+      card.style.background = '#fffbeb';
+      card.classList.remove('hidden');
+    }
+
+    function mostrarDatosAgente(cardId, prefijo, agente) {
+      const card = document.getElementById(cardId);
+      card.innerHTML = `
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-icons text-sm" style="color: var(--primary);">person</span>
+          <span class="text-sm font-bold" style="color: var(--primary);">Datos del agente</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 text-sm">
+          <p><span class="font-semibold" style="color: var(--text-primary);">Apellido y Nombre:</span> <span class="text-gray-700">${agente.apellidos} ${agente.nombres}</span></p>
+          <p><span class="font-semibold" style="color: var(--text-primary);">Email:</span> <span class="text-gray-700">${agente.email || '-'}</span></p>
+          <p><span class="font-semibold" style="color: var(--text-primary);">Teléfono:</span> <span class="text-gray-700">${agente.telefono || '-'}</span></p>
+        </div>`;
+      card.style.borderColor = 'var(--primary)';
+      card.style.background = 'color-mix(in srgb, var(--primary) 8%, white)';
+      card.classList.remove('hidden');
+    }
+
     function cargarCargosAgente() {
       const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
       const selectCurso = document.getElementById('sol-curso');
@@ -392,6 +421,7 @@
       if (!dniONumEmpleado) {
         selectCurso.innerHTML = '<option value="">Seleccione...</option>';
         selectCurso.disabled = true;
+        document.getElementById('sol-agente-info').classList.add('hidden');
         setCargandoCargos(false);
         return;
       }
@@ -408,12 +438,18 @@
           if (!result) {
             console.log(result);
             selectCurso.innerHTML = '<option value="">Error: Sin respuesta del servidor</option>';
+            document.getElementById('sol-agente-info').classList.add('hidden');
             mostrarToast('error', 'Error', 'No se recibió respuesta del servidor');
             return;
           }
           
           if (result.success) {
             selectCurso.innerHTML = '<option value="">Seleccione un curso...</option>';
+            
+            // Mostrar datos del agente
+            if (result.agente) {
+              mostrarDatosAgente('sol-agente-info', 'sol-agente', result.agente);
+            }
             
             if (result.cargos && result.cargos.length > 0) {
               const optionTodos = document.createElement('option');
@@ -436,12 +472,14 @@
             setCargandoCargos(false);
           } else {
             selectCurso.innerHTML = '<option value="">Error al cargar cargos</option>';
+            mostrarAgenteNoEncontrado('sol-agente-info');
             mostrarToast('error', 'Error', result.error || 'No se pudieron cargar los cargos');
             setCargandoCargos(false);
           }
         })
         .withFailureHandler(function(error) {
           selectCurso.innerHTML = '<option value="">Error al cargar</option>';
+          mostrarAgenteNoEncontrado('sol-agente-info');
           mostrarToast('error', 'Error', 'Error al obtener cargos: ' + error.message);
           setCargandoCargos(false);
         })
@@ -537,16 +575,27 @@
 
       if (!dniONumEmpleado) {
         mostrarToast('warning', 'Campo requerido', 'Ingrese su DNI o N° de Empleado');
+        document.getElementById('just-agente-info').classList.add('hidden');
         return;
       }
 
       mostrarLoading(true);
 
       google.script.run
-        .withSuccessHandler(function(solicitudes) {
+        .withSuccessHandler(function(resultado) {
           mostrarLoading(false);
           solicitudesSeleccionadas = [];
-          solicitudesDisponibles = Array.isArray(solicitudes) ? solicitudes : [];
+
+          // Soporte para nuevo formato { agente, solicitudes } y formato legacy (array)
+          const solicitudes = Array.isArray(resultado) ? resultado : (resultado && Array.isArray(resultado.solicitudes) ? resultado.solicitudes : []);
+          solicitudesDisponibles = solicitudes;
+
+          // Mostrar datos del agente
+          if (resultado && resultado.agente) {
+            mostrarDatosAgente('just-agente-info', 'just-agente', resultado.agente);
+          } else {
+            mostrarAgenteNoEncontrado('just-agente-info');
+          }
           
           const container = document.getElementById('licencias-container');
           const list = document.getElementById('licencias-list');

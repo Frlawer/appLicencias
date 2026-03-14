@@ -6,6 +6,9 @@
   </div>
 
   <div class="space-y-5">
+    <!-- Datos del agente (se muestra al buscar cargos) -->
+    <div id="sol-agente-info" class="hidden p-4 rounded-lg border-2" style="border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, white);"></div>
+
     <div>
       <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">DNI o N° de Empleado *</label>
       <div class="flex flex-col gap-2">
@@ -101,6 +104,9 @@
   </div>
 
   <div class="space-y-5">
+    <!-- Datos del agente (se muestra al buscar solicitudes) -->
+    <div id="just-agente-info" class="hidden p-4 rounded-lg border-2" style="border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, white);"></div>
+
     <div>
       <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">DNI o N° de Empleado *</label>
       <input type="text" id="just-dni" required placeholder="Ej: 12345678 o EMP001"

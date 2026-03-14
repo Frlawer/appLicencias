@@ -182,11 +182,11 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_SOLICITUDES);
   
-  if (!sheet) return [];
+  if (!sheet) return { agente: null, solicitudes: [] };
   
   // Primero obtener datos del agente
   const agente = obtenerAgente(dniONumEmpleado);
-  if (!agente) return [];
+  if (!agente) return { agente: null, solicitudes: [] };
   
   const data = sheet.getDataRange().getValues();
   const solicitudes = [];
@@ -219,7 +219,15 @@ function obtenerSolicitudesAgente(dniONumEmpleado) {
   // Mostrar primero las solicitudes mas nuevas (fila mayor = registro mas reciente).
   solicitudes.sort((a, b) => (b.rowIndex || 0) - (a.rowIndex || 0));
 
-  return solicitudes;
+  const agentePlano = {
+    nombre: String(agente.nombre || ''),
+    apellidos: String(agente.apellidos || ''),
+    nombres: String(agente.nombres || ''),
+    email: String(agente.email || ''),
+    telefono: String(agente.telefono || '')
+  };
+
+  return { agente: agentePlano, solicitudes: solicitudes };
 }
 
 // === GUARDAR JUSTIFICACIÓN (múltiples archivos) ===

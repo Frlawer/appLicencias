@@ -114,7 +114,8 @@ function obtenerCargosAgente(dniONumEmpleado) {
       nombres: String(agente.nombres || ''),
       email: String(agente.email || ''),
       dni: String(agente.dni || ''),
-      numeroEmpleado: String(agente.numeroEmpleado || '')
+      numeroEmpleado: String(agente.numeroEmpleado || ''),
+      telefono: String(agente.telefono || '')
     };
 
     const cargosPlano = cargos.map(c => ({
