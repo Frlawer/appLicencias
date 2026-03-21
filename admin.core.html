@@ -299,7 +299,10 @@
       <article class="rounded-xl border border-amber-200 bg-amber-50 p-3">
         <div class="flex items-center justify-between gap-2">
           <p class="text-sm font-semibold text-amber-900">${obtenerNombreDocente(sol)}</p>
-          <button onclick="verSolicitudPorId('${String(sol.id || '').replace(/'/g, "\\'")}')" class="text-xs font-semibold text-amber-700 hover:text-amber-900 underline">Ver ID ${sol.id || '-'}</button>
+          <button onclick="verSolicitudPorId('${String(sol.id || '').replace(/'/g, "\\'")}')" class="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900" title="Ver solicitud">
+            <span class="material-icons text-base">visibility</span>
+            <span>Ver</span>
+          </button>
         </div>
         <p class="mt-1 text-xs text-amber-800">${sol.tipoLicencia || '-'}</p>
       </article>
@@ -551,8 +554,12 @@
       const ids = idsString.split(',').map(i => i.trim()).filter(Boolean);
       if (!ids.length) return '-';
       return ids.map(id => `
-        <button class="text-primary underline" onclick="verSolicitudPorId('${id}')">
-          ${id}
+        <button
+          class="inline-flex items-center gap-1 text-primary font-semibold hover:opacity-80"
+          title="Ver solicitud"
+          onclick="verSolicitudPorId('${id}')">
+          <span class="material-icons text-base">visibility</span>
+          <span>Ver</span>
         </button>
       `).join('<br>');
     }
