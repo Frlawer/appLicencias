@@ -297,6 +297,18 @@
       text.textContent = completa ? textoCompleta : textoPendiente;
     }
 
+    function actualizarPosicionSenalJustificacion(progreso) {
+      const signal = document.getElementById('just-senal');
+      if (!signal) return;
+      signal.style.bottom = '5px';
+    }
+
+    function actualizarPosicionSenalSolicitud(progreso) {
+      const signal = document.getElementById('sol-senal');
+      if (!signal) return;
+      signal.style.bottom = '5px';
+    }
+
     function actualizarFlujoSolicitud() {
       const tipo = (document.getElementById('sol-tipo') || {}).value || '';
       const dni = (document.getElementById('sol-dni') || {}).value ? document.getElementById('sol-dni').value.trim() : '';
@@ -330,6 +342,20 @@
         btnEnviar.classList.toggle('opacity-50', !completo);
         btnEnviar.classList.toggle('cursor-not-allowed', !completo);
       }
+
+      const progresoItems = [
+        Boolean(tipo),
+        Boolean(dni),
+        Boolean(busquedaValida),
+        Boolean(curso),
+        Boolean(fechasCompletas),
+        Boolean(articulacion)
+      ];
+      if (requiereMotivo) {
+        progresoItems.push(Boolean(motivoCompleto));
+      }
+      const progreso = progresoItems.filter(Boolean).length / progresoItems.length;
+      actualizarPosicionSenalSolicitud(progreso);
 
       const faltantes = [];
       if (!tipo) faltantes.push('tipo de licencia');
@@ -440,6 +466,14 @@
         btnEnviar.classList.toggle('opacity-50', !completo);
         btnEnviar.classList.toggle('cursor-not-allowed', !completo);
       }
+
+      const progreso = [
+        Boolean(dni),
+        Boolean(busquedaSolicitudesRealizada),
+        Boolean(tieneLicenciasSeleccionadas),
+        Boolean(tieneArchivos)
+      ].filter(Boolean).length / 4;
+      actualizarPosicionSenalJustificacion(progreso);
 
       const faltantes = [];
       if (!dni) faltantes.push('DNI/N° empleado');
