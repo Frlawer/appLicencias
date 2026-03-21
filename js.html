@@ -2,7 +2,10 @@
     let solicitudesSeleccionadas = [];
     let solicitudesDisponibles = [];
     let agenteActual = null;
-    let currentStep = 1;
+    let currentStep = 0;
+    let busquedaCargosRealizada = false;
+    let cargosCargados = false;
+    let busquedaSolicitudesRealizada = false;
 
     // ========================================
     // === CARGAR LICENCIAS DESDE LA SHEET ===
@@ -65,9 +68,14 @@
           setTimeout(() => {
             contenedorMotivo.classList.add('hidden');
             textareaMotivo.value = ''; // Limpiar contenido
+            actualizarFlujoSolicitud();
           }, 300);
         }
+
+        actualizarFlujoSolicitud();
       });
+
+      textareaMotivo.addEventListener('input', actualizarFlujoSolicitud);
     }
 
     // ========================================
@@ -279,6 +287,179 @@
       return `${dia}/${mes}/${anio}`;
     }
 
+    function setEstadoSenal(signalId, textId, completa, textoPendiente, textoCompleta) {
+      const signal = document.getElementById(signalId);
+      const text = document.getElementById(textId);
+      if (!signal || !text) return;
+
+      signal.classList.toggle('step-signal--pending', !completa);
+      signal.classList.toggle('step-signal--ready', completa);
+      text.textContent = completa ? textoCompleta : textoPendiente;
+    }
+
+    function actualizarFlujoSolicitud() {
+      const tipo = (document.getElementById('sol-tipo') || {}).value || '';
+      const dni = (document.getElementById('sol-dni') || {}).value ? document.getElementById('sol-dni').value.trim() : '';
+      const curso = (document.getElementById('sol-curso') || {}).value || '';
+      const desde = (document.getElementById('sol-desde') || {}).value || '';
+      const hasta = (document.getElementById('sol-hasta') || {}).value || '';
+      const motivo = (document.getElementById('sol-motivo') || {}).value ? document.getElementById('sol-motivo').value.trim() : '';
+      const articulacion = document.querySelector('input[name="sol-articulacion"]:checked');
+
+      const requiereMotivo = Boolean(tipo && tipo.includes('*'));
+      const motivoCompleto = !requiereMotivo || Boolean(motivo);
+      const busquedaValida = busquedaCargosRealizada && cargosCargados;
+      const fechasCompletas = Boolean(desde && hasta);
+      const completo = Boolean(tipo && dni && busquedaValida && curso && fechasCompletas && articulacion && motivoCompleto);
+
+      const stepDni = document.getElementById('sol-step-dni');
+      const stepCurso = document.getElementById('sol-step-curso');
+      const stepFechas = document.getElementById('sol-step-fechas');
+      const stepArticulacion = document.getElementById('sol-step-articulacion');
+      const stepEnviar = document.getElementById('sol-step-enviar');
+      const btnEnviar = document.getElementById('btn-enviar-solicitud');
+
+      if (stepDni) stepDni.classList.toggle('hidden', !tipo);
+      if (stepCurso) stepCurso.classList.toggle('hidden', !busquedaValida);
+      if (stepFechas) stepFechas.classList.toggle('hidden', !curso);
+      if (stepArticulacion) stepArticulacion.classList.toggle('hidden', !fechasCompletas);
+      if (stepEnviar) stepEnviar.classList.toggle('hidden', !completo);
+
+      if (btnEnviar) {
+        btnEnviar.disabled = !completo;
+        btnEnviar.classList.toggle('opacity-50', !completo);
+        btnEnviar.classList.toggle('cursor-not-allowed', !completo);
+      }
+
+      const faltantes = [];
+      if (!tipo) faltantes.push('tipo de licencia');
+      if (!dni) faltantes.push('DNI/N° empleado');
+      if (!busquedaValida) faltantes.push('buscar cargos');
+      if (!curso) faltantes.push('curso/cargo');
+      if (!fechasCompletas) faltantes.push('fechas');
+      if (!articulacion) faltantes.push('articulacion');
+      if (requiereMotivo && !motivoCompleto) faltantes.push('motivo');
+
+      const textoPendiente = faltantes.length
+        ? `Faltan: ${faltantes.join(', ')}`
+        : 'Complete los pasos para habilitar el envio';
+
+      setEstadoSenal(
+        'sol-senal',
+        'sol-senal-texto',
+        completo,
+        textoPendiente,
+        'Formulario completo. Ya puede enviar la solicitud.'
+      );
+    }
+
+    function resetearJustificacionEnPantalla() {
+      solicitudesSeleccionadas = [];
+      solicitudesDisponibles = [];
+      busquedaSolicitudesRealizada = false;
+
+      const list = document.getElementById('licencias-list');
+      const contador = document.getElementById('contador-licencias');
+      const container = document.getElementById('licencias-container');
+      const stepArchivo = document.getElementById('just-step-archivo');
+      const inputArchivo = document.getElementById('just-archivo');
+
+      if (list) list.innerHTML = '';
+      if (contador) contador.textContent = '';
+      if (container) container.classList.add('hidden');
+      if (stepArchivo) stepArchivo.classList.add('hidden');
+      if (inputArchivo) inputArchivo.value = '';
+    }
+
+    function resetearSolicitudEnPantalla() {
+      const solDni = document.getElementById('sol-dni');
+      const solTipo = document.getElementById('sol-tipo');
+      const solCurso = document.getElementById('sol-curso');
+      const solDesde = document.getElementById('sol-desde');
+      const solHasta = document.getElementById('sol-hasta');
+      const solMotivo = document.getElementById('sol-motivo');
+      const infoAgente = document.getElementById('sol-agente-info');
+      const motivoContainer = document.getElementById('sol-motivo-container');
+
+      if (solDni) solDni.value = '';
+      if (solTipo) solTipo.value = '';
+      if (solCurso) {
+        solCurso.value = '';
+        solCurso.disabled = true;
+        solCurso.innerHTML = '<option value="">Primero agregue su DNI o N° de empleado...</option>';
+      }
+      if (solDesde) solDesde.value = '';
+      if (solHasta) solHasta.value = '';
+      if (solMotivo) solMotivo.value = '';
+      if (infoAgente) infoAgente.classList.add('hidden');
+
+      if (motivoContainer) {
+        motivoContainer.classList.remove('opacity-100');
+        motivoContainer.classList.add('hidden');
+      }
+
+      const articulacionSeleccionada = document.querySelector('input[name="sol-articulacion"]:checked');
+      if (articulacionSeleccionada) articulacionSeleccionada.checked = false;
+
+      busquedaCargosRealizada = false;
+      cargosCargados = false;
+    }
+
+    function resetearJustificacionCompletaEnPantalla() {
+      const justDni = document.getElementById('just-dni');
+      const justInfo = document.getElementById('just-agente-info');
+
+      if (justDni) justDni.value = '';
+      if (justInfo) justInfo.classList.add('hidden');
+
+      resetearJustificacionEnPantalla();
+    }
+
+    function actualizarFlujoJustificacion() {
+      const dni = (document.getElementById('just-dni') || {}).value ? document.getElementById('just-dni').value.trim() : '';
+      const containerLicencias = document.getElementById('licencias-container');
+      const stepArchivo = document.getElementById('just-step-archivo');
+      const inputArchivo = document.getElementById('just-archivo');
+      const btnEnviar = document.getElementById('btn-enviar-justificacion');
+
+      const tieneLicenciasSeleccionadas = solicitudesSeleccionadas.length > 0;
+      const tieneArchivos = Boolean(inputArchivo && inputArchivo.files && inputArchivo.files.length);
+
+      if (containerLicencias) {
+        containerLicencias.classList.toggle('hidden', !busquedaSolicitudesRealizada);
+      }
+
+      if (stepArchivo) {
+        stepArchivo.classList.toggle('hidden', !tieneLicenciasSeleccionadas);
+      }
+
+      const completo = Boolean(dni && busquedaSolicitudesRealizada && tieneLicenciasSeleccionadas && tieneArchivos);
+
+      if (btnEnviar) {
+        btnEnviar.disabled = !completo;
+        btnEnviar.classList.toggle('opacity-50', !completo);
+        btnEnviar.classList.toggle('cursor-not-allowed', !completo);
+      }
+
+      const faltantes = [];
+      if (!dni) faltantes.push('DNI/N° empleado');
+      if (!busquedaSolicitudesRealizada) faltantes.push('buscar licencias');
+      if (!tieneLicenciasSeleccionadas) faltantes.push('seleccionar licencias');
+      if (!tieneArchivos) faltantes.push('cargar archivos');
+
+      const textoPendiente = faltantes.length
+        ? `Faltan: ${faltantes.join(', ')}`
+        : 'Complete los pasos para habilitar el envio';
+
+      setEstadoSenal(
+        'just-senal',
+        'just-senal-texto',
+        completo,
+        textoPendiente,
+        'Formulario completo. Ya puede enviar la justificacion.'
+      );
+    }
+
     function actualizarBotonesSeccion(step) {
       const btn1 = document.getElementById('btn-step-1');
       const btn2 = document.getElementById('btn-step-2');
@@ -312,17 +493,33 @@
       const form1 = document.getElementById('form-solicitud');
       const form2 = document.getElementById('form-justificacion');
 
+      if (step === 1) {
+        resetearJustificacionCompletaEnPantalla();
+        actualizarFlujoJustificacion();
+      } else if (step === 2) {
+        resetearSolicitudEnPantalla();
+        actualizarFlujoSolicitud();
+      }
+
       currentStep = step;
       actualizarBotonesSeccion(step);
 
       if (!form1 || !form2) return;
 
       if (step === 1) {
-        if (form1.classList.contains('hidden')) {
+        if (form1.classList.contains('hidden') && form2.classList.contains('hidden')) {
+          form1.classList.remove('hidden', 'section-fade-out');
+          form1.classList.add('section-fade-in');
+          setTimeout(() => form1.classList.remove('section-fade-in'), 320);
+        } else if (form1.classList.contains('hidden')) {
           mostrarSeccionConTransicion(form1, form2);
         }
       } else {
-        if (form2.classList.contains('hidden')) {
+        if (form2.classList.contains('hidden') && form1.classList.contains('hidden')) {
+          form2.classList.remove('hidden', 'section-fade-out');
+          form2.classList.add('section-fade-in');
+          setTimeout(() => form2.classList.remove('section-fade-in'), 320);
+        } else if (form2.classList.contains('hidden')) {
           mostrarSeccionConTransicion(form2, form1);
         }
       }
@@ -341,7 +538,7 @@
         loading.classList.add('hidden');
         if (currentStep === 1) {
           form1.classList.remove('hidden');
-        } else {
+        } else if (currentStep === 2) {
           form2.classList.remove('hidden');
         }
       }
@@ -381,7 +578,9 @@
         btnBuscar.disabled = estado;
         btnBuscar.classList.toggle('opacity-50', estado);
         btnBuscar.classList.toggle('cursor-not-allowed', estado);
-        btnBuscar.textContent = estado ? '⏳ Buscando...' : '🔍 Buscar Cargos';
+        btnBuscar.innerHTML = estado
+          ? '<span><span class="material-icons text-sm">hourglass_top</span> Buscando...</span>'
+          : '<span><span class="material-icons text-sm">search</span> Buscar Cargos</span>';
       }
     }
 
@@ -419,12 +618,19 @@
       const selectCurso = document.getElementById('sol-curso');
       
       if (!dniONumEmpleado) {
+        busquedaCargosRealizada = false;
+        cargosCargados = false;
         selectCurso.innerHTML = '<option value="">Seleccione...</option>';
         selectCurso.disabled = true;
         document.getElementById('sol-agente-info').classList.add('hidden');
         setCargandoCargos(false);
+        actualizarFlujoSolicitud();
         return;
       }
+
+      busquedaCargosRealizada = true;
+      cargosCargados = false;
+      actualizarFlujoSolicitud();
 
       // Mostrar loading en el select
       selectCurso.innerHTML = '<option value="">Cargando cargos...</option>';
@@ -464,24 +670,31 @@
                 selectCurso.appendChild(option);
               });
               selectCurso.disabled = false;
+              cargosCargados = true;
               mostrarToast('info', 'Cargos cargados', `Se encontraron ${result.cargos.length} cargo(s) asignado(s)`);
             } else {
               selectCurso.innerHTML = '<option value="">No se encontraron cargos asignados</option>';
+              cargosCargados = false;
               mostrarToast('warning', 'Sin cargos', 'No se encontraron cargos asignados para este agente');
             }
             setCargandoCargos(false);
+            actualizarFlujoSolicitud();
           } else {
             selectCurso.innerHTML = '<option value="">Error al cargar cargos</option>';
             mostrarAgenteNoEncontrado('sol-agente-info');
+            cargosCargados = false;
             mostrarToast('error', 'Error', result.error || 'No se pudieron cargar los cargos');
             setCargandoCargos(false);
+            actualizarFlujoSolicitud();
           }
         })
         .withFailureHandler(function(error) {
           selectCurso.innerHTML = '<option value="">Error al cargar</option>';
           mostrarAgenteNoEncontrado('sol-agente-info');
+          cargosCargados = false;
           mostrarToast('error', 'Error', 'Error al obtener cargos: ' + error.message);
           setCargandoCargos(false);
+          actualizarFlujoSolicitud();
         })
         .obtenerCargosAgente(dniONumEmpleado);
     }
@@ -548,16 +761,22 @@
             document.getElementById('sol-desde').value = '';
             document.getElementById('sol-hasta').value = '';
             document.getElementById('sol-curso').value = '';
+            document.getElementById('sol-curso').disabled = true;
             document.getElementById('sol-motivo').value = '';
-            document.querySelector('input[name="sol-articulacion"]:checked').checked = false;
+            const articulacionSeleccionada = document.querySelector('input[name="sol-articulacion"]:checked');
+            if (articulacionSeleccionada) articulacionSeleccionada.checked = false;
+            busquedaCargosRealizada = false;
+            cargosCargados = false;
             // Ocultar motivo si estaba visible
             const contenedorMotivo = document.getElementById('sol-motivo-container');
             if (contenedorMotivo) {
               contenedorMotivo.classList.remove('opacity-100');
               setTimeout(() => {
                 contenedorMotivo.classList.add('hidden');
+                actualizarFlujoSolicitud();
               }, 300);
             }
+            actualizarFlujoSolicitud();
           } else {
             console.log("error");
             mostrarToast('error', 'Error', result.error);
@@ -576,6 +795,8 @@
       if (!dniONumEmpleado) {
         mostrarToast('warning', 'Campo requerido', 'Ingrese su DNI o N° de Empleado');
         document.getElementById('just-agente-info').classList.add('hidden');
+        resetearJustificacionEnPantalla();
+        actualizarFlujoJustificacion();
         return;
       }
 
@@ -585,6 +806,7 @@
         .withSuccessHandler(function(resultado) {
           mostrarLoading(false);
           solicitudesSeleccionadas = [];
+          busquedaSolicitudesRealizada = true;
 
           // Soporte para nuevo formato { agente, solicitudes } y formato legacy (array)
           const solicitudes = Array.isArray(resultado) ? resultado : (resultado && Array.isArray(resultado.solicitudes) ? resultado.solicitudes : []);
@@ -632,10 +854,13 @@
           
           container.classList.remove('hidden');
           actualizarContador();
+          actualizarFlujoJustificacion();
         })
         .withFailureHandler(function(error) {
           mostrarLoading(false);
+          busquedaSolicitudesRealizada = false;
           mostrarToast('error', 'Error al cargar', error.message);
+          actualizarFlujoJustificacion();
         })
         .obtenerSolicitudesAgente(dniONumEmpleado);
     }
@@ -668,6 +893,7 @@
       } else {
         contador.textContent = '';
       }
+      actualizarFlujoJustificacion();
     }
 
     function enviarJustificacion() {
@@ -732,11 +958,10 @@
               mostrarLoading(false);
               if (result.success) {
                 mostrarToast('success', 'Justificación enviada', 'Se enviará un email a: ' + result.email);
-                document.getElementById('just-dni').value = '';
                 document.getElementById('just-archivo').value = '';
-                document.getElementById('licencias-container').classList.add('hidden');
                 solicitudesSeleccionadas = [];
-                solicitudesDisponibles = [];
+                actualizarFlujoJustificacion();
+                cargarSolicitudes();
               } else {
                 mostrarToast('error', 'Error', result.error);
               }
@@ -773,6 +998,61 @@
       cargarLicenciasEnSelect();
       actualizarBotonesSeccion(currentStep);
       configurarMostrarMotivoSiRazonesPart();
+
+      const formSolicitud = document.getElementById('form-solicitud');
+      const formJustificacion = document.getElementById('form-justificacion');
+      if (formSolicitud) formSolicitud.classList.add('hidden');
+      if (formJustificacion) formJustificacion.classList.add('hidden');
+
+      const solDni = document.getElementById('sol-dni');
+      const solCurso = document.getElementById('sol-curso');
+      const solDesde = document.getElementById('sol-desde');
+      const solHasta = document.getElementById('sol-hasta');
+      const solTipo = document.getElementById('sol-tipo');
+      const radiosArticulacion = document.querySelectorAll('input[name="sol-articulacion"]');
+
+      if (solTipo) {
+        solTipo.addEventListener('change', function() {
+          const selectCurso = document.getElementById('sol-curso');
+          if (selectCurso) {
+            selectCurso.value = '';
+            selectCurso.disabled = true;
+            selectCurso.innerHTML = '<option value="">Primero busque sus cargos...</option>';
+          }
+          busquedaCargosRealizada = false;
+          cargosCargados = false;
+          document.getElementById('sol-agente-info').classList.add('hidden');
+          actualizarFlujoSolicitud();
+        });
+      }
+
+      if (solDni) {
+        solDni.addEventListener('input', function() {
+          busquedaCargosRealizada = false;
+          cargosCargados = false;
+          if (solCurso) {
+            solCurso.value = '';
+            solCurso.disabled = true;
+            solCurso.innerHTML = '<option value="">Primero busque sus cargos...</option>';
+          }
+          document.getElementById('sol-agente-info').classList.add('hidden');
+          actualizarFlujoSolicitud();
+        });
+      }
+
+      if (solCurso) solCurso.addEventListener('change', actualizarFlujoSolicitud);
+      if (solDesde) solDesde.addEventListener('change', actualizarFlujoSolicitud);
+      if (solHasta) solHasta.addEventListener('change', actualizarFlujoSolicitud);
+      radiosArticulacion.forEach(radio => radio.addEventListener('change', actualizarFlujoSolicitud));
+
+      const justDni = document.getElementById('just-dni');
+      if (justDni) {
+        justDni.addEventListener('input', function() {
+          resetearJustificacionEnPantalla();
+          document.getElementById('just-agente-info').classList.add('hidden');
+          actualizarFlujoJustificacion();
+        });
+      }
       
       const inputArchivo = document.getElementById('just-archivo');
       if (inputArchivo) {
@@ -796,7 +1076,12 @@
                 4000);
             }
           }
+
+          actualizarFlujoJustificacion();
         });
       }
+
+      actualizarFlujoSolicitud();
+      actualizarFlujoJustificacion();
     });
   </script>
