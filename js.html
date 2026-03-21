@@ -1,6 +1,7 @@
   <script>
     let solicitudesSeleccionadas = [];
     let agenteActual = null;
+    let stepActivo = 0; // 0 = ninguno, 1 = solicitud, 2 = justificacion
 
     // ========================================
     // === FUNCIONES DE OPTIMIZACIÓN DE ARCHIVOS ===
@@ -201,6 +202,7 @@
       const btn2 = document.getElementById('btn-step-2');
       const form1 = document.getElementById('form-solicitud');
       const form2 = document.getElementById('form-justificacion');
+      stepActivo = step;
 
       if (step === 1) {
         btn1.className = 'flex-1 py-4 px-6 rounded-lg font-semibold transition-all bg-blue-600 text-white shadow-lg';
@@ -226,10 +228,9 @@
         form2.classList.add('hidden');
       } else {
         loading.classList.add('hidden');
-        const step = document.getElementById('btn-step-1').className.includes('bg-blue-600') ? 1 : 2;
-        if (step === 1) {
+        if (stepActivo === 1) {
           form1.classList.remove('hidden');
-        } else {
+        } else if (stepActivo === 2) {
           form2.classList.remove('hidden');
         }
       }
@@ -249,6 +250,111 @@
       `;
       
       div.classList.remove('hidden');
+    }
+
+    // Muestra el paso de DNI al elegir tipo de licencia
+    function solOnTipoChange() {
+      const tipo = document.getElementById('sol-tipo').value;
+      if (tipo) {
+        document.getElementById('sol-step-dni').classList.remove('hidden');
+      } else {
+        document.getElementById('sol-step-dni').classList.add('hidden');
+        document.getElementById('sol-step-cargo').classList.add('hidden');
+        document.getElementById('sol-step-fechas-art').classList.add('hidden');
+        document.getElementById('sol-step-enviar').classList.add('hidden');
+      }
+      if (!document.getElementById('sol-step-enviar').classList.contains('hidden')) {
+        actualizarProgresoSolicitud();
+      }
+    }
+
+    // Actualiza la barra de progreso y el botón de enviar del formulario de solicitud
+    function actualizarProgresoSolicitud() {
+      const tipo = document.getElementById('sol-tipo').value;
+      const cargo = document.getElementById('sol-curso').value;
+      const desde = document.getElementById('sol-desde').value;
+      const hasta = document.getElementById('sol-hasta').value;
+      const articulacion = document.querySelector('input[name="sol-articulacion"]:checked');
+
+      let completos = 0;
+      const total = 5;
+      if (tipo) completos++;
+      if (cargo) completos++;
+      if (desde) completos++;
+      if (hasta) completos++;
+      if (articulacion) completos++;
+
+      const porcentaje = (completos / total) * 100;
+      document.getElementById('sol-progreso-bar').style.width = porcentaje + '%';
+      document.getElementById('sol-progreso-txt').textContent = completos + ' / ' + total;
+
+      const btnEnviar = document.getElementById('sol-btn-enviar');
+      const faltantes = document.getElementById('sol-campos-faltantes');
+      const bar = document.getElementById('sol-progreso-bar');
+
+      if (completos === total) {
+        btnEnviar.className = 'w-full py-3 rounded-lg font-semibold transition-all bg-blue-600 text-white hover:bg-blue-700';
+        btnEnviar.disabled = false;
+        faltantes.textContent = '✅ Formulario completo. Listo para enviar.';
+        faltantes.className = 'text-xs text-green-600 mt-2';
+        bar.className = 'bg-green-500 h-2.5 rounded-full transition-all duration-300';
+      } else {
+        btnEnviar.className = 'w-full py-3 rounded-lg font-semibold transition-all bg-gray-300 text-gray-500 cursor-not-allowed';
+        btnEnviar.disabled = true;
+        const faltantesList = [];
+        if (!tipo) faltantesList.push('tipo de licencia');
+        if (!cargo) faltantesList.push('cargo');
+        if (!desde) faltantesList.push('fecha desde');
+        if (!hasta) faltantesList.push('fecha hasta');
+        if (!articulacion) faltantesList.push('articulación');
+        faltantes.textContent = '⚠ Falta completar: ' + faltantesList.join(', ');
+        faltantes.className = 'text-xs text-amber-600 mt-2';
+        bar.className = 'bg-blue-400 h-2.5 rounded-full transition-all duration-300';
+      }
+    }
+
+    // Actualiza la barra de progreso y el botón de enviar del formulario de justificación
+    function actualizarProgresoJustificacion() {
+      const archivos = Array.from(document.getElementById('just-archivo').files || []);
+      const tieneArchivos = archivos.length > 0;
+      const btnEnviar = document.getElementById('just-btn-enviar');
+      const faltantes = document.getElementById('just-campos-faltantes');
+      const bar = document.getElementById('just-progreso-bar');
+      const txt = document.getElementById('just-progreso-txt');
+
+      if (tieneArchivos) {
+        btnEnviar.className = 'w-full py-3 rounded-lg font-semibold transition-all bg-green-600 text-white hover:bg-green-700';
+        btnEnviar.disabled = false;
+        faltantes.textContent = '✅ Formulario completo. Listo para enviar.';
+        faltantes.className = 'text-xs text-green-600 mt-2';
+        bar.className = 'bg-green-500 h-2.5 rounded-full transition-all duration-300';
+        bar.style.width = '100%';
+        txt.textContent = '3 / 3';
+      } else {
+        btnEnviar.className = 'w-full py-3 rounded-lg font-semibold transition-all bg-gray-300 text-gray-500 cursor-not-allowed';
+        btnEnviar.disabled = true;
+        faltantes.textContent = '⚠ Falta: seleccionar archivo(s)';
+        faltantes.className = 'text-xs text-amber-600 mt-2';
+        bar.className = 'bg-green-400 h-2.5 rounded-full transition-all duration-300';
+        bar.style.width = '66%';
+        txt.textContent = '2 / 3';
+      }
+    }
+
+    // Reinicia el formulario de solicitud a su estado inicial
+    function reiniciarFormSolicitud() {
+      document.getElementById('sol-tipo').value = '';
+      document.getElementById('sol-dni').value = '';
+      document.getElementById('sol-desde').value = '';
+      document.getElementById('sol-hasta').value = '';
+      document.getElementById('sol-curso').innerHTML = '<option value="">Primero agregue su DNI o N° de Empleado...</option>';
+      document.getElementById('sol-curso').disabled = true;
+      const articulacionChecked = document.querySelector('input[name="sol-articulacion"]:checked');
+      if (articulacionChecked) articulacionChecked.checked = false;
+      document.getElementById('sol-step-dni').classList.add('hidden');
+      document.getElementById('sol-step-cargo').classList.add('hidden');
+      document.getElementById('sol-step-fechas-art').classList.add('hidden');
+      document.getElementById('sol-step-enviar').classList.add('hidden');
     }
 
     // Cargar cursos del agente según su DNI o N° Empleado
@@ -289,6 +395,10 @@
               });
               selectCurso.disabled = false;
               mostrarToast('info', 'Cargos cargados', `Se encontraron ${result.cargos.length} cargo(s) asignado(s)`);
+              document.getElementById('sol-step-cargo').classList.remove('hidden');
+              document.getElementById('sol-step-fechas-art').classList.remove('hidden');
+              document.getElementById('sol-step-enviar').classList.remove('hidden');
+              actualizarProgresoSolicitud();
             } else {
               selectCurso.innerHTML = '<option value="">No se encontraron cargos asignados</option>';
               mostrarToast('warning', 'Sin cargos', 'No se encontraron cargos asignados para este agente');
@@ -311,9 +421,10 @@
       const desde = document.getElementById('sol-desde').value;
       const hasta = document.getElementById('sol-hasta').value;
       const curso = document.getElementById('sol-curso').value;
-      const articulacion = document.querySelector('input[name="sol-articulacion"]:checked').value;
+      const articulacionEl = document.querySelector('input[name="sol-articulacion"]:checked');
+      const articulacion = articulacionEl ? articulacionEl.value : '';
 
-      if (!dniONumEmpleado || !tipo || !desde || !hasta) {
+      if (!dniONumEmpleado || !tipo || !desde || !hasta || !articulacion) {
         mostrarToast('warning', 'Campos incompletos', 'Complete todos los campos obligatorios');
         return;
       }
@@ -336,13 +447,7 @@
           if (result.success) {
             mostrarToast('success', 'Solicitud enviada', 'Se enviará un email a: ' + result.agente.email);
             mostrarInfoAgente(result.agente);
-            // Limpiar formulario
-            document.getElementById('sol-dni').value = '';
-            document.getElementById('sol-tipo').value = '';
-            document.getElementById('sol-desde').value = '';
-            document.getElementById('sol-hasta').value = '';
-            document.getElementById('sol-curso').value = '';
-            document.querySelector('input[name="sol-articulacion"]:checked').checked = false;
+            reiniciarFormSolicitud();
           } else {
             console.log("error");
             mostrarToast('error', 'Error', result.error);
@@ -438,8 +543,13 @@
       const cant = solicitudesSeleccionadas.length;
       if (cant > 0) {
         contador.textContent = `${cant} licencia${cant > 1 ? 's' : ''} seleccionada${cant > 1 ? 's' : ''}`;
+        document.getElementById('just-step-archivo').classList.remove('hidden');
+        document.getElementById('just-step-enviar').classList.remove('hidden');
+        actualizarProgresoJustificacion();
       } else {
         contador.textContent = '';
+        document.getElementById('just-step-archivo').classList.add('hidden');
+        document.getElementById('just-step-enviar').classList.add('hidden');
       }
     }
 
@@ -496,10 +606,12 @@
               mostrarLoading(false);
               if (result.success) {
                 mostrarToast('success', 'Justificación enviada', 'Se enviará un email a: ' + result.email);
-                document.getElementById('just-dni').value = '';
                 document.getElementById('just-archivo').value = '';
-                document.getElementById('licencias-container').classList.add('hidden');
+                document.getElementById('just-step-archivo').classList.add('hidden');
+                document.getElementById('just-step-enviar').classList.add('hidden');
                 solicitudesSeleccionadas = [];
+                // Recargar las licencias para mostrar el estado actualizado
+                cargarSolicitudes();
               } else {
                 mostrarToast('error', 'Error', result.error);
               }
@@ -547,6 +659,8 @@
             }
 
             console.log(mensaje);
+
+            actualizarProgresoJustificacion();
 
             if (totalMB > 10) {
               mostrarToast('warning', 'Archivos grandes', 
