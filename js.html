@@ -622,11 +622,18 @@
       const card = document.getElementById(cardId);
       card.innerHTML = `
         <div class="flex items-start gap-2">
-          <span class="material-icons text-amber-600 text-sm mt-0.5">warning</span>
-          <p class="text-sm font-semibold text-amber-800">Debe completar el formulario de Datos personales para poder solicitar licencias o cargar constancias.</p>
-        </div>`;
-      card.style.borderColor = '#d97706';
-      card.style.background = '#fffbeb';
+          <span class="material-icons text-amber-500 text-sm mt-0.5">warning</span>
+          <p class="text-sm font-medium text-amber-700">Debe completar el formulario de Datos personales para poder solicitar licencias o cargar constancias.</p>
+        </div>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0C_d1tYW2YNF7S9ul2BI55yjjhZ0_-rvipe8Hu2NNZ9PUpA/viewform"
+          target="_blank" rel="noopener noreferrer"
+          class="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold"
+          style="background: #fed7aa; color: #9a3412; border: 1px solid #fdba74; box-shadow: var(--shadow-sm);">
+          <span class="material-icons text-sm">badge</span>
+          <span>Completar Datos Personales</span>
+        </a>`;
+      card.style.borderColor = '#fdba74';
+      card.style.background = '#fff7ed';
       card.classList.remove('hidden');
     }
 
