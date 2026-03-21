@@ -6,6 +6,7 @@
   let registroEditando = null;
   let emailData = null;
   let agentesJornadaData = [];
+  let agentesRPLimiteMensualData = [];
   let todosSeleccionados = false;
 
   // ========== VARIABLES DE PAGINACIÓN ==========
@@ -214,6 +215,7 @@
       solicitudesData = datosEnCache;
       loading.classList.add('hidden');
       renderizarResumenBento();
+      cargarAgentesLimiteMensualRP();
       return;
     }
 
@@ -230,12 +232,26 @@
         solicitudesData = data.reverse();
         guardarCacheSolicitudes(solicitudesData);
         renderizarResumenBento();
+        cargarAgentesLimiteMensualRP();
       })
       .withFailureHandler(function (error) {
         loading.classList.add('hidden');
         mostrarToast('error', 'Error', 'No se pudo cargar el resumen: ' + error.message);
       })
       .obtenerTodasSolicitudes();
+  }
+
+  function cargarAgentesLimiteMensualRP() {
+    google.script.run
+      .withSuccessHandler(function (data) {
+        agentesRPLimiteMensualData = Array.isArray(data) ? data : [];
+        renderizarResumenBento();
+      })
+      .withFailureHandler(function () {
+        agentesRPLimiteMensualData = [];
+        renderizarResumenBento();
+      })
+      .obtenerAgentesConLimiteMensualRP();
   }
 
   function renderizarResumenBento() {
@@ -292,19 +308,34 @@
     const pendientesContainer = document.getElementById('bento-pendientes-asterisco');
     if (!pendientesAsterisco.length) {
       pendientesContainer.innerHTML = '<p class="text-sm text-slate-500">No hay solicitudes pendientes con *.</p>';
+    } else {
+      pendientesContainer.innerHTML = pendientesAsterisco.map(sol => `
+        <article class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-semibold text-amber-900">${obtenerNombreDocente(sol)}</p>
+            <button onclick="verSolicitudPorId('${String(sol.id || '').replace(/'/g, "\\'")}')" class="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900" title="Ver solicitud">
+              <span class="material-icons text-base">visibility</span>
+              <span>Ver</span>
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-amber-800">${sol.tipoLicencia || '-'}</p>
+        </article>
+      `).join('');
+    }
+
+    const rpLimiteContainer = document.getElementById('bento-rp-limite-mensual');
+    const rpLimiteData = Array.isArray(agentesRPLimiteMensualData) ? agentesRPLimiteMensualData : [];
+    if (!rpLimiteContainer) return;
+
+    if (!rpLimiteData.length) {
+      rpLimiteContainer.innerHTML = '<p class="text-sm text-slate-500">No hay agentes con límite mensual alcanzado.</p>';
       return;
     }
 
-    pendientesContainer.innerHTML = pendientesAsterisco.map(sol => `
-      <article class="rounded-xl border border-amber-200 bg-amber-50 p-3">
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-sm font-semibold text-amber-900">${obtenerNombreDocente(sol)}</p>
-          <button onclick="verSolicitudPorId('${String(sol.id || '').replace(/'/g, "\\'")}')" class="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:text-amber-900" title="Ver solicitud">
-            <span class="material-icons text-base">visibility</span>
-            <span>Ver</span>
-          </button>
-        </div>
-        <p class="mt-1 text-xs text-amber-800">${sol.tipoLicencia || '-'}</p>
+    rpLimiteContainer.innerHTML = rpLimiteData.map(item => `
+      <article class="rounded-xl border border-rose-200 bg-rose-50 p-3">
+        <p class="text-sm font-semibold text-rose-900">${String(item.agente || '-')}</p>
+        <p class="mt-1 text-xs text-rose-800">${String(item.cargo || '-')}</p>
       </article>
     `).join('');
   }

@@ -409,6 +409,44 @@ function obtenerSolicitudesRazonesPart() {
   }
 }
 
+function obtenerAgentesConLimiteMensualRP() {
+  try {
+    assertAdminAutorizado_();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetRP = ss.getSheetByName('RP');
+
+    if (!sheetRP || sheetRP.getLastRow() < 2) {
+      return [];
+    }
+
+    const values = sheetRP.getRange(2, 1, sheetRP.getLastRow() - 1, 9).getValues();
+    const vistos = {};
+    const resultado = [];
+
+    for (const row of values) {
+      const agente = String(row[1] || '').trim();
+      const cargo = String(row[2] || '').trim();
+      const limiteMensual = String(row[8] || '').trim();
+      if (!agente || !cargo || !limiteMensual.includes('✗')) continue;
+
+      const clave = `${agente}|${cargo}`;
+      if (vistos[clave]) continue;
+      vistos[clave] = true;
+
+      resultado.push({
+        agente,
+        cargo,
+        limiteMensual
+      });
+    }
+
+    return resultado;
+  } catch (error) {
+    Logger.log('Error al obtener agentes con límite mensual RP: ' + error.toString());
+    return [];
+  }
+}
+
 function generarReporteRP() {
   try {
     assertAdminAutorizado_();

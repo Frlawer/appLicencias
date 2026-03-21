@@ -391,7 +391,7 @@ function obtenerSolicitudesRazonesPart() {
     
     // Filtrar solo solicitudes que contengan "*" en el tipo de licencia (RAZONES PARTICULARES)
     const rpSolicitudes = todasSolicitudes.filter(sol => {
-      return sol.tipoLicencia && sol.tipoLicencia.includes('*');
+      return sol.tipoLicencia && sol.tipoLicencia.includes('RAZONES PARTICULARES ARTICULO 8D *') && sol.tipoLicencia.includes('RAZONES PARTICULARES ARTICULO 80 (AUXILIARES) *');
     });
 
     // Ordenar: más recientes primero
@@ -405,6 +405,44 @@ function obtenerSolicitudesRazonesPart() {
     return rpSolicitudes;
   } catch (error) {
     Logger.log('Error al obtener solicitudes de RP: ' + error.toString());
+    return [];
+  }
+}
+
+function obtenerAgentesConLimiteMensualRP() {
+  try {
+    assertAdminAutorizado_();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetRP = ss.getSheetByName('RP');
+
+    if (!sheetRP || sheetRP.getLastRow() < 2) {
+      return [];
+    }
+
+    const values = sheetRP.getRange(2, 1, sheetRP.getLastRow() - 1, 9).getValues();
+    const vistos = {};
+    const resultado = [];
+
+    for (const row of values) {
+      const agente = String(row[1] || '').trim();
+      const cargo = String(row[2] || '').trim();
+      const limiteMensual = String(row[8] || '').trim();
+      if (!agente || !cargo || !limiteMensual.includes('✗')) continue;
+
+      const clave = `${agente}|${cargo}`;
+      if (vistos[clave]) continue;
+      vistos[clave] = true;
+
+      resultado.push({
+        agente,
+        cargo,
+        limiteMensual
+      });
+    }
+
+    return resultado;
+  } catch (error) {
+    Logger.log('Error al obtener agentes con límite mensual RP: ' + error.toString());
     return [];
   }
 }
