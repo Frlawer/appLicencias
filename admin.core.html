@@ -104,7 +104,7 @@
       
       // Inicializar con validaciones
       if (typeof cambiarVista === 'function') {
-        cambiarVista('solicitudes');
+        cambiarVista('resumen');
       }
       
       // Cargar novedades después de un pequeño delay
@@ -125,6 +125,7 @@
     }
 
     document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+    document.getElementById('vista-resumen').classList.add('hidden');
     document.getElementById('vista-solicitudes').classList.add('hidden');
     document.getElementById('vista-justificaciones').classList.add('hidden');
     document.getElementById('vista-descuentos').classList.add('hidden');
@@ -133,7 +134,12 @@
     document.getElementById('vista-razonespart').classList.add('hidden');
     document.getElementById('vista-agregar').classList.add('hidden');
 
-    if (vista === 'solicitudes') {
+    if (vista === 'resumen') {
+      document.getElementById('titulo-seccion').textContent = 'Portada del Administrador';
+      document.getElementById('subtitulo-seccion').textContent = 'Resumen general de licencias y estados';
+      document.getElementById('vista-resumen').classList.remove('hidden');
+      cargarResumenBento();
+    } else if (vista === 'solicitudes') {
       document.getElementById('menu-solicitudes').classList.add('active');
       document.getElementById('titulo-seccion').textContent = 'Solicitudes de Licencia';
       document.getElementById('subtitulo-seccion').textContent = 'Gestione las solicitudes pendientes';
@@ -183,12 +189,121 @@
   }
 
   function obtenerVistaActual() {
-    const vistas = ['solicitudes', 'justificaciones', 'descuentos', 'jornada', 'siso', 'razonespart', 'agregar'];
+    const vistas = ['resumen', 'solicitudes', 'justificaciones', 'descuentos', 'jornada', 'siso', 'razonespart', 'agregar'];
     for (const vista of vistas) {
       const el = document.getElementById(`vista-${vista}`);
       if (el && !el.classList.contains('hidden')) return vista;
     }
-    return 'solicitudes';
+    return 'resumen';
+  }
+
+  function normalizarEstado(estado) {
+    return String(estado || '').trim().toLowerCase();
+  }
+
+  function obtenerNombreDocente(sol) {
+    return `${String(sol.apellidos || '').toUpperCase()}, ${String(sol.nombres || '').toUpperCase()}`;
+  }
+
+  function cargarResumenBento() {
+    const loading = document.getElementById('loading');
+    loading.classList.remove('hidden');
+
+    const datosEnCache = obtenerCacheSolicitudes();
+    if (datosEnCache) {
+      solicitudesData = datosEnCache;
+      loading.classList.add('hidden');
+      renderizarResumenBento();
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function (data) {
+        loading.classList.add('hidden');
+
+        if (!Array.isArray(data)) {
+          solicitudesData = [];
+          renderizarResumenBento();
+          return;
+        }
+
+        solicitudesData = data.reverse();
+        guardarCacheSolicitudes(solicitudesData);
+        renderizarResumenBento();
+      })
+      .withFailureHandler(function (error) {
+        loading.classList.add('hidden');
+        mostrarToast('error', 'Error', 'No se pudo cargar el resumen: ' + error.message);
+      })
+      .obtenerTodasSolicitudes();
+  }
+
+  function renderizarResumenBento() {
+    const data = Array.isArray(solicitudesData) ? solicitudesData : [];
+
+    const totalSolicitudes = data.length;
+    const totalJustificadas = data.filter(sol => normalizarEstado(sol.estado) === 'justificada').length;
+    const totalDescuentos = data.filter(sol => normalizarEstado(sol.estado) === 'descuento').length;
+    const totalCompletadas = data.filter(sol => {
+      const estado = normalizarEstado(sol.estado);
+      return estado === 'completada' || estado === 'completado';
+    }).length;
+    const porcentajeCompletadas = totalSolicitudes > 0
+      ? ((totalCompletadas / totalSolicitudes) * 100).toFixed(1)
+      : '0.0';
+
+    document.getElementById('bento-total-solicitudes').textContent = String(totalSolicitudes);
+    document.getElementById('bento-total-justificadas').textContent = String(totalJustificadas);
+    document.getElementById('bento-total-descuentos').textContent = String(totalDescuentos);
+    document.getElementById('bento-porcentaje-completadas').textContent = `${porcentajeCompletadas}%`;
+    document.getElementById('bento-fecha-actualizacion').textContent = `Actualizado ${new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`;
+
+    const ultimasSolicitudes = [...data]
+      .sort((a, b) => {
+        const fechaA = parseFechaLocal(a.timestamp);
+        const fechaB = parseFechaLocal(b.timestamp);
+        return (fechaB ? fechaB.getTime() : 0) - (fechaA ? fechaA.getTime() : 0);
+      })
+      .slice(0, 3);
+
+    const ultimasContainer = document.getElementById('bento-ultimas-solicitudes');
+    if (!ultimasSolicitudes.length) {
+      ultimasContainer.innerHTML = '<p class="text-sm text-slate-500">Sin solicitudes para mostrar.</p>';
+    } else {
+      ultimasContainer.innerHTML = ultimasSolicitudes.map(sol => `
+        <article class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-semibold text-slate-800">${obtenerNombreDocente(sol)}</p>
+            <span class="text-xs text-slate-500">${formatearFecha(sol.timestamp)}</span>
+          </div>
+          <p class="mt-1 text-sm" style="color: var(--primary);">${sol.tipoLicencia || '-'}</p>
+        </article>
+      `).join('');
+    }
+
+    const pendientesAsterisco = data
+      .filter(sol => normalizarEstado(sol.estado) === 'pendiente' && String(sol.tipoLicencia || '').includes('*'))
+      .sort((a, b) => {
+        const fechaA = parseFechaLocal(a.timestamp);
+        const fechaB = parseFechaLocal(b.timestamp);
+        return (fechaB ? fechaB.getTime() : 0) - (fechaA ? fechaA.getTime() : 0);
+      });
+
+    const pendientesContainer = document.getElementById('bento-pendientes-asterisco');
+    if (!pendientesAsterisco.length) {
+      pendientesContainer.innerHTML = '<p class="text-sm text-slate-500">No hay solicitudes pendientes con *.</p>';
+      return;
+    }
+
+    pendientesContainer.innerHTML = pendientesAsterisco.map(sol => `
+      <article class="rounded-xl border border-amber-200 bg-amber-50 p-3">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-sm font-semibold text-amber-900">${obtenerNombreDocente(sol)}</p>
+          <button onclick="verSolicitudPorId('${String(sol.id || '').replace(/'/g, "\\'")}')" class="text-xs font-semibold text-amber-700 hover:text-amber-900 underline">Ver ID ${sol.id || '-'}</button>
+        </div>
+        <p class="mt-1 text-xs text-amber-800">${sol.tipoLicencia || '-'}</p>
+      </article>
+    `).join('');
   }
 
   // Cargar solicitudes

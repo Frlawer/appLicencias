@@ -228,6 +228,50 @@
     table tbody tr:hover {
       background: #f8fafc;
     }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .bento-card {
+      background: var(--bg-white);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+      padding: 1rem;
+    }
+
+    .bento-headline {
+      color: var(--primary);
+      background: linear-gradient(135deg, rgba(43, 62, 76, 0.08), rgba(61, 84, 104, 0.12));
+      border: 1px solid rgba(43, 62, 76, 0.15);
+    }
+
+    .bento-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      background: rgba(43, 62, 76, 0.08);
+      color: var(--primary);
+    }
+
+    @media (max-width: 1024px) {
+      .bento-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .bento-grid {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 
@@ -249,7 +293,7 @@
 
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar collapsed text-white flex flex-col" style="background: var(--primary);">
-      <div class="p-6 border-b border-white/10 flex items-center gap-3">
+      <div class="p-6 border-b border-white/10 flex items-center gap-3 cursor-pointer" onclick="cambiarVista('resumen')" title="Ir a la portada del administrador">
         <span class="material-icons text-3xl flex-shrink-0">admin_panel_settings</span>
         <div class="sidebar-header-content">
           <h1 class="text-xl font-bold">Admin Panel</h1>
@@ -382,6 +426,79 @@
       </div>
 
       <!-- Vista Solicitudes -->
+      <div id="vista-resumen" class="p-6 hidden">
+        <div class="bento-grid">
+          <section class="bento-card bento-headline col-span-12 lg:col-span-8">
+            <div class="flex flex-wrap justify-between items-start gap-3">
+              <div>
+                <h3 class="text-xl font-extrabold tracking-tight">Portada del Administrador</h3>
+                <p class="text-sm mt-1 opacity-85">Resumen ejecutivo de licencias y estados clave.</p>
+              </div>
+              <span class="bento-chip">
+                <span class="material-icons text-sm">analytics</span>
+                <span id="bento-fecha-actualizacion">Actualizando...</span>
+              </span>
+            </div>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-3 lg:col-span-2">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Solicitudes</p>
+              <span class="material-icons" style="color: var(--primary);">description</span>
+            </div>
+            <p id="bento-total-solicitudes" class="mt-2 text-3xl font-extrabold" style="color: var(--primary);">0</p>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-3 lg:col-span-2">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Justificadas</p>
+              <span class="material-icons text-blue-600">task_alt</span>
+            </div>
+            <p id="bento-total-justificadas" class="mt-2 text-3xl font-extrabold text-blue-700">0</p>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-3 lg:col-span-2">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Descuentos</p>
+              <span class="material-icons text-orange-600">warning</span>
+            </div>
+            <p id="bento-total-descuentos" class="mt-2 text-3xl font-extrabold text-orange-700">0</p>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-3 lg:col-span-2">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">% Completadas</p>
+              <span class="material-icons text-emerald-600">percent</span>
+            </div>
+            <p id="bento-porcentaje-completadas" class="mt-2 text-3xl font-extrabold text-emerald-700">0%</p>
+          </section>
+
+          <section class="bento-card col-span-12 lg:col-span-6">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-icons text-base" style="color: var(--primary);">history</span>
+                Últimas 3 solicitudes
+              </h4>
+            </div>
+            <div id="bento-ultimas-solicitudes" class="space-y-2">
+              <p class="text-sm text-slate-500">Sin datos disponibles.</p>
+            </div>
+          </section>
+
+          <section class="bento-card col-span-12 lg:col-span-6">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-icons text-base" style="color: var(--primary);">pending_actions</span>
+                Pendientes con *
+              </h4>
+            </div>
+            <div id="bento-pendientes-asterisco" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <p class="text-sm text-slate-500">Sin datos disponibles.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
       <div id="vista-solicitudes" class="p-6 hidden">
         <div class="bg-white rounded-lg shadow overflow-hidden">
           <!-- BUSCADOR Y FILTROS -->
