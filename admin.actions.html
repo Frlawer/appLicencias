@@ -186,15 +186,24 @@
 
   function guardarEstadoDesdeDetalle(rowIndex, idSolicitud) {
     const selectEstado = document.getElementById('detalle-nuevo-estado');
+    const botonGuardar = document.getElementById('detalle-btn-guardar-estado');
+    const spinnerGuardar = document.getElementById('detalle-spinner-estado');
     if (!selectEstado) return;
 
     const nuevoEstado = selectEstado.value;
     if (!nuevoEstado) return;
 
+    if (botonGuardar) botonGuardar.disabled = true;
+    if (selectEstado) selectEstado.disabled = true;
+    if (spinnerGuardar) spinnerGuardar.classList.remove('hidden');
+
     document.getElementById('loading').classList.remove('hidden');
     google.script.run
       .withSuccessHandler(function(result) {
         document.getElementById('loading').classList.add('hidden');
+        if (spinnerGuardar) spinnerGuardar.classList.add('hidden');
+        if (botonGuardar) botonGuardar.disabled = false;
+        if (selectEstado) selectEstado.disabled = false;
         if (result.success) {
           mostrarToast('success', 'Estado actualizado', 'Estado actualizado correctamente');
           limpiarTodoCache();
@@ -206,6 +215,9 @@
       })
       .withFailureHandler(function(error) {
         document.getElementById('loading').classList.add('hidden');
+        if (spinnerGuardar) spinnerGuardar.classList.add('hidden');
+        if (botonGuardar) botonGuardar.disabled = false;
+        if (selectEstado) selectEstado.disabled = false;
         mostrarToast('error', 'Error', 'Error al actualizar: ' + error.message);
       })
       .actualizarEstadoFila(rowIndex, nuevoEstado);
@@ -213,6 +225,11 @@
 
   function abrirModalSolicitud(sol) {
     const cont = document.getElementById('detalle-solicitud');
+    const motivo = String(sol.motivo || sol.observaciones || '').trim();
+    const bloqueMotivo = motivo
+      ? `<div><span class="text-gray-500">Motivo</span><div>${motivo}</div></div>`
+      : '';
+
     cont.innerHTML = `
       <div><span class="text-gray-500">ID</span><div class="font-semibold">${sol.id}</div></div>
       <div>
@@ -224,8 +241,11 @@
           <select id="detalle-nuevo-estado" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
             ${opcionesEstadoSelect(sol.estado)}
           </select>
-          <button onclick="guardarEstadoDesdeDetalle(${sol.rowIndex}, '${sol.id}')"
-            class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Guardar</button>
+          <button id="detalle-btn-guardar-estado" onclick="guardarEstadoDesdeDetalle(${sol.rowIndex}, '${sol.id}')"
+            class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+            <span id="detalle-spinner-estado" class="hidden inline-block w-3.5 h-3.5 border-2 border-blue-200 border-t-white rounded-full animate-spin"></span>
+            <span>Guardar</span>
+          </button>
         </div>
       </div>
       <div><span class="text-gray-500">Docente</span><div class="font-semibold">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</div></div>
@@ -237,6 +257,7 @@
       <div><span class="text-gray-500">Curso/Cargo</span><div>${sol.cursoOCargo || '-'}</div></div>
       <div><span class="text-gray-500">Articulación</span><div>${sol.articulacion}</div></div>
       <div><span class="text-gray-500">Tipo Licencia</span><div>${sol.tipoLicencia}</div></div>
+      ${bloqueMotivo}
       <div><span class="text-gray-500">Timestamp</span><div>${sol.timestamp}</div></div>
     `;
     document.getElementById('modal-solicitud').classList.remove('hidden');
