@@ -419,14 +419,14 @@ function obtenerAgentesConLimiteMensualRP() {
       return [];
     }
 
-    const values = sheetRP.getRange(2, 1, sheetRP.getLastRow() - 1, 9).getValues();
+    const values = sheetRP.getRange(2, 1, sheetRP.getLastRow() - 1, 10).getValues();
     const vistos = {};
     const resultado = [];
 
     for (const row of values) {
       const agente = String(row[1] || '').trim();
       const cargo = String(row[2] || '').trim();
-      const limiteMensual = String(row[8] || '').trim();
+      const limiteMensual = String(row[9] || '').trim();
       if (!agente || !cargo || !limiteMensual.includes('✗')) continue;
 
       const clave = `${agente}|${cargo}`;
@@ -464,25 +464,31 @@ function generarReporteRP() {
       }
     }
 
-    // Crear encabezados si la hoja está vacía
+    const encabezadosRP = [
+      'N° Empleado',
+      'Agente',
+      'Cargo',
+      'Curso',
+      'División',
+      'Secuencia',
+      'Solicitudes Anuales',
+      'Solicitudes Mensuales',
+      'Límite Anual (6)',
+      'Límite Mensual (2)'
+    ];
+
+    // Asegurar encabezados actualizados, incluso si la hoja ya existía
     if (sheetRP.getLastRow() === 0) {
-      sheetRP.appendRow([
-        'N° Empleado',
-        'Agente',
-        'Cargo',
-        'Curso',
-        'División',
-        'Solicitudes Anuales',
-        'Solicitudes Mensuales',
-        'Límite Anual (6)',
-        'Límite Mensual (2)'
-      ]);
-      // Dar formato al encabezado
-      const headerRange = sheetRP.getRange(1, 1, 1, 9);
-      headerRange.setFontWeight('bold');
-      headerRange.setBackground('#2B3E4C');
-      headerRange.setFontColor('#FFFFFF');
+      sheetRP.appendRow(encabezadosRP);
+    } else {
+      sheetRP.getRange(1, 1, 1, encabezadosRP.length).setValues([encabezadosRP]);
     }
+
+    // Dar formato al encabezado
+    const headerRange = sheetRP.getRange(1, 1, 1, encabezadosRP.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#2B3E4C');
+    headerRange.setFontColor('#FFFFFF');
 
     // Obtener todas las solicitudes de RP
     const solicitudesRP = obtenerSolicitudesRazonesPart();
@@ -505,7 +511,15 @@ function generarReporteRP() {
 
       // Para cada cargo, contar las solicitudes
       for (const cargo of cargosData.cargos) {
-        const clave = `${solicitud.numeroEmpleado}|${cargo.texto}`;
+        const partesCargo = String(cargo.texto || '')
+          .split('-')
+          .map(parte => String(parte || '').trim())
+          .filter(Boolean);
+        const divisionCargo = partesCargo[0] || '';
+        const cursoCargo = partesCargo[1] || '';
+        const secuenciaParte = partesCargo[2] || '';
+        const secuenciaCargo = secuenciaParte.replace(/^Sec\s*:\s*/i, '').trim() || String(cargo.seccion || '').trim();
+        const clave = `${solicitud.numeroEmpleado}|${cargo.texto}|${secuenciaCargo}`;
         
         if (!reportePorAgenteYCargo[clave]) {
           reportePorAgenteYCargo[clave] = {
@@ -513,6 +527,9 @@ function generarReporteRP() {
             agente: agenteData.nombre,
             cargo: cargo.texto,
             seccion: cargo.seccion,
+            division: divisionCargo,
+            curso: cursoCargo,
+            secuencia: secuenciaCargo,
             solicitudesAño: 0,
             solicitudesMes: 0,
             solicitudes: []
@@ -548,10 +565,9 @@ function generarReporteRP() {
     for (const clave in reportePorAgenteYCargo) {
       const item = reportePorAgenteYCargo[clave];
       
-      // Extraer Curso y División de la sección (formato: "División - Curso")
-      const partes = item.seccion.split('-');
-      const division = partes[0] ? partes[0].trim() : '';
-      const curso = partes.length > 1 ? partes[1].trim() : item.seccion;
+      const division = String(item.division || '').trim();
+      const curso = String(item.curso || '').trim();
+      const secuencia = String(item.secuencia || item.seccion || '').trim();
 
       sheetRP.appendRow([
         item.numeroEmpleado,
@@ -559,6 +575,7 @@ function generarReporteRP() {
         item.cargo,
         curso,
         division,
+        secuencia,
         item.solicitudesAño,
         item.solicitudesMes,
         item.solicitudesAño >= 6 ? '✗ LÍMITE ALCANZADO' : item.solicitudesAño + '/6',
@@ -572,10 +589,11 @@ function generarReporteRP() {
     sheetRP.setColumnWidth(3, 250);
     sheetRP.setColumnWidth(4, 150);
     sheetRP.setColumnWidth(5, 150);
-    sheetRP.setColumnWidth(6, 120);
+    sheetRP.setColumnWidth(6, 100);
     sheetRP.setColumnWidth(7, 120);
-    sheetRP.setColumnWidth(8, 150);
+    sheetRP.setColumnWidth(8, 120);
     sheetRP.setColumnWidth(9, 150);
+    sheetRP.setColumnWidth(10, 150);
 
     return { 
       success: true, 
