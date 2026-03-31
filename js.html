@@ -8,6 +8,20 @@
     let busquedaSolicitudesRealizada = false;
 
     // ========================================
+    // === SCROLL AUTOMÁTICO A NUEVOS PASOS ===
+    // ========================================
+    function scrollAlSiguientePaso(elemento) {
+      if (!elemento) return;
+
+      setTimeout(() => {
+        elemento.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 100);
+    }
+
+    // ========================================
     // === CARGAR LICENCIAS DESDE LA SHEET ===
     // ========================================
     function cargarLicenciasEnSelect() {
@@ -331,16 +345,63 @@
       const stepEnviar = document.getElementById('sol-step-enviar');
       const btnEnviar = document.getElementById('btn-enviar-solicitud');
 
-      if (stepDni) stepDni.classList.toggle('hidden', !tipo);
-      if (stepCurso) stepCurso.classList.toggle('hidden', !busquedaValida);
-      if (stepFechas) stepFechas.classList.toggle('hidden', !curso);
-      if (stepArticulacion) stepArticulacion.classList.toggle('hidden', !fechasCompletas);
-      if (stepEnviar) stepEnviar.classList.toggle('hidden', !completo);
+      // Determinar qué paso mostrar y hacer scroll a él
+      let proximoPasoParaScroll = null;
+
+      if (stepDni) {
+        const debeEstarVisible = Boolean(tipo);
+        const estaOculto = stepDni.classList.contains('hidden');
+        stepDni.classList.toggle('hidden', !tipo);
+        if (debeEstarVisible && estaOculto) {
+          proximoPasoParaScroll = stepDni;
+        }
+      }
+
+      if (stepCurso) {
+        const debeEstarVisible = Boolean(busquedaValida);
+        const estaOculto = stepCurso.classList.contains('hidden');
+        stepCurso.classList.toggle('hidden', !busquedaValida);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepCurso;
+        }
+      }
+
+      if (stepFechas) {
+        const debeEstarVisible = Boolean(curso);
+        const estaOculto = stepFechas.classList.contains('hidden');
+        stepFechas.classList.toggle('hidden', !curso);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepFechas;
+        }
+      }
+
+      if (stepArticulacion) {
+        const debeEstarVisible = Boolean(fechasCompletas);
+        const estaOculto = stepArticulacion.classList.contains('hidden');
+        stepArticulacion.classList.toggle('hidden', !fechasCompletas);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepArticulacion;
+        }
+      }
+
+      if (stepEnviar) {
+        const debeEstarVisible = Boolean(completo);
+        const estaOculto = stepEnviar.classList.contains('hidden');
+        stepEnviar.classList.toggle('hidden', !completo);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepEnviar;
+        }
+      }
 
       if (btnEnviar) {
         btnEnviar.disabled = !completo;
         btnEnviar.classList.toggle('opacity-50', !completo);
         btnEnviar.classList.toggle('cursor-not-allowed', !completo);
+      }
+
+      // Scroll automático al nuevo paso si hay uno
+      if (proximoPasoParaScroll) {
+        scrollAlSiguientePaso(proximoPasoParaScroll);
       }
 
       const progresoItems = [
@@ -363,7 +424,7 @@
       if (!busquedaValida) faltantes.push('buscar cargos');
       if (!curso) faltantes.push('curso/cargo');
       if (!fechasCompletas) faltantes.push('fechas');
-      if (!articulacion) faltantes.push('articulacion');
+      if (!articulacion) faltantes.push('articulación');
       if (requiereMotivo && !motivoCompleto) faltantes.push('motivo');
 
       const textoPendiente = faltantes.length
@@ -451,12 +512,29 @@
       const tieneLicenciasSeleccionadas = solicitudesSeleccionadas.length > 0;
       const tieneArchivos = Boolean(inputArchivo && inputArchivo.files && inputArchivo.files.length);
 
+      let proximoPasoParaScroll = null;
+
       if (containerLicencias) {
+        const debeEstarVisible = Boolean(busquedaSolicitudesRealizada);
+        const estaOculto = containerLicencias.classList.contains('hidden');
         containerLicencias.classList.toggle('hidden', !busquedaSolicitudesRealizada);
+        if (debeEstarVisible && estaOculto) {
+          proximoPasoParaScroll = containerLicencias;
+        }
       }
 
       if (stepArchivo) {
+        const debeEstarVisible = Boolean(tieneLicenciasSeleccionadas);
+        const estaOculto = stepArchivo.classList.contains('hidden');
         stepArchivo.classList.toggle('hidden', !tieneLicenciasSeleccionadas);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepArchivo;
+        }
+      }
+
+      // Scroll automático al nuevo paso
+      if (proximoPasoParaScroll) {
+        scrollAlSiguientePaso(proximoPasoParaScroll);
       }
 
       const completo = Boolean(dni && busquedaSolicitudesRealizada && tieneLicenciasSeleccionadas && tieneArchivos);
@@ -713,6 +791,8 @@
               selectCurso.disabled = false;
               cargosCargados = true;
               mostrarToast('info', 'Cargos cargados', `Se encontraron ${result.cargos.length} cargo(s) asignado(s)`);
+              // Scroll automático al paso de curso
+              setTimeout(() => scrollAlSiguientePaso(document.getElementById('sol-step-curso')), 150);
             } else {
               selectCurso.innerHTML = '<option value="">No se encontraron cargos asignados</option>';
               cargosCargados = false;
@@ -794,7 +874,7 @@
           mostrarLoading(false);
 
           if (result.success) {
-            mostrarToast('success', 'Solicitud enviada', 'Se enviará un email a: ' + result.agente.email);
+            mostrarToast('success', 'Solicitud enviada', 'La solicitud fue enviada correctamente. Puede revisarla en Justificaciones.');
             mostrarInfoAgente(result.agente);
             // Limpiar formulario
             document.getElementById('sol-dni').value = '';
@@ -892,10 +972,12 @@
             });
             list.innerHTML = html;
           }
-          
+
           container.classList.remove('hidden');
           actualizarContador();
           actualizarFlujoJustificacion();
+          // Scroll automático al contenedor de licencias
+          setTimeout(() => scrollAlSiguientePaso(container), 150);
         })
         .withFailureHandler(function(error) {
           mostrarLoading(false);
@@ -910,7 +992,7 @@
       const index = solicitudesSeleccionadas.indexOf(id);
       const div = document.getElementById('lic-' + id);
       const check = document.getElementById('check-' + id);
-      
+
       if (index > -1) {
         solicitudesSeleccionadas.splice(index, 1);
         div.className = 'p-3 mb-2 rounded-lg cursor-pointer transition-all border-2 bg-white border-gray-200 hover:border-gray-300';
@@ -922,8 +1004,12 @@
         check.className = 'w-5 h-5 rounded border-2 mr-3 flex items-center justify-center bg-blue-500 border-blue-500';
         check.innerHTML = '✓';
       }
-      
+
       actualizarContador();
+      // Scroll al paso de archivo cuando se selecciona la primera licencia
+      if (solicitudesSeleccionadas.length === 1) {
+        setTimeout(() => scrollAlSiguientePaso(document.getElementById('just-step-archivo')), 150);
+      }
     }
 
     function actualizarContador() {
