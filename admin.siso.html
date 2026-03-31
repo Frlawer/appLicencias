@@ -16,6 +16,8 @@
         }
       });
     }
+
+    cargarListadoSisoFiltrado();
   });
 
   function procesarCSV(archivo) {
@@ -109,6 +111,7 @@
         if (result.success) {
           mostrarToast('success', 'Datos guardados', `${result.registros} registros guardados en SISO`);
           cancelarCSV();
+          cargarListadoSisoFiltrado();
         } else {
           mostrarToast('error', 'Error', result.error || 'No se pudieron guardar los datos');
         }
@@ -125,5 +128,73 @@
     document.getElementById('preview-csv').classList.add('hidden');
     document.getElementById('btn-cargar-csv').disabled = true;
     csvData = null;
+  }
+
+  function cargarListadoSisoFiltrado() {
+    const tbody = document.getElementById('tabla-siso-filtrado');
+    const resumen = document.getElementById('siso-filtrado-resumen');
+
+    if (!tbody || !resumen) {
+      return;
+    }
+
+    tbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-sm text-gray-600 text-center">Cargando listado...</td></tr>';
+    resumen.textContent = 'Consultando hoja SISO...';
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          tbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-sm text-red-600 text-center">No se pudo obtener el listado filtrado.</td></tr>';
+          resumen.textContent = 'Error al consultar datos de SISO.';
+          return;
+        }
+
+        const agentes = Array.isArray(result.agentes) ? result.agentes : [];
+        renderizarListadoSisoFiltrado(agentes);
+
+        const desde = result.rango && result.rango.desde ? result.rango.desde : '-';
+        const hasta = result.rango && result.rango.hasta ? result.rango.hasta : '-';
+        resumen.textContent = `Total: ${agentes.length} agente(s). Rango fecha col. I: ${desde} a ${hasta}.`;
+      })
+      .withFailureHandler(function(error) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-sm text-red-600 text-center">Error al consultar el listado.</td></tr>';
+        resumen.textContent = `Error: ${error && error.message ? error.message : 'desconocido'}`;
+      })
+      .obtenerAgentesSisoFiltrados();
+  }
+
+  function renderizarListadoSisoFiltrado(agentes) {
+    const tbody = document.getElementById('tabla-siso-filtrado');
+    if (!tbody) {
+      return;
+    }
+
+    if (!agentes.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="px-3 py-4 text-sm text-gray-600 text-center">No hay agentes que cumplan el filtro.</td></tr>';
+      return;
+    }
+
+    let html = '';
+    agentes.forEach(item => {
+      html += `
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-gray-700 font-medium">${sanitizarHtml_(item.agente || '-')}</td>
+          <td class="px-3 py-2 text-gray-600">${sanitizarHtml_(item.nEmpleado || '-')}</td>
+          <td class="px-3 py-2 text-gray-600">${sanitizarHtml_(item.fechaTexto || '-')}</td>
+          <td class="px-3 py-2 text-gray-600">${sanitizarHtml_(item.conceptoL || '-')}</td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  function sanitizarHtml_(valor) {
+    return String(valor)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 </script>

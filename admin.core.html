@@ -168,6 +168,9 @@
       document.getElementById('titulo-seccion').textContent = 'Cargar Datos SISO';
       document.getElementById('subtitulo-seccion').textContent = 'Importar datos desde archivo CSV';
       document.getElementById('vista-siso').classList.remove('hidden');
+      if (typeof cargarListadoSisoFiltrado === 'function') {
+        cargarListadoSisoFiltrado();
+      }
     } else if (vista === 'razonespart') {
       document.getElementById('menu-razonespart').classList.add('active');
       document.getElementById('titulo-seccion').textContent = 'Razones Particulares';

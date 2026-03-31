@@ -965,6 +965,31 @@
               Cancelar
             </button>
           </div>
+
+          <div id="siso-listado-filtro" class="mt-6 border border-gray-200 rounded-lg overflow-hidden">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <h4 class="text-sm font-semibold text-gray-800">Agentes con licencia Largo tratamiento</h4>
+              <p class="text-xs text-gray-600 mt-1">2404B o 2262 - Revisar carga en Planta</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agente</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°Empleado</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Hasta</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Lic</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-siso-filtrado" class="bg-white divide-y divide-gray-200">
+                  <tr>
+                    <td colspan="4" class="px-3 py-4 text-sm text-gray-600 text-center">Cargando listado...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="siso-filtrado-resumen" class="px-4 py-2 text-xs text-gray-600 bg-gray-50 border-t border-gray-200">Preparando datos...</div>
+          </div>
         </div>
       </div>
 
