@@ -151,14 +151,14 @@ function guardarSolicitud(datos) {
       origen: 'SOLICITUD'
     });
     
-    // Enviar email al agente
-    try {
-      enviarEmailSolicitud(agente, datos, timestamp, id);
-    } catch (emailError) {
-      Logger.log('Error al enviar email: ' + emailError.toString());
-      // No fallar la operación si el email falla
+    // // Enviar email al agente
+    // try {
+    //   enviarEmailSolicitud(agente, datos, timestamp, id);
+    // } catch (emailError) {
+    //   Logger.log('Error al enviar email: ' + emailError.toString());
+    //   // No fallar la operación si el email falla
       
-    }
+    // }
 
     // Normalizar datos para evitar problemas de serialización hacia el cliente
     const agentePlano = {
