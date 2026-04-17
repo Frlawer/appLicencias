@@ -16,8 +16,9 @@
     const dni = (document.getElementById('filtro-dni-solicitud').value || '').toLowerCase().trim();
     const empleado = (document.getElementById('filtro-empleado-solicitud').value || '').toLowerCase().trim();
     const estado = (document.getElementById('filtro-estado-solicitud').value || '').toLowerCase().trim();
+    const tipoLicencia = (document.getElementById('filtro-tipo-licencia-solicitud')?.value || '').toLowerCase().trim();
 
-    if (!nombre && !dni && !empleado && !estado) {
+    if (!nombre && !dni && !empleado && !estado && !tipoLicencia) {
       solicitudesFiltradas = [...solicitudesData];
       filtroActivoSolicitudes = false;
     } else {
@@ -31,8 +32,10 @@
           (estado === 'autorizado' && estadoNormalizado === 'autorizada') ||
           (estado === 'completado' && estadoNormalizado === 'completada') ||
           (estado === 'rechazado' && estadoNormalizado === 'rechazada');
+        const tipoLicenciaNormalizado = String(sol.tipoLicencia || '').toLowerCase().trim();
+        const cumpleTipoLicencia = !tipoLicencia || tipoLicenciaNormalizado === tipoLicencia;
 
-        return cumpleNombre && cumpleDni && cumpleEmpleado && cumpleEstado;
+        return cumpleNombre && cumpleDni && cumpleEmpleado && cumpleEstado && cumpleTipoLicencia;
       });
       filtroActivoSolicitudes = true;
     }
@@ -53,6 +56,8 @@
     document.getElementById('filtro-dni-solicitud').value = '';
     document.getElementById('filtro-empleado-solicitud').value = '';
     document.getElementById('filtro-estado-solicitud').value = '';
+    const filtroTipoLicencia = document.getElementById('filtro-tipo-licencia-solicitud');
+    if (filtroTipoLicencia) filtroTipoLicencia.value = '';
     document.getElementById('info-filtro-solicitud').innerHTML = '';
 
     solicitudesFiltradas = [...solicitudesData];
@@ -111,7 +116,33 @@
     document.getElementById('filtro-dni-solicitud').value = '';
     document.getElementById('filtro-empleado-solicitud').value = '';
     document.getElementById('filtro-estado-solicitud').value = '';
+    const filtroTipoLicencia = document.getElementById('filtro-tipo-licencia-solicitud');
+    if (filtroTipoLicencia) filtroTipoLicencia.value = '';
     document.getElementById('info-filtro-solicitud').innerHTML = '';
+  }
+
+  function actualizarOpcionesTipoLicenciaSolicitudes() {
+    const selectTipo = document.getElementById('filtro-tipo-licencia-solicitud');
+    if (!selectTipo) return;
+
+    const tipoSeleccionado = selectTipo.value || '';
+    const tiposUnicos = [...new Set(
+      (Array.isArray(solicitudesData) ? solicitudesData : [])
+        .map(sol => String(sol.tipoLicencia || '').trim())
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+    selectTipo.innerHTML = '<option value="">Todos</option>';
+    tiposUnicos.forEach(tipo => {
+      const option = document.createElement('option');
+      option.value = tipo;
+      option.textContent = tipo;
+      selectTipo.appendChild(option);
+    });
+
+    if (tipoSeleccionado && tiposUnicos.includes(tipoSeleccionado)) {
+      selectTipo.value = tipoSeleccionado;
+    }
   }
 
   function limpiarInputsFiltroJustificaciones() {
