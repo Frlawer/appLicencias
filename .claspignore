@@ -9,3 +9,5 @@ siso.service.js
 testing.dev.js
 utils.service.js
 validation.service.js
+mcp/
+mcp/*

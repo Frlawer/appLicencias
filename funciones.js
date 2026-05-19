@@ -151,15 +151,6 @@ function guardarSolicitud(datos) {
       origen: 'SOLICITUD'
     });
     
-    // // Enviar email al agente
-    // try {
-    //   enviarEmailSolicitud(agente, datos, timestamp, id);
-    // } catch (emailError) {
-    //   Logger.log('Error al enviar email: ' + emailError.toString());
-    //   // No fallar la operación si el email falla
-      
-    // }
-
     // Normalizar datos para evitar problemas de serialización hacia el cliente
     const agentePlano = {
       nombre: agente.nombre || '',
@@ -330,26 +321,11 @@ function guardarJustificacion(datos, archivos) {
       actualizarEstadoSolicitud(licencia, "Justificada");
     });
 
-    // Enviar email al agente
-    try {
-      const urlsTexto = urls.join(', ');
-      enviarEmailJustificacion(
-        agente,
-        licenciasSeleccionadas.length,
-        urlsTexto,
-        timestamp
-      );
-    } catch (emailError) {
-      Logger.log("Error al enviar email: " + emailError.toString());
-      // No fallar la operación si el email falla
-    }
-
-    // Normalizar datos para evitar problemas de serialización hacia el cliente
-    const agentePlano = {
-      email: agente.email || "",
+    return {
+      success: true,
+      archivosSubidos: urls.length,
+      mensaje: `Justificación guardada con ${urls.length} archivo(s)`
     };
-
-    return { success: true, email: agentePlano.email };
   } catch (error) {
     return { success: false, error: error.toString() };
   }

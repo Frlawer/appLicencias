@@ -6,6 +6,9 @@
   let registroEditando = null;
   let emailData = null;
   let agentesJornadaData = [];
+  let fichasResultadosData = [];
+  let fichaSeleccionada = null;
+  let fichasBusquedaTimer = null;
   let agentesRPLimiteMensualData = [];
   let solicitudesSeleccionadas = new Set();
 
@@ -131,6 +134,7 @@
     document.getElementById('vista-justificaciones').classList.add('hidden');
     document.getElementById('vista-descuentos').classList.add('hidden');
     document.getElementById('vista-jornada').classList.add('hidden');
+    document.getElementById('vista-fichas').classList.add('hidden');
     document.getElementById('vista-siso').classList.add('hidden');
     document.getElementById('vista-razonespart').classList.add('hidden');
     document.getElementById('vista-agregar').classList.add('hidden');
@@ -163,6 +167,14 @@
       document.getElementById('titulo-seccion').textContent = 'Registros de Jornada';
       document.getElementById('subtitulo-seccion').textContent = 'Revise los registros de jornada cargados';
       document.getElementById('vista-jornada').classList.remove('hidden');
+    } else if (vista === 'fichas') {
+      document.getElementById('menu-fichas').classList.add('active');
+      document.getElementById('titulo-seccion').textContent = 'Fichas de Agentes';
+      document.getElementById('subtitulo-seccion').textContent = 'Busque coincidencias de agentes mientras escribe';
+      document.getElementById('vista-fichas').classList.remove('hidden');
+      if (typeof inicializarVistaFichas === 'function') {
+        inicializarVistaFichas();
+      }
     } else if (vista === 'siso') {
       document.getElementById('menu-siso').classList.add('active');
       document.getElementById('titulo-seccion').textContent = 'Cargar Datos SISO';
@@ -193,7 +205,7 @@
   }
 
   function obtenerVistaActual() {
-    const vistas = ['resumen', 'solicitudes', 'justificaciones', 'descuentos', 'jornada', 'siso', 'razonespart', 'agregar'];
+    const vistas = ['resumen', 'solicitudes', 'justificaciones', 'descuentos', 'jornada', 'fichas', 'siso', 'razonespart', 'agregar'];
     for (const vista of vistas) {
       const el = document.getElementById(`vista-${vista}`);
       if (el && !el.classList.contains('hidden')) return vista;

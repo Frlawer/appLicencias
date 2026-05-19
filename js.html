@@ -193,12 +193,17 @@
       reader.readAsDataURL(archivo);
     }
 
+    let toastTimeoutId = null;
+    let toastColorActivo = '';
+
     // Función para mostrar toast
-    function mostrarToast(tipo, titulo, texto, duracion = 5000) {
+    function mostrarToast(tipo, titulo, texto, duracion = 9000) {
       const toast = document.getElementById('toast-message-cta');
       const icono = document.getElementById('iconoNotificacion');
       const tituloElement = document.getElementById('tituloNotificacion');
       const textoElement = document.getElementById('textoNotificacion');
+
+      if (!toast || !icono || !tituloElement || !textoElement) return;
       
       // Configurar icono y clases según el tipo
       let iconoHTML = '';
@@ -238,24 +243,47 @@
       tituloElement.textContent = titulo;
       textoElement.textContent = texto;
       
+      if (toastTimeoutId) {
+        clearTimeout(toastTimeoutId);
+        toastTimeoutId = null;
+      }
+
+      if (toastColorActivo) {
+        toast.classList.remove(toastColorActivo);
+      }
+
+      toastColorActivo = fondoColor;
+
       // Mostrar toast
       toast.classList.remove('hidden');
-      toast.classList.add('animate-slide-in', fondoColor);
+      toast.classList.remove('animate-slide-out');
+      toast.classList.add('animate-slide-in', fondoColor, 'toast-impacto');
       
       // Ocultar automáticamente después de la duración especificado
       if (duracion > 0) {
-        setTimeout(() => {
-          ocultarToast(fondoColor);
+        toastTimeoutId = setTimeout(() => {
+          ocultarToast();
         }, duracion);
       }
     }
 
-    function ocultarToast(fondoColor) {
+    function ocultarToast() {
       const toast = document.getElementById('toast-message-cta');
+      if (!toast) return;
+
+      if (toastTimeoutId) {
+        clearTimeout(toastTimeoutId);
+        toastTimeoutId = null;
+      }
+
       toast.classList.add('animate-slide-out');
       setTimeout(() => {
         toast.classList.add('hidden');
-        toast.classList.remove('animate-slide-in', 'animate-slide-out', fondoColor);
+        toast.classList.remove('animate-slide-in', 'animate-slide-out', 'toast-impacto');
+        if (toastColorActivo) {
+          toast.classList.remove(toastColorActivo);
+          toastColorActivo = '';
+        }
       }, 300);
     }
 
@@ -263,7 +291,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       const closeButton = document.querySelector('[data-dismiss-target="#toast-message-cta"]');
       if (closeButton) {
-        closeButton.addEventListener('click', ocultarToast);
+        closeButton.addEventListener('click', () => ocultarToast());
       }
     });
 
@@ -874,7 +902,10 @@
           mostrarLoading(false);
 
           if (result.success) {
-            mostrarToast('success', 'Solicitud enviada', 'La solicitud fue enviada correctamente. Puede revisarla en Justificaciones.');
+            const detalleSolicitud = result.id
+              ? `Su solicitud fue registrada con exito. ID de seguimiento: ${result.id}.`
+              : 'Su solicitud fue registrada con exito.';
+            mostrarToast('success', 'Solicitud registrada', detalleSolicitud, 12000);
             mostrarInfoAgente(result.agente);
             // Limpiar formulario
             document.getElementById('sol-dni').value = '';
@@ -964,7 +995,7 @@
                     <div>
                       <p class="font-semibold text-gray-800">${sol.tipo}</p>
                       <p class="text-sm text-gray-600">Del ${formatearFecha(sol.desde)} al ${formatearFecha(sol.hasta)}${sol.cursoOCargo ? ' - ' + sol.cursoOCargo : ''}
-                        <span class="mx-2 px-2 rounded text-white" id="estado-${sol.estado}">${sol.estado}</span></p>
+                        <span class="mx-2 px-2 rounded text-white text-3xl" id="estado-${sol.estado}">${sol.estado}</span></p>
                     </div>
                   </div>
                 </div>
@@ -1084,7 +1115,10 @@
             .withSuccessHandler(function(result) {
               mostrarLoading(false);
               if (result.success) {
-                mostrarToast('success', 'Justificación enviada', 'Se enviará un email a: ' + result.email);
+                const detalleJustificacion = result.archivosSubidos
+                  ? `Constancia cargada con exito. Archivos recibidos: ${result.archivosSubidos}.`
+                  : 'Constancia cargada con exito.';
+                mostrarToast('success', 'Carga confirmada', detalleJustificacion, 12000);
                 document.getElementById('just-archivo').value = '';
                 solicitudesSeleccionadas = [];
                 actualizarFlujoJustificacion();

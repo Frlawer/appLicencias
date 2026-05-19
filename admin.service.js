@@ -744,15 +744,6 @@ function guardarJustificacionBackend(datos, archivos) {
       origen: 'JUSTIFICACION'
     });
 
-    // Enviar email al agente
-    try {
-      const urlsTexto = urls.join(', ');
-      enviarEmailJustificacion(agente, licenciasIds.length, urlsTexto, timestamp);
-    } catch (emailError) {
-      Logger.log('Error al enviar email de justificación: ' + emailError.toString());
-      // No fallar la operación si el email falla
-    }
-
     return { 
       success: true, 
       email: agente.email,

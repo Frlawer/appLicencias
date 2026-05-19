@@ -187,3 +187,120 @@ function obtenerAgentesJornada() {
     return { success: false, error: 'Error al obtener agentes: ' + error.toString() };
   }
 }
+
+function obtenerCoincidenciasAgentes(consulta, limite) {
+  try {
+    assertAdminAutorizado_();
+
+    const textoConsulta = normalizarTextoAgente_(consulta);
+    const maxResultados = Math.max(1, Math.min(Number(limite) || 12, 50));
+
+    if (!textoConsulta) {
+      return { success: true, agentes: [] };
+    }
+
+    const ssExterno = SpreadsheetApp.openById(SHEET_AGENTES_ID);
+    const sheet = ssExterno.getSheetByName(SHEET_AGENTES_NOMBRE);
+
+    if (!sheet) {
+      return { success: false, error: 'No se encontró la hoja "' + SHEET_AGENTES_NOMBRE + '" en el archivo externo' };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    const coincidenciasNombre = [];
+    const coincidenciasOtros = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const apellidos = String(data[i][COL_AGENTES.APELLIDOS] || '').trim();
+      const nombres = String(data[i][COL_AGENTES.NOMBRES] || '').trim();
+      const dni = String(data[i][COL_AGENTES.DNI] || '').trim();
+      const numeroEmpleado = String(data[i][COL_AGENTES.NUMERO_EMPLEADO] || '').trim();
+      const email = String(data[i][COL_AGENTES.EMAIL] || '').trim();
+      const telefono = String(data[i][COL_AGENTES.TELEFONO] || '').trim();
+      const telefonoAlt = String(data[i][COL_AGENTES.TELEFONO_ALT] || '').trim();
+      const domicilio = String(data[i][COL_AGENTES.DOMICILIO] || '').trim();
+      const titulo = String(data[i][COL_AGENTES.TITULO] || '').trim();
+      const fechaIngresoRaw = data[i][COL_AGENTES.FECHA_INGRESO_CPEM];
+      const fechaIngresoCpem = fechaIngresoRaw instanceof Date
+        ? Utilities.formatDate(fechaIngresoRaw, Session.getScriptTimeZone(), 'dd/MM/yyyy')
+        : (fechaIngresoRaw ? String(fechaIngresoRaw).trim() : '');
+
+      const nombreCompleto = `${apellidos} ${nombres}`.trim();
+
+      const nombreCompletoNorm = normalizarTextoAgente_(nombreCompleto);
+      const apellidosNorm = normalizarTextoAgente_(apellidos);
+      const nombresNorm = normalizarTextoAgente_(nombres);
+
+      const coincideNombre = nombreCompletoNorm.includes(textoConsulta) || apellidosNorm.includes(textoConsulta) || nombresNorm.includes(textoConsulta);
+      if (coincideNombre) {
+        coincidenciasNombre.push({
+          puntaje: nombreCompletoNorm.startsWith(textoConsulta) ? 0 : 1,
+          nombre: nombreCompleto,
+          apellidos,
+          nombres,
+          email,
+          dni,
+          numeroEmpleado,
+          telefono,
+          telefonoAlt,
+          domicilio,
+          titulo,
+          fechaIngresoCpem
+        });
+        if (coincidenciasNombre.length >= maxResultados) {
+          break;
+        }
+        continue;
+      }
+
+      const coincideResto = [
+        dni,
+        numeroEmpleado,
+        email,
+        telefono,
+        telefonoAlt,
+        domicilio,
+        titulo
+      ].map(normalizarTextoAgente_).some(function(campo) {
+        return campo.includes(textoConsulta);
+      });
+
+      if (coincideResto) {
+        coincidenciasOtros.push({
+          puntaje: 3,
+          nombre: nombreCompleto,
+          apellidos,
+          nombres,
+          email,
+          dni,
+          numeroEmpleado,
+          telefono,
+          telefonoAlt,
+          domicilio,
+          titulo,
+          fechaIngresoCpem
+        });
+      }
+    }
+
+    const resultados = coincidenciasNombre.length > 0 ? coincidenciasNombre : coincidenciasOtros;
+
+    resultados.sort(function(a, b) {
+      if (a.puntaje !== b.puntaje) return a.puntaje - b.puntaje;
+      return a.nombre.localeCompare(b.nombre, 'es');
+    });
+
+    return { success: true, agentes: resultados.slice(0, maxResultados) };
+  } catch (error) {
+    Logger.log('Error al buscar coincidencias de agentes: ' + error.toString());
+    return { success: false, error: 'Error al buscar coincidencias de agentes: ' + error.toString(), agentes: [] };
+  }
+}
+
+function normalizarTextoAgente_(valor) {
+  return String(valor || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}

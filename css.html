@@ -70,12 +70,32 @@
     .animate-slide-out {
       animation: slideOut 0.3s ease-out;
     }
+
+    .toast-impacto {
+      border-width: 2px;
+      box-shadow:
+        0 14px 30px rgb(15 23 42 / 0.25),
+        0 4px 10px rgb(15 23 42 / 0.16);
+      animation: slideIn 0.3s ease-out, pulseToast 1.8s ease-in-out 1;
+    }
+
+    @keyframes pulseToast {
+      0% {
+        transform: translateX(-50%) scale(0.98);
+      }
+      45% {
+        transform: translateX(-50%) scale(1.01);
+      }
+      100% {
+        transform: translateX(-50%) scale(1);
+      }
+    }
     
     .card {
       background: var(--bg-white);
       border-radius: 16px;
       box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-light);
+      border: 1px solid #e5e7eb;
       transition: box-shadow 0.2s ease;
     }
     
@@ -200,10 +220,16 @@
     }
 
     .flow-step-card {
-      border: 2px solid var(--border-light);
+      border: 2px solid #cbd5e1;
       border-radius: 12px;
       padding: 16px;
       background: #ffffff;
+      transition: all 0.2s ease;
+    }
+
+    .flow-step-card:hover {
+      border-color: #a0aec0;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
     }
 
     .flow-step-title {
@@ -221,7 +247,7 @@
       font-weight: 700;
       border-radius: 10px;
       border: 2px solid;
-      padding: 10px 12px;
+      padding: 12px 14px;
       transition: all 0.2s ease;
     }
 
@@ -308,10 +334,12 @@
     @media (max-width: 640px) {
       #form-justificacion {
         padding-bottom: 136px;
+        padding: 6px;
       }
 
       #form-solicitud {
         padding-bottom: 136px;
+        padding: 6px;
       }
 
       #just-senal {
@@ -321,16 +349,124 @@
       #sol-senal {
         width: calc(100vw - 24px);
       }
+
+      /* Mejoras de diseño para móviles */
+      body {
+        font-size: 16px;
+      }
+
+      input[type="text"],
+      input[type="date"],
+      select,
+      textarea {
+        font-size: 16px;
+        padding: 12px 14px;
+        border-width: 2px;
+        border-color: #cbd5e1;
+        background-color: white;
+      }
+
+      input[type="text"]:focus,
+      input[type="date"]:focus,
+      select:focus,
+      textarea:focus {
+        border-color: var(--primary);
+        border-width: 2px;
+        box-shadow: 0 0 0 4px rgba(43, 62, 76, 0.1);
+      }
+
+      .flow-step-card {
+        padding: 16px;
+        border-width: 2px;
+        border-color: #cbd5e1;
+      }
+
+      .btn-primary {
+        padding: 14px 18px;
+        font-size: 16px;
+        min-height: 48px;
+        border-radius: 10px;
+      }
+
+      label {
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .flow-step-title {
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .material-icons {
+        font-size: 22px;
+      }
+
+      .card {
+        border-width: 2px;
+        border-color: #e2e8f0;
+      }
+
+      .step-signal {
+        padding: 12px 14px;
+        font-size: 14px;
+      }
+
+      .section-panel {
+        border-top-width: 4px;
+      }
+
+      /* Mejorar contraste en inputs deshabilitados */
+      input:disabled,
+      select:disabled,
+      textarea:disabled {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        opacity: 1;
+      }
+
+      /* Mejorar espaciado general */
+      .space-y-5 > * + * {
+        margin-top: 18px;
+      }
+
+      /* Hacer radio buttons más tocables */
+      input[type="radio"] ~ span {
+        font-size: 15px;
+      }
+
+      label:has(input[type="radio"]) {
+        padding: 12px;
+        min-height: 48px;
+      }
     }
 
     .just-file-input {
       border-color: #60a5fa;
+      border-width: 2px;
       background: #eff6ff;
+      padding: 12px 14px;
+      font-size: 16px;
     }
 
     .just-file-input:focus {
       border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgb(37 99 235 / 0.2);
+      box-shadow: 0 0 0 4px rgb(37 99 235 / 0.2);
+    }
+
+    .just-file-input::file-selector-button {
+      padding: 8px 16px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .just-file-input::file-selector-button:hover {
+      background: #2563eb;
     }
     
     .material-icons {
@@ -338,10 +474,21 @@
       font-size: 20px;
     }
     
+    input, select, textarea {
+      border: 2px solid #cbd5e1;
+      transition: all 0.2s ease;
+    }
+
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
-      ring-color: var(--primary);
+      border-width: 2px;
+      box-shadow: 0 0 0 3px rgba(43, 62, 76, 0.1);
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: #94a3b8;
+      opacity: 1;
     }
     
     #estado-Pendiente {

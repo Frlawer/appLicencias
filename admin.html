@@ -173,7 +173,7 @@
       background: var(--bg-white);
       border-radius: 16px;
       box-shadow: var(--shadow-sm);
-      border: 1px solid var(--border-light);
+      border: 1px solid #e5e7eb;
       transition: box-shadow 0.2s ease;
     }
     
@@ -218,7 +218,8 @@
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--text-secondary);
-      border-bottom: 2px solid var(--border-light);
+      border-bottom: 2px solid #cbd5e1;
+      padding: 12px 8px;
     }
     
     table tbody tr {
@@ -229,6 +230,11 @@
       background: #f8fafc;
     }
 
+    table tbody td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #f0f1f3;
+    }
+
     .bento-grid {
       display: grid;
       grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -237,16 +243,22 @@
 
     .bento-card {
       background: var(--bg-white);
-      border: 1px solid var(--border-light);
+      border: 1px solid #e5e7eb;
       border-radius: 16px;
       box-shadow: var(--shadow-sm);
       padding: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .bento-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
     }
 
     .bento-headline {
       color: var(--primary);
       background: linear-gradient(135deg, rgba(43, 62, 76, 0.08), rgba(61, 84, 104, 0.12));
-      border: 1px solid rgba(43, 62, 76, 0.15);
+      border: 1px solid rgba(43, 62, 76, 0.2);
     }
 
     .bento-chip {
@@ -270,6 +282,72 @@
     @media (max-width: 640px) {
       .bento-grid {
         grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+
+      .sidebar {
+        width: 70px;
+      }
+
+      .sidebar.collapsed {
+        width: 70px;
+      }
+
+      .main-content {
+        margin-left: 70px;
+      }
+
+      /* Mejoras de inputs en móviles */
+      input[type="text"],
+      input[type="email"],
+      input[type="number"],
+      input[type="date"],
+      input[type="time"],
+      select,
+      textarea {
+        font-size: 16px;
+        padding: 12px 14px;
+        border: 2px solid #cbd5e1;
+        background-color: white;
+      }
+
+      input:focus, select:focus, textarea:focus {
+        border-color: var(--primary);
+        border-width: 2px;
+        box-shadow: 0 0 0 4px rgba(43, 62, 76, 0.1);
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      table thead th {
+        padding: 12px 8px;
+        font-size: 12px;
+        border-bottom: 2px solid #cbd5e1;
+      }
+
+      table tbody td {
+        padding: 12px 8px;
+      }
+
+      .card {
+        border: 1px solid #e5e7eb;
+        padding: 12px;
+      }
+
+      .bento-card {
+        border: 2px solid #e5e7eb;
+        padding: 12px;
+      }
+
+      .btn-primary {
+        padding: 12px 16px;
+        font-size: 15px;
+        min-height: 48px;
+      }
+
+      .material-icons {
+        font-size: 24px;
       }
     }
   </style>
@@ -324,6 +402,12 @@
           class="sidebar-link flex items-center gap-3 px-4 py-3">
           <span class="material-icons flex-shrink-0">groups_2</span>
           <span class="sidebar-text font-medium">Jornada</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('fichas'); return false;" id="menu-fichas"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">badge</span>
+          <span class="sidebar-text font-medium">Fichas</span>
         </a>
 
         <a href="#" onclick="cambiarVista('siso'); return false;" id="menu-siso"
@@ -890,6 +974,82 @@
         </div>
       </div>
 
+      <!-- Vista Fichas -->
+      <div id="vista-fichas" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+          <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-bold">Fichas de Agentes</h3>
+              <p class="text-sm text-gray-500 mt-1">Escriba un nombre, apellido, DNI o número de empleado para ver coincidencias.</p>
+            </div>
+            <button onclick="limpiarBuscadorFichas()"
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+              Limpiar
+            </button>
+          </div>
+
+          <div class="relative max-w-2xl">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Buscar agente</label>
+            <input type="text" id="buscador-fichas" autocomplete="off" placeholder="Ej: Pérez, 12345678, EMP001"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              oninput="programarBusquedaFichas()">
+            <div id="fichas-ayuda" class="text-xs text-gray-500 mt-2">Se muestran coincidencias por nombre, apellido, DNI, número de empleado, email o teléfono.</div>
+          </div>
+
+          <div id="fichas-estado" class="mt-4 text-sm text-gray-600"></div>
+
+          <div id="fichas-resultados" class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+          <div id="ficha-detalle" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4" onclick="cerrarFichaDetalle(event)">
+            <div class="w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-gray-100 overflow-hidden animate-slide-in" onclick="event.stopPropagation()">
+              <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100 bg-gray-50">
+                <div>
+                  <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">Ficha de agente</p>
+                  <h4 id="ficha-detalle-nombre" class="text-2xl font-bold text-gray-800 mt-1">-</h4>
+                </div>
+                <button onclick="cerrarFichaDetalle()" class="w-9 h-9 rounded-full hover:bg-white border border-gray-200 text-gray-600 hover:text-gray-900 flex items-center justify-center">
+                  <span class="material-icons text-base">close</span>
+                </button>
+              </div>
+
+              <div class="px-5 py-4">
+                <div class="flex flex-wrap gap-2 text-xs font-semibold mb-4">
+                  <span id="ficha-detalle-dni" class="px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-700">DNI: -</span>
+                  <span id="ficha-detalle-numero" class="px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-700">N° Empleado: -</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Email</div>
+                    <div id="ficha-detalle-email" class="mt-1 font-medium text-gray-800 break-all">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Teléfono</div>
+                    <div id="ficha-detalle-telefono" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Teléfono alternativo</div>
+                    <div id="ficha-detalle-telefono-alt" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Domicilio</div>
+                    <div id="ficha-detalle-domicilio" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Título</div>
+                    <div id="ficha-detalle-titulo" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Fecha ingreso</div>
+                    <div id="ficha-detalle-ingreso" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Vista Agregar Solicitud -->
       <div id="vista-agregar" class="p-6 hidden">
         <div class="bg-white rounded-lg shadow p-6 mb-6">
@@ -1209,6 +1369,7 @@
   <?!=  obtenerDatosHtml('admin.cache');  ?>
   <?!=  obtenerDatosHtml('admin.novedades');  ?>
   <?!=  obtenerDatosHtml('admin.jornada');  ?>
+  <?!=  obtenerDatosHtml('admin.fichas');  ?>
   <?!=  obtenerDatosHtml('admin.siso');  ?>
   <?!=  obtenerDatosHtml('admin.razonespart');  ?>
   <?!=  obtenerDatosHtml('admin.actions');  ?>

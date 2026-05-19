@@ -1,0 +1,183 @@
+<script>
+  function inicializarVistaFichas() {
+    const buscador = document.getElementById('buscador-fichas');
+    const estado = document.getElementById('fichas-estado');
+    if (!buscador) {
+      return;
+    }
+
+    if (estado && !estado.textContent) {
+      estado.textContent = 'Escriba para comenzar la búsqueda.';
+    }
+
+    if (!buscador.dataset.focoInicializado) {
+      buscador.dataset.focoInicializado = '1';
+      setTimeout(function() {
+        buscador.focus();
+      }, 50);
+    }
+  }
+
+  function programarBusquedaFichas() {
+    const buscador = document.getElementById('buscador-fichas');
+    const consulta = String(buscador ? buscador.value : '').trim();
+
+    if (fichasBusquedaTimer) {
+      clearTimeout(fichasBusquedaTimer);
+    }
+
+    fichasBusquedaTimer = setTimeout(function() {
+      buscarCoincidenciasFichas(consulta);
+    }, 250);
+  }
+
+  function buscarCoincidenciasFichas(consulta) {
+    const estado = document.getElementById('fichas-estado');
+    const resultados = document.getElementById('fichas-resultados');
+    const detalle = document.getElementById('ficha-detalle');
+
+    if (!consulta) {
+      fichasResultadosData = [];
+      fichaSeleccionada = null;
+      if (estado) estado.textContent = 'Escriba para comenzar la búsqueda.';
+      if (resultados) resultados.innerHTML = '';
+      if (detalle) detalle.classList.add('hidden');
+      return;
+    }
+
+    if (estado) estado.textContent = 'Buscando coincidencias...';
+    if (resultados) {
+      resultados.innerHTML = `
+        <div class="md:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+          Buscando en la base de agentes...
+        </div>
+      `;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        if (!result || !result.success) {
+          if (estado) estado.textContent = (result && result.error) ? result.error : 'No se pudo completar la búsqueda.';
+          if (resultados) resultados.innerHTML = '';
+          return;
+        }
+
+        fichasResultadosData = Array.isArray(result.agentes) ? result.agentes : [];
+        renderizarResultadosFichas(fichasResultadosData, consulta);
+      })
+      .withFailureHandler(function(error) {
+        if (estado) estado.textContent = 'Error al buscar agentes: ' + error.message;
+        if (resultados) resultados.innerHTML = '';
+      })
+      .obtenerCoincidenciasAgentes(consulta, 12);
+  }
+
+  function renderizarResultadosFichas(agentes, consulta) {
+    const estado = document.getElementById('fichas-estado');
+    const resultados = document.getElementById('fichas-resultados');
+
+    if (!resultados) {
+      return;
+    }
+
+    if (!agentes.length) {
+      resultados.innerHTML = `
+        <div class="md:col-span-2 xl:col-span-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+          No se encontraron coincidencias para “${escapeHtmlFichas(consulta)}”.
+        </div>
+      `;
+      if (estado) estado.textContent = 'Sin resultados.';
+      return;
+    }
+
+    const totalTexto = agentes.length === 1 ? '1 coincidencia' : `${agentes.length} coincidencias`;
+    if (estado) estado.textContent = totalTexto + ' encontradas. Haga clic en una tarjeta para ver la ficha.';
+
+    resultados.innerHTML = agentes.map(function(agente, index) {
+      return `
+        <button type="button" onclick="seleccionarFichaAgente(${index})"
+          class="text-left rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm hover:shadow-md hover:border-blue-300 transition-all">
+          <div class="flex items-center justify-between gap-3">
+            <h4 class="text-sm font-bold text-gray-800 leading-snug truncate">${escapeHtmlFichas(agente.nombre || '-')}</h4>
+            <span class="px-2 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 whitespace-nowrap">Abrir</span>
+          </div>
+        </button>
+      `;
+    }).join('');
+  }
+
+  function seleccionarFichaAgente(indice) {
+    const agente = fichasResultadosData[indice];
+    if (!agente) {
+      return;
+    }
+
+    fichaSeleccionada = agente;
+    renderizarDetalleFicha(agente);
+  }
+
+  function renderizarDetalleFicha(agente) {
+    const detalle = document.getElementById('ficha-detalle');
+    if (!detalle) {
+      return;
+    }
+
+    document.getElementById('ficha-detalle-nombre').textContent = agente.nombre || '-';
+    document.getElementById('ficha-detalle-dni').textContent = 'DNI: ' + (agente.dni || '-');
+    document.getElementById('ficha-detalle-numero').textContent = 'N° Empleado: ' + (agente.numeroEmpleado || '-');
+    document.getElementById('ficha-detalle-email').textContent = agente.email || '-';
+    document.getElementById('ficha-detalle-telefono').textContent = agente.telefono || '-';
+    document.getElementById('ficha-detalle-telefono-alt').textContent = agente.telefonoAlt || '-';
+    document.getElementById('ficha-detalle-domicilio').textContent = agente.domicilio || '-';
+    document.getElementById('ficha-detalle-titulo').textContent = agente.titulo || '-';
+    document.getElementById('ficha-detalle-ingreso').textContent = agente.fechaIngresoCpem || '-';
+    detalle.classList.remove('hidden');
+    detalle.classList.add('flex');
+  }
+
+  function cerrarFichaDetalle(event) {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    const detalle = document.getElementById('ficha-detalle');
+    if (detalle) {
+      detalle.classList.add('hidden');
+      detalle.classList.remove('flex');
+    }
+  }
+
+  function limpiarBuscadorFichas() {
+    const buscador = document.getElementById('buscador-fichas');
+    if (buscador) {
+      buscador.value = '';
+    }
+
+    fichasResultadosData = [];
+    fichaSeleccionada = null;
+
+    const estado = document.getElementById('fichas-estado');
+    const resultados = document.getElementById('fichas-resultados');
+    const detalle = document.getElementById('ficha-detalle');
+
+    if (estado) estado.textContent = 'Escriba para comenzar la búsqueda.';
+    if (resultados) resultados.innerHTML = '';
+    if (detalle) {
+      detalle.classList.add('hidden');
+      detalle.classList.remove('flex');
+    }
+
+    if (buscador) {
+      buscador.focus();
+    }
+  }
+
+  function escapeHtmlFichas(valor) {
+    return String(valor || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+</script>
