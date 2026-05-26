@@ -83,37 +83,18 @@
   }
 
   function abrirModalEmail(email, nombre) {
-    emailData = {
-      modo: 'single',
-      destinatarios: [{ email, nombre }]
-    };
-    const titulo = document.getElementById('modal-email-titulo');
-    if (titulo) titulo.textContent = 'Enviar Email al Docente';
+    emailData = { email, nombre };
     document.getElementById('email-docente').value = email;
-    document.getElementById('mensaje-email').value = '';
-    document.getElementById('modal-email').classList.remove('hidden');
-  }
-
-  function abrirModalEmailMasivo(destinatarios) {
-    emailData = {
-      modo: 'bulk',
-      destinatarios: destinatarios || []
-    };
-    const titulo = document.getElementById('modal-email-titulo');
-    if (titulo) titulo.textContent = 'Enviar Email a Docentes Seleccionados';
-    document.getElementById('email-docente').value = `${emailData.destinatarios.length} destinatario(s)`;
     document.getElementById('mensaje-email').value = '';
     document.getElementById('modal-email').classList.remove('hidden');
   }
 
   function cerrarModalEmail() {
     document.getElementById('modal-email').classList.add('hidden');
-    const titulo = document.getElementById('modal-email-titulo');
-    if (titulo) titulo.textContent = 'Enviar Email al Docente';
     emailData = null;
   }
 
-  async function enviarEmailDocente() {
+  function enviarEmailDocente() {
     const mensaje = document.getElementById('mensaje-email').value.trim();
 
     if (!mensaje) {
@@ -121,160 +102,24 @@
       return;
     }
 
-    if (!emailData || !Array.isArray(emailData.destinatarios) || !emailData.destinatarios.length) return;
+    if (!emailData) return;
 
     document.getElementById('loading').classList.remove('hidden');
-    try {
-      let enviados = 0;
-      let errores = 0;
-
-      for (const destinatario of emailData.destinatarios) {
-        const result = await ejecutarLlamadaGas_('enviarEmailAdmin', [destinatario.email, destinatario.nombre, mensaje]);
-        if (result && result.success) {
-          enviados++;
+    google.script.run
+      .withSuccessHandler(function(result) {
+        document.getElementById('loading').classList.add('hidden');
+        if (result.success) {
+          mostrarToast('success', 'Email listo', 'Email enviado correctamente (borrador creado)');
+          cerrarModalEmail();
         } else {
-          errores++;
+          mostrarToast('error', 'Error', result.error || 'No se pudo enviar el email');
         }
-      }
-
-      if (enviados > 0 && errores === 0) {
-        const texto = enviados === 1
-          ? 'Email enviado correctamente (borrador creado)'
-          : `${enviados} emails enviados correctamente (borradores creados)`;
-        mostrarToast('success', 'Email listo', texto);
-        cerrarModalEmail();
-      } else if (enviados > 0 && errores > 0) {
-        mostrarToast('warning', 'Envío parcial', `${enviados} enviados y ${errores} con error`);
-        cerrarModalEmail();
-      } else {
-        mostrarToast('error', 'Error', 'No se pudo enviar ningún email');
-      }
-    } catch (error) {
-      mostrarToast('error', 'Error', 'Error al enviar: ' + error.message);
-    } finally {
-      document.getElementById('loading').classList.add('hidden');
-    }
-  }
-
-  function ejecutarLlamadaGas_(nombreFuncion, args) {
-    return new Promise((resolve, reject) => {
-      let runner = google.script.run
-        .withSuccessHandler(resolve)
-        .withFailureHandler(reject);
-      runner[nombreFuncion](...(args || []));
-    });
-  }
-
-  async function cambiarEstadoSolicitudesSeleccionadas() {
-    const seleccionadas = obtenerSolicitudesSeleccionadasData();
-    if (!seleccionadas.length) {
-      mostrarToast('warning', 'Sin selección', 'Seleccione al menos una solicitud');
-      return;
-    }
-
-    const nuevoEstado = document.getElementById('estado-masivo-solicitudes').value;
-    if (!nuevoEstado) {
-      mostrarToast('warning', 'Estado requerido', 'Seleccione un estado para aplicar');
-      return;
-    }
-
-    if (!confirm(`¿Aplicar estado "${nuevoEstado}" a ${seleccionadas.length} solicitud(es)?`)) return;
-
-    document.getElementById('loading').classList.remove('hidden');
-    let exitos = 0;
-    let errores = 0;
-
-    try {
-      for (const sol of seleccionadas) {
-        const result = await ejecutarLlamadaGas_('actualizarEstadoFila', [Number(sol.rowIndex), nuevoEstado]);
-        if (result && result.success) {
-          exitos++;
-        } else {
-          errores++;
-        }
-      }
-
-      if (errores === 0) {
-        mostrarToast('success', 'Estados actualizados', `${exitos} solicitud(es) actualizadas`);
-      } else {
-        mostrarToast('warning', 'Actualización parcial', `${exitos} actualizadas y ${errores} con error`);
-      }
-
-      limpiarTodoCache();
-      solicitudesSeleccionadas.clear();
-      cargarSolicitudes();
-    } catch (error) {
-      mostrarToast('error', 'Error', 'Error al actualizar estados: ' + error.message);
-      document.getElementById('loading').classList.add('hidden');
-    }
-  }
-
-  async function eliminarSolicitudesSeleccionadas() {
-    const seleccionadas = obtenerSolicitudesSeleccionadasData();
-    if (!seleccionadas.length) {
-      mostrarToast('warning', 'Sin selección', 'Seleccione al menos una solicitud');
-      return;
-    }
-
-    const mensaje = `¿Eliminar ${seleccionadas.length} solicitud(es)?\nEsta acción no se puede deshacer.`;
-    if (!confirm(mensaje)) return;
-
-    // Eliminar de mayor a menor evita corrimientos de índices de fila.
-    const ordenadas = [...seleccionadas].sort((a, b) => Number(b.rowIndex) - Number(a.rowIndex));
-
-    document.getElementById('loading').classList.remove('hidden');
-    let exitos = 0;
-    let errores = 0;
-
-    try {
-      for (const sol of ordenadas) {
-        const result = await ejecutarLlamadaGas_('eliminarSolicitud', [Number(sol.rowIndex)]);
-        if (result && result.success) {
-          exitos++;
-        } else {
-          errores++;
-        }
-      }
-
-      if (errores === 0) {
-        mostrarToast('success', 'Solicitudes eliminadas', `${exitos} solicitud(es) eliminadas`);
-      } else {
-        mostrarToast('warning', 'Eliminación parcial', `${exitos} eliminadas y ${errores} con error`);
-      }
-
-      limpiarTodoCache();
-      solicitudesSeleccionadas.clear();
-      cargarSolicitudes();
-    } catch (error) {
-      mostrarToast('error', 'Error', 'Error al eliminar solicitudes: ' + error.message);
-      document.getElementById('loading').classList.add('hidden');
-    }
-  }
-
-  function enviarEmailSolicitudesSeleccionadas() {
-    const seleccionadas = obtenerSolicitudesSeleccionadasData();
-    if (!seleccionadas.length) {
-      mostrarToast('warning', 'Sin selección', 'Seleccione al menos una solicitud');
-      return;
-    }
-
-    const destinatariosMap = new Map();
-    seleccionadas.forEach(sol => {
-      const email = String(sol.email || '').trim();
-      if (!email) return;
-      const nombre = `${String(sol.apellidos || '').toUpperCase()}, ${String(sol.nombres || '').toUpperCase()}`;
-      if (!destinatariosMap.has(email.toLowerCase())) {
-        destinatariosMap.set(email.toLowerCase(), { email, nombre });
-      }
-    });
-
-    const destinatarios = [...destinatariosMap.values()];
-    if (!destinatarios.length) {
-      mostrarToast('warning', 'Sin emails', 'Las solicitudes seleccionadas no tienen email');
-      return;
-    }
-
-    abrirModalEmailMasivo(destinatarios);
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').classList.add('hidden');
+        mostrarToast('error', 'Error', 'Error al enviar: ' + error.message);
+      })
+      .enviarEmailAdmin(emailData.email, emailData.nombre, mensaje);
   }
 
   function buscarSolicitudPorId() {

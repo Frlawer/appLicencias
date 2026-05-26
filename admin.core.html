@@ -10,7 +10,7 @@
   let fichaSeleccionada = null;
   let fichasBusquedaTimer = null;
   let agentesRPLimiteMensualData = [];
-  let solicitudesSeleccionadas = new Set();
+  let todosSeleccionados = false;
 
   // ========== VARIABLES DE PAGINACIÓN ==========
   let paginaActualSolicitudes = 1;
@@ -381,7 +381,6 @@
   function cargarSolicitudes() {
     document.getElementById('loading').classList.remove('hidden');
     paginaActualSolicitudes = 1;
-    solicitudesSeleccionadas.clear();
 
     const datosEnCache = obtenerCacheSolicitudes();
     if (datosEnCache) {
@@ -389,7 +388,6 @@
       solicitudesFiltradas = [...solicitudesData];
       filtroActivoSolicitudes = false;
       limpiarInputsFiltroSolicitudes();
-      actualizarOpcionesTipoLicenciaSolicitudes();
       document.getElementById('loading').classList.add('hidden');
       asegurarJustificacionesCargadas(function () {
         renderizarSolicitudesPaginadas();
@@ -406,8 +404,6 @@
           console.error('[ERROR] Datos inválidos recibidos:', data);
           solicitudesData = [];
           solicitudesFiltradas = [];
-          solicitudesSeleccionadas.clear();
-          actualizarOpcionesTipoLicenciaSolicitudes();
           renderizarSolicitudesPaginadas();
           return;
         }
@@ -416,7 +412,6 @@
         solicitudesFiltradas = [...solicitudesData];
         filtroActivoSolicitudes = false;
         limpiarInputsFiltroSolicitudes();
-        actualizarOpcionesTipoLicenciaSolicitudes();
         guardarCacheSolicitudes(solicitudesData);
 
         asegurarJustificacionesCargadas(function () {
@@ -438,14 +433,12 @@
     tbody.innerHTML = '';
 
     if (!solicitudes || !Array.isArray(solicitudes)) {
-      tbody.innerHTML = '<tr><td colspan="12" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
-      actualizarControlesSeleccionSolicitudes();
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay datos para mostrar</td></tr>';
       return;
     }
 
     if (solicitudes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="12" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
-      actualizarControlesSeleccionSolicitudes();
+      tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500">No hay solicitudes registradas</td></tr>';
       return;
     }
 
@@ -472,17 +465,10 @@
 
       const estadoColor = obtenerClaseEstado(sol.estado);
       const constanciaHtml = renderConstanciaSolicitud(sol);
-      const nombreDocente = `${String(sol.apellidos || '').toUpperCase()}, ${String(sol.nombres || '').toUpperCase()}`;
-      const nombreDocenteEscapado = nombreDocente.replace(/'/g, "\\'");
-      const emailEscapado = String(sol.email || '').replace(/'/g, "\\'");
-      const seleccionado = solicitudesSeleccionadas.has(Number(sol.rowIndex)) ? 'checked' : '';
 
       tr.innerHTML = `
-        <td class="px-2 py-3 text-xs text-gray-900">
-          <input type="checkbox" class="checkbox-solicitud" data-row-index="${sol.rowIndex}" onchange="toggleSeleccionSolicitud(${sol.rowIndex}, this.checked)" ${seleccionado}>
-        </td>
         <td class="px-2 py-3 text-xs text-gray-900">${formatearFecha(sol.timestamp)}</td>
-        <td class="px-2 py-3 text-xs font-medium text-gray-900">${nombreDocente}</td>
+        <td class="px-2 py-3 text-xs font-medium text-gray-900">${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}</td>
         <td class="px-2 py-3 text-xs text-gray-500">${sol.dni}</td>
         <td class="px-2 py-3 text-xs text-gray-900">${sol.numeroEmpleado}</td>
         <td class="px-2 py-3 text-xs text-gray-500">${formatearFechaCorta(sol.fechaDesde)} - ${formatearFechaCorta(sol.fechaHasta)}</td>
@@ -497,89 +483,16 @@
           <button onclick="abrirModalEstado(${sol.rowIndex}, 'solicitud')" 
             class="text-primary min-w-6">
             <span class="material-icons">edit</span></button>
-          <button onclick="abrirModalEmail('${emailEscapado}', '${nombreDocenteEscapado}')" 
+          <button onclick="abrirModalEmail('${sol.email}', '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
             class="text-primary min-w-6">
             <span class="material-icons">email</span></button>
-            <button onclick="eliminarSolicitud(${sol.rowIndex}, '${nombreDocenteEscapado}')" 
+            <button onclick="eliminarSolicitud(${sol.rowIndex}, '${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}')" 
               class="text-primary min-w-6">
               <span class="material-icons">delete</span></button>
         </td>
       `;
       tbody.appendChild(tr);
     });
-
-    actualizarControlesSeleccionSolicitudes();
-  }
-
-  function toggleSeleccionSolicitud(rowIndex, seleccionado) {
-    const idx = Number(rowIndex);
-    if (seleccionado) {
-      solicitudesSeleccionadas.add(idx);
-    } else {
-      solicitudesSeleccionadas.delete(idx);
-    }
-    actualizarControlesSeleccionSolicitudes();
-  }
-
-  function toggleSeleccionTodasSolicitudes(seleccionar) {
-    const checkboxes = document.querySelectorAll('#tabla-solicitudes .checkbox-solicitud');
-    checkboxes.forEach(cb => {
-      cb.checked = !!seleccionar;
-      const idx = Number(cb.dataset.rowIndex);
-      if (seleccionar) {
-        solicitudesSeleccionadas.add(idx);
-      } else {
-        solicitudesSeleccionadas.delete(idx);
-      }
-    });
-    actualizarControlesSeleccionSolicitudes();
-  }
-
-  function limpiarSeleccionSolicitudes() {
-    solicitudesSeleccionadas.clear();
-    const selectAll = document.getElementById('seleccionar-todas-solicitudes');
-    if (selectAll) selectAll.checked = false;
-
-    document.querySelectorAll('#tabla-solicitudes .checkbox-solicitud').forEach(cb => {
-      cb.checked = false;
-    });
-
-    actualizarControlesSeleccionSolicitudes();
-  }
-
-  function obtenerSolicitudesSeleccionadasData() {
-    if (!solicitudesSeleccionadas.size) return [];
-    const seleccion = new Set([...solicitudesSeleccionadas].map(Number));
-    return (Array.isArray(solicitudesData) ? solicitudesData : []).filter(sol => seleccion.has(Number(sol.rowIndex)));
-  }
-
-  function actualizarControlesSeleccionSolicitudes() {
-    const cantidad = solicitudesSeleccionadas.size;
-    const info = document.getElementById('solicitudes-seleccionadas-info');
-    const btnEstado = document.getElementById('btn-estado-masivo-solicitudes');
-    const btnEmail = document.getElementById('btn-email-masivo-solicitudes');
-    const btnEliminar = document.getElementById('btn-eliminar-masivo-solicitudes');
-    const btnLimpiar = document.getElementById('btn-limpiar-seleccion-solicitudes');
-
-    if (info) {
-      info.textContent = `${cantidad} seleccionada(s)`;
-    }
-
-    if (btnEstado) btnEstado.disabled = cantidad === 0;
-    if (btnEmail) btnEmail.disabled = cantidad === 0;
-    if (btnEliminar) btnEliminar.disabled = cantidad === 0;
-    if (btnLimpiar) btnLimpiar.disabled = cantidad === 0;
-
-    const checkboxes = document.querySelectorAll('#tabla-solicitudes .checkbox-solicitud');
-    const selectAll = document.getElementById('seleccionar-todas-solicitudes');
-    if (selectAll) {
-      if (!checkboxes.length) {
-        selectAll.checked = false;
-      } else {
-        const tildados = [...checkboxes].every(cb => cb.checked);
-        selectAll.checked = tildados;
-      }
-    }
   }
 
   function obtenerClaseEstado(estado) {

@@ -641,14 +641,6 @@
                     <option value="rechazado">Rechazado/a</option>
                   </select>
                 </div>
-                <div class="w-full sm:w-44">
-                  <label class="block text-xs font-medium text-gray-600 mb-1">Tipo Licencia</label>
-                  <select id="filtro-tipo-licencia-solicitud"
-                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    onchange="aplicarFiltrosSolicitudes()">
-                    <option value="">Todos</option>
-                  </select>
-                </div>
                 <button onclick="limpiarFiltrosSolicitudes()"
                   class="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors whitespace-nowrap">
                   ✕ Limpiar Filtros
@@ -658,48 +650,10 @@
             </div>
           </div>
 
-          <div class="p-2 border-b bg-gray-50 flex flex-wrap items-center gap-2">
-            <span id="solicitudes-seleccionadas-info" class="text-xs text-gray-600">0 seleccionadas</span>
-            <select id="estado-masivo-solicitudes"
-              class="px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="">Cambiar estado...</option>
-              <option value="Pendiente">Pendiente</option>
-              <option value="Autorizada">Autorizada</option>
-              <option value="Completada">Completada</option>
-              <option value="Justificada">Justificada</option>
-              <option value="Injustificada">Injustificada</option>
-              <option value="Descuento">Descuento</option>
-              <option value="Rechazada">Rechazada</option>
-            </select>
-            <button onclick="cambiarEstadoSolicitudesSeleccionadas()"
-              class="px-2 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              id="btn-estado-masivo-solicitudes" disabled>
-              Guardar Estado
-            </button>
-            <button onclick="enviarEmailSolicitudesSeleccionadas()"
-              class="px-2 py-1 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              id="btn-email-masivo-solicitudes" disabled>
-              Enviar Email
-            </button>
-            <button onclick="eliminarSolicitudesSeleccionadas()"
-              class="px-2 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              id="btn-eliminar-masivo-solicitudes" disabled>
-              Eliminar
-            </button>
-            <button onclick="limpiarSeleccionSolicitudes()"
-              class="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              id="btn-limpiar-seleccion-solicitudes" disabled>
-              Limpiar Selección
-            </button>
-          </div>
-
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <input type="checkbox" id="seleccionar-todas-solicitudes" onclick="toggleSeleccionTodasSolicitudes(this.checked)">
-                  </th>
                   <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
                   <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
                   <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
@@ -1322,11 +1276,11 @@
   <!-- Modal para enviar email -->
   <div id="modal-email" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg p-6 w-full max-w-lg">
-      <h3 id="modal-email-titulo" class="text-xl font-bold mb-4">Enviar Email al Docente</h3>
+      <h3 class="text-xl font-bold mb-4">Enviar Email al Docente</h3>
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Destinatario(s)</label>
-          <input type="text" id="email-docente" readonly
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="email-docente" readonly
             class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
         </div>
         <div>
