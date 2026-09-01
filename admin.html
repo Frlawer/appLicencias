@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - Licencias CPEM 25</title>
+  
+  <!-- Google Fonts - Manrope -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    @theme {
+      --primary: #2B3E4C;
+      --primary-light: #3d5468;
+      --primary-dark: #1f2d38;
+    }
+
+
+    * {
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    :root {
+      --primary: #2B3E4C;
+      --primary-light: #3d5468;
+      --primary-dark: #1f2d38;
+      --bg-light: #f8fafc;
+      --bg-white: #ffffff;
+      --text-primary: #2B3E4C;
+      --text-secondary: #64748b;
+      --border-light: #e2e8f0;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+    
+    body {
+      background: var(--bg-light);
+      color: var(--text-primary);
+    }
+    
+    .spinner {
+      border: 3px solid #f1f5f9;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .animate-slide-in {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideOut {
+      from { transform: translateY(0); opacity: 1; }
+      to { transform: translateY(-10px); opacity: 0; }
+    }
+    
+    .animate-slide-out {
+      animation: slideOut 0.3s ease-out;
+    }
+
+    .sidebar-link {
+      position: relative;
+      transition: all 0.2s ease;
+      border-radius: 12px;
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+    
+    .sidebar-link:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    .sidebar-link.active {
+      background: rgba(255, 255, 255, 0.2);
+      font-weight: 600;
+    }
+
+    .sidebar {
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-lg);
+      width: 256px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 30;
+    }
+
+    .sidebar.collapsed {
+      width: 80px;
+    }
+
+    .sidebar.collapsed:hover {
+      width: 256px;
+    }
+
+    .sidebar .sidebar-text {
+      opacity: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      transition: opacity 0.2s ease, max-width 0.2s ease, margin 0.2s ease;
+      max-width: 180px;
+    }
+
+    .sidebar.collapsed .sidebar-text {
+      opacity: 0;
+      max-width: 0;
+      margin-left: -0.75rem;
+      overflow: hidden;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .sidebar.collapsed:hover .sidebar-text {
+      opacity: 1;
+      max-width: 180px;
+      margin-left: 0;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .sidebar .sidebar-header-content {
+      opacity: 1;
+      transition: opacity 0.2s ease;
+    }
+
+    .sidebar.collapsed .sidebar-header-content {
+      opacity: 0;
+      width: 0;
+      overflow: hidden;
+      visibility: hidden;
+    }
+
+    .sidebar.collapsed:hover .sidebar-header-content {
+      opacity: 1;
+      width: auto;
+      visibility: visible;
+      min-height: 7rem;
+    }
+
+    .sidebar.collapsed .sidebar-link,
+    .sidebar.collapsed:hover .sidebar-link {
+      justify-content: stretch;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      gap: 0.75rem;
+    }
+
+    .main-content {
+      margin-left: 80px;
+      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .card {
+      background: var(--bg-white);
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid #e5e7eb;
+      transition: box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-light);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .material-icons {
+      vertical-align: middle;
+      font-size: 20px;
+    }
+    
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    
+    table thead th {
+      background: #f8fafc;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      border-bottom: 2px solid #cbd5e1;
+      padding: 12px 8px;
+    }
+    
+    table tbody tr {
+      transition: background 0.15s ease;
+    }
+    
+    table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    table tbody td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #f0f1f3;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .bento-card {
+      background: var(--bg-white);
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      box-shadow: var(--shadow-sm);
+      padding: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .bento-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
+    }
+
+    .bento-headline {
+      color: var(--primary);
+      background: linear-gradient(135deg, rgba(43, 62, 76, 0.08), rgba(61, 84, 104, 0.12));
+      border: 1px solid rgba(43, 62, 76, 0.2);
+    }
+
+    .bento-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      background: rgba(43, 62, 76, 0.08);
+      color: var(--primary);
+    }
+
+    @media (max-width: 1024px) {
+      .bento-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .bento-grid {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+
+      .sidebar {
+        width: 70px;
+      }
+
+      .sidebar.collapsed {
+        width: 70px;
+      }
+
+      .main-content {
+        margin-left: 70px;
+      }
+
+      /* Mejoras de inputs en móviles */
+      input[type="text"],
+      input[type="email"],
+      input[type="number"],
+      input[type="date"],
+      input[type="time"],
+      select,
+      textarea {
+        font-size: 16px;
+        padding: 12px 14px;
+        border: 2px solid #cbd5e1;
+        background-color: white;
+      }
+
+      input:focus, select:focus, textarea:focus {
+        border-color: var(--primary);
+        border-width: 2px;
+        box-shadow: 0 0 0 4px rgba(43, 62, 76, 0.1);
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      table thead th {
+        padding: 12px 8px;
+        font-size: 12px;
+        border-bottom: 2px solid #cbd5e1;
+      }
+
+      table tbody td {
+        padding: 12px 8px;
+      }
+
+      .card {
+        border: 1px solid #e5e7eb;
+        padding: 12px;
+      }
+
+      .bento-card {
+        border: 2px solid #e5e7eb;
+        padding: 12px;
+      }
+
+      .btn-primary {
+        padding: 12px 16px;
+        font-size: 15px;
+        min-height: 48px;
+      }
+
+      .material-icons {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Toast notifications -->
+  <div id="toast-message-cta" class="hidden flex fixed inset-x-1/2 z-50 items-center w-full max-w-sm p-4 rounded-xl shadow-lg border border-gray-200 bg-white" role="alert" style="animation: slideIn 0.3s ease-out;">
+    <div class="icono-notificacion"><i id="iconoNotificacion"></i></div>
+    <div class="ms-2.5 text-sm border-s border-default ps-3.5">
+      <span class="text-base font-semibold text-heading" id="tituloNotificacion"></span>
+      <div class="mb-3 mt-1" id="textoNotificacion"></div>
+    </div>
+    <button type="button" class="ms-auto flex items-center justify-center text-body hover:text-heading bg-transparent box-border border border-transparent hover:bg-neutral-400 focus:ring-4 focus:ring-neutral-600 font-medium leading-5 rounded text-sm h-8 w-8 focus:outline-none" data-dismiss-target="#toast-message-cta" aria-label="Close">
+        <span class="sr-only">Close</span>
+        <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6"/></svg>
+    </button>
+  </div>
+
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar collapsed text-white flex flex-col" style="background: var(--primary);">
+      <div class="p-6 border-b border-white/10 flex items-center gap-3 cursor-pointer" onclick="cambiarVista('resumen')" title="Ir a la portada del administrador">
+        <span class="material-icons text-3xl flex-shrink-0">admin_panel_settings</span>
+        <div class="sidebar-header-content">
+          <h1 class="text-xl font-bold">Admin Panel</h1>
+          <p class="text-xs opacity-75 mt-0.5">CPEM N° 25</p>
+        </div>
+      </div>
+
+      <nav class="flex-1 p-4 space-y-1.5">
+        <a href="#" onclick="cambiarVista('solicitudes'); return false;" id="menu-solicitudes"
+          class="sidebar-link active flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">description</span>
+          <span class="sidebar-text font-medium">Solicitudes</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('justificaciones'); return false;" id="menu-justificaciones"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">playlist_add_check</span>
+          <span class="sidebar-text font-medium">Justificaciones</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('descuentos'); return false;" id="menu-descuentos"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">warning</span>
+          <span class="sidebar-text font-medium">Descuentos</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('jornada'); return false;" id="menu-jornada"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">groups_2</span>
+          <span class="sidebar-text font-medium">Jornada</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('fichas'); return false;" id="menu-fichas"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">badge</span>
+          <span class="sidebar-text font-medium">Fichas</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('siso'); return false;" id="menu-siso"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">local_hospital</span>
+          <span class="sidebar-text font-medium">SISO</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('razonespart'); return false;" id="menu-razonespart"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">assignment_ind</span>
+          <span class="sidebar-text font-medium">Razones Particulares</span>
+        </a>
+
+        <a href="#" onclick="cambiarVista('agregar'); return false;" id="menu-agregar"
+          class="sidebar-link flex items-center gap-3 px-4 py-3">
+          <span class="material-icons flex-shrink-0">add_circle</span>
+          <span class="sidebar-text font-medium">Agregar Solicitud</span>
+        </a>
+      </nav>
+
+      <div class="p-4 border-t border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="material-icons text-sm flex-shrink-0">person</span>
+          <div class="sidebar-text">
+            <div class="text-xs opacity-75">Administrador</div>
+            <p class="text-sm font-semibold truncate" id="admin-email" title="">Cargando...</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content flex-1 overflow-y-auto">
+
+      <!-- Header -->
+      <header class="bg-white shadow-sm p-6 border-b border-gray-100">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+          <div class="flex items-center gap-4">
+            <button onclick="toggleSidebar()"
+              class="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all flex items-center gap-2"
+              style="color: var(--primary);">
+              <span class="material-icons" id="toggle-icon">menu</span>
+            </button>
+            <div>
+              <h2 class="text-2xl font-bold" style="color: var(--primary);" id="titulo-seccion">Solicitudes de Licencia</h2>
+              <p class="text-sm mt-1" style="color: var(--text-secondary);" id="subtitulo-seccion">Gestione las solicitudes pendientes</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <button onclick="togglePanelNovedades(event)"
+                class="px-3 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all flex items-center"
+                style="color: var(--primary);"
+                title="Ver novedades">
+                <span class="material-icons text-base">notifications_active</span>
+                <span id="badge-novedades" class="ml-1 text-xs font-bold" style="color: var(--primary);">0</span>
+              </button>
+              <div id="panel-novedades"
+                class="hidden absolute right-0 mt-2 w-[380px] max-w-[92vw] bg-white border border-gray-200 rounded-lg shadow-lg z-40"
+                onclick="event.stopPropagation()">
+                <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+                  <div>
+                    <h3 class="text-sm font-semibold text-gray-800">Novedades recientes</h3>
+                    <p class="text-xs text-gray-500">Últimos 3 días</p>
+                  </div>
+                  <button onclick="cerrarPanelNovedades()"
+                    class="w-7 h-7 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center"
+                    title="Cerrar novedades">
+                    <span class="material-icons text-base">close</span>
+                  </button>
+                </div>
+                <div id="novedades-contenedor" class="max-h-80 overflow-y-auto p-2 space-y-2">
+                  <div class="text-sm text-gray-500 p-2">Cargando novedades...</div>
+                </div>
+              </div>
+            </div>
+            <button onclick="recargarDatos()"
+              class="btn-primary px-4 py-2.5 flex items-center gap-2">
+              <span class="material-icons text-sm">refresh</span>
+              <span>Recargar</span>
+            </button>
+            <button onclick="mostrarInfoCache()"
+              class="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all flex items-center gap-2 text-sm font-medium"
+              style="color: var(--primary);"
+              title="Ver información del caché local">
+              <span class="material-icons text-sm">storage</span>
+              <span>Caché</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Loading Overlay -->
+      <div id="loading" class="hidden fixed inset-0 bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="text-center bg-white rounded-lg shadow-2xl p-8">
+          <div class="spinner mx-auto mb-4"></div>
+          <p class="text-gray-800 font-medium">Cargando datos...</p>
+        </div>
+      </div>
+
+      <!-- Vista Solicitudes -->
+      <div id="vista-resumen" class="p-6 hidden">
+        <div class="bento-grid">
+          <section class="bento-card bento-headline col-span-12">
+            <div class="flex flex-wrap justify-between items-start gap-3">
+              <div>
+                <h3 class="text-xl font-extrabold tracking-tight">Portada del Administrador</h3>
+                <p class="text-sm mt-1 opacity-85">Resumen ejecutivo de licencias y estados clave.</p>
+              </div>
+              <span class="bento-chip">
+                <span class="material-icons text-sm">analytics</span>
+                <span id="bento-fecha-actualizacion">Actualizando...</span>
+              </span>
+            </div>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-6 lg:col-span-3">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Solicitudes</p>
+              <span class="material-icons" style="color: var(--primary);">description</span>
+            </div>
+            <p id="bento-total-solicitudes" class="mt-2 text-3xl font-extrabold" style="color: var(--primary);">0</p>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-6 lg:col-span-3">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Justificadas</p>
+              <span class="material-icons text-blue-600">task_alt</span>
+            </div>
+            <p id="bento-total-justificadas" class="mt-2 text-3xl font-extrabold text-blue-700">0</p>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-6 lg:col-span-3">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">Descuentos</p>
+              <span class="material-icons text-orange-600">warning</span>
+            </div>
+            <p id="bento-total-descuentos" class="mt-2 text-3xl font-extrabold text-orange-700">0</p>
+          </section>
+
+          <section class="bento-card col-span-12 sm:col-span-6 lg:col-span-3">
+            <div class="flex items-center justify-between">
+              <p class="text-xs uppercase tracking-wide text-slate-500 font-semibold">% Completadas</p>
+              <span class="material-icons text-emerald-600">percent</span>
+            </div>
+            <p id="bento-porcentaje-completadas" class="mt-2 text-3xl font-extrabold text-emerald-700">0%</p>
+          </section>
+
+          <section class="bento-card col-span-12 lg:col-span-4">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-icons text-base" style="color: var(--primary);">history</span>
+                Últimas 3 solicitudes
+              </h4>
+            </div>
+            <div id="bento-ultimas-solicitudes" class="space-y-2">
+              <p class="text-sm text-slate-500">Sin datos disponibles.</p>
+            </div>
+          </section>
+
+          <section class="bento-card col-span-12 lg:col-span-4">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-icons text-base" style="color: var(--primary);">pending_actions</span>
+                Pendientes de Autorización
+              </h4>
+            </div>
+            <div id="bento-pendientes-asterisco" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <p class="text-sm text-slate-500">Sin datos disponibles.</p>
+            </div>
+          </section>
+
+          <section class="bento-card col-span-12 lg:col-span-4">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <span class="material-icons text-base" style="color: var(--primary);">groups</span>
+                Límite Mensual RP Alcanzado
+              </h4>
+            </div>
+            <div id="bento-rp-limite-mensual" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+              <p class="text-sm text-slate-500">Cargando datos de RP...</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div id="vista-solicitudes" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <!-- BUSCADOR Y FILTROS -->
+          <div class="p-1 border-b bg-gray-50">
+            <div onclick="toggleFiltrosSolicitudes()" class="flex items-center justify-between gap-1">
+              <h3 class="text-sm font-semibold text-gray-700">🔍 Buscar y Filtrar</h3>
+              <button
+                class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                Mostrar/Ocultar
+              </button>
+            </div>
+            <div id="filtros-solicitudes" class="hidden mt-2">
+              <div class="flex flex-wrap items-end gap-2">
+                <div class="w-full sm:w-44">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+                  <input type="text" id="filtro-nombre-solicitud" placeholder="Juan Pérez"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosSolicitudes()">
+                </div>
+                <div class="w-full sm:w-32">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">DNI</label>
+                  <input type="text" id="filtro-dni-solicitud" placeholder="12345678"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosSolicitudes()">
+                </div>
+                <div class="w-full sm:w-36">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">N° Empleado</label>
+                  <input type="text" id="filtro-empleado-solicitud" placeholder="EMP001"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosSolicitudes()">
+                </div>
+                <div class="w-full sm:w-36">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Estado</label>
+                  <select id="filtro-estado-solicitud"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onchange="aplicarFiltrosSolicitudes()">
+                    <option value="">Todos</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="autorizado">Autorizado/a</option>
+                    <option value="completado">Completado/a</option>
+                    <option value="justificada">Justificada</option>
+                    <option value="injustificada">Injustificada</option>
+                    <option value="descuento">Descuento</option>
+                    <option value="rechazado">Rechazado/a</option>
+                  </select>
+                </div>
+                <button onclick="limpiarFiltrosSolicitudes()"
+                  class="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors whitespace-nowrap">
+                  ✕ Limpiar Filtros
+                </button>
+                <span id="info-filtro-solicitud" class="text-xs text-gray-600 flex items-center"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-3 py-2 border-b bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                <input id="seleccionar-todas-solicitudes" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" onchange="seleccionarTodasSolicitudesVisibles()">
+                Seleccionar visibles
+              </label>
+              <span id="contador-solicitudes-seleccionadas" class="text-xs text-gray-600">0 seleccionadas</span>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="abrirModalEstadoMasivo()" id="btn-cambiar-estado-masivo" class="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Cambiar estado
+              </button>
+              <button onclick="eliminarSolicitudesSeleccionadas()" id="btn-eliminar-masivo" class="px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Eliminar seleccionadas
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input id="checkbox-header-solicitudes" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" onchange="seleccionarTodasSolicitudesVisibles()">
+                  </th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Empleado</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechas</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curso/Cargo</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Articulación</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Licencia</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" title="Constancia adjunta"><span class="material-icons text-sm">attach_file</span></th>
+                  <th class="px-3 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="tabla-solicitudes" class="bg-white divide-y divide-gray-200">
+                <!-- Se llenará dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-1 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Mostrando <span id="solicitudes-inicio">1</span> a <span id="solicitudes-fin">25</span> de <span id="solicitudes-total">0</span> registros
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="paginaAnteriorSolicitudes()" id="btn-anterior-solicitudes"
+                class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Anterior
+              </button>
+              <div id="numeros-pagina-solicitudes" class="flex gap-1">
+                <!-- Se llena dinámicamente -->
+              </div>
+              <button onclick="paginaSiguienteSolicitudes()" id="btn-siguiente-solicitudes"
+                class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Siguiente →
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-t flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Página <span id="solicitudes-pagina-actual">1</span> de <span id="solicitudes-total-paginas">1</span>
+            </div>
+            <select id="registros-por-pagina" onchange="cambiarRegistrosPorPagina(this.value)"
+              class="px-3 py-2 border border-gray-300 rounded-lg">
+              <option value="25" selected>25 registros/página</option>
+              <option value="50">50 registros/página</option>
+              <option value="100">100 registros/página</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Justificaciones -->
+      <div id="vista-justificaciones" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <!-- BUSCADOR DE ID Y FILTROS -->
+          <div class="p-1 border-b bg-gray-50">
+            
+            <div onclick="toggleFiltrosJustificaciones()" class="flex items-center justify-between gap-3 mb-1">
+              <h3 class="text-sm font-semibold text-gray-700">🔍 Buscar y Filtrar</h3>
+              <button
+                class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                Mostrar/Ocultar
+              </button>
+            </div>
+            <div id="filtros-justificaciones" class="hidden mt-2">
+              <div class="flex flex-wrap items-end gap-2">
+                <div class="w-full sm:w-44">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">Nombre</label>
+                  <input type="text" id="filtro-nombre-justificacion" placeholder="Juan Pérez"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosJustificaciones()">
+                </div>
+                <div class="w-full sm:w-32">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">DNI</label>
+                  <input type="text" id="filtro-dni-justificacion" placeholder="12345678"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosJustificaciones()">
+                </div>
+                <div class="w-full sm:w-36">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">N° Empleado</label>
+                  <input type="text" id="filtro-empleado-justificacion" placeholder="EMP001"
+                    class="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onkeyup="aplicarFiltrosJustificaciones()">
+                </div>
+                <button onclick="limpiarFiltrosJustificaciones()"
+                  class="px-2 py-1 text-xs bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors whitespace-nowrap">
+                  ✕ Limpiar Filtros
+                </button>
+                <span id="info-filtro-justificacion" class="text-xs text-gray-600 flex items-center"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IDs
+                    Solicitudes</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archivo
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="tabla-justificaciones" class="bg-white divide-y divide-gray-200">
+                <!-- Se llenará dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Mostrando <span id="justificaciones-inicio">1</span> a <span id="justificaciones-fin">25</span> de <span id="justificaciones-total">0</span> registros
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="paginaAnteriorJustificaciones()" id="btn-anterior-justificaciones"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Anterior
+              </button>
+              <div id="numeros-pagina-justificaciones" class="flex gap-1">
+                <!-- Se llena dinámicamente -->
+              </div>
+              <button onclick="paginaSiguienteJustificaciones()" id="btn-siguiente-justificaciones"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Siguiente →
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-t flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Página <span id="justificaciones-pagina-actual">1</span> de <span id="justificaciones-total-paginas">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Descuentos/Injustificados -->
+      <div id="vista-descuentos" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="p-4 border-b bg-gray-50">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-700">🧾 Descuentos/Injustificados</h3>
+                <p class="text-xs text-gray-500">Estado/Tipo Descuento, estado ≠ Pendiente/Completado, fecha hasta con más de 3 días y sin justificación.</p>
+              </div>
+              <button onclick="cargarDescuentosInjustificados()"
+                class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                🔄 Actualizar
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Empleado</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechas</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curso/Cargo</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Articulación</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Licencia</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-descuentos" class="bg-white divide-y divide-gray-200">
+                <!-- Se llenará dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Mostrando <span id="descuentos-inicio">1</span> a <span id="descuentos-fin">25</span> de <span id="descuentos-total">0</span> registros
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="paginaAnteriorDescuentos()" id="btn-anterior-descuentos"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                ← Anterior
+              </button>
+              <div id="numeros-pagina-descuentos" class="flex gap-1">
+                <!-- Se llena dinámicamente -->
+              </div>
+              <button onclick="paginaSiguienteDescuentos()" id="btn-siguiente-descuentos"
+                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                Siguiente →
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTROLES DE PAGINACIÓN (ABAJO) -->
+          <div class="p-4 border-t flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-gray-600">
+              Página <span id="descuentos-pagina-actual">1</span> de <span id="descuentos-total-paginas">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista jornada -->
+      <div id="vista-jornada" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 class="text-lg font-bold mb-4">Generar Solicitudes de Jornada Institucional</h3>
+          
+          <!-- Paso 1: Cargar agentes -->
+          <div class="mb-6">
+            <button onclick="cargarAgentesJornada()"
+              class="px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+              <span>📋</span>
+              <span>Cargar Listado de Agentes</span>
+            </button>
+          </div>
+
+          <!-- Paso 2: Seleccionar fecha y agentes -->
+          <div id="panel-jornada" class="hidden">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Jornada Institucional</label>
+              <input type="date" id="fecha-jornada"
+                class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+
+            <div class="mb-4">
+              <div class="flex justify-between items-center mb-2">
+                <label class="block text-sm font-medium text-gray-700">Seleccionar Agentes</label>
+                <button onclick="toggleTodosAgentes()" class="text-sm text-blue-600 hover:text-blue-800">
+                  Seleccionar/Deseleccionar Todos
+                </button>
+              </div>
+              <div id="lista-agentes-jornada" 
+                class="max-h-96 overflow-y-auto border border-gray-300 rounded-lg p-4 bg-gray-50">
+                <!-- Se llenará dinámicamente -->
+              </div>
+            </div>
+
+            <div class="flex gap-3 flex-wrap">
+              <button onclick="mostrarEmails()"
+                class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
+                <span>📧</span>
+                <span>Copiar Emails</span>
+              </button>
+              <button onclick="generarSolicitudesJornadaMasivo()"
+                class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                <span>✓</span>
+                <span>Generar Solicitudes</span>
+              </button>
+              <button onclick="cancelarJornada()"
+                class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Fichas -->
+      <div id="vista-fichas" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+          <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div>
+              <h3 class="text-lg font-bold">Fichas de Agentes</h3>
+              <p class="text-sm text-gray-500 mt-1">Escriba un nombre, apellido, DNI o número de empleado para ver coincidencias.</p>
+            </div>
+            <button onclick="limpiarBuscadorFichas()"
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+              Limpiar
+            </button>
+          </div>
+
+          <div class="relative max-w-2xl">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Buscar agente</label>
+            <input type="text" id="buscador-fichas" autocomplete="off" placeholder="Ej: Pérez, 12345678, EMP001"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              oninput="programarBusquedaFichas()">
+            <div id="fichas-ayuda" class="text-xs text-gray-500 mt-2">Se muestran coincidencias por nombre, apellido, DNI, número de empleado, email o teléfono.</div>
+          </div>
+
+          <div id="fichas-estado" class="mt-4 text-sm text-gray-600"></div>
+
+          <div id="fichas-resultados" class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+          <div id="ficha-detalle" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-900/45 backdrop-blur-sm p-4" onclick="cerrarFichaDetalle(event)">
+            <div class="w-full max-w-2xl rounded-3xl bg-white shadow-2xl border border-gray-100 overflow-hidden animate-slide-in" onclick="event.stopPropagation()">
+              <div class="flex items-start justify-between gap-4 px-5 py-4 border-b border-gray-100 bg-gray-50">
+                <div>
+                  <p class="text-xs uppercase tracking-wide text-gray-500 font-semibold">Ficha de agente</p>
+                  <h4 id="ficha-detalle-nombre" class="text-2xl font-bold text-gray-800 mt-1">-</h4>
+                </div>
+                <button onclick="cerrarFichaDetalle()" class="w-9 h-9 rounded-full hover:bg-white border border-gray-200 text-gray-600 hover:text-gray-900 flex items-center justify-center">
+                  <span class="material-icons text-base">close</span>
+                </button>
+              </div>
+
+              <div class="px-5 py-4">
+                <div class="flex flex-wrap gap-2 text-xs font-semibold mb-4">
+                  <span id="ficha-detalle-dni" class="px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-700">DNI: -</span>
+                  <span id="ficha-detalle-numero" class="px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-gray-700">N° Empleado: -</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Email</div>
+                    <div id="ficha-detalle-email" class="mt-1 font-medium text-gray-800 break-all">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Teléfono</div>
+                    <div id="ficha-detalle-telefono" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Teléfono alternativo</div>
+                    <div id="ficha-detalle-telefono-alt" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Domicilio</div>
+                    <div id="ficha-detalle-domicilio" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Título</div>
+                    <div id="ficha-detalle-titulo" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                  <div class="rounded-2xl bg-gray-50 border border-gray-200 p-3">
+                    <div class="text-xs uppercase text-gray-500 font-semibold">Fecha ingreso</div>
+                    <div id="ficha-detalle-ingreso" class="mt-1 font-medium text-gray-800">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Agregar Solicitud -->
+      <div id="vista-agregar" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 class="text-lg font-bold mb-4">Agregar Solicitud de Licencia Manual</h3>
+          
+          <div class="space-y-4">
+            <!-- DNI / Número de Empleado -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">DNI o N° de Empleado *</label>
+              <div class="flex gap-2">
+                <input type="text" id="agregar-dni" placeholder="Ej: 12345678 o EMP001"
+                  class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <button type="button" onclick="cargarCargosAgenteAdmin()"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                  <span class="material-icons text-sm">search</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Información del docente (se llena automáticamente) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Docente</label>
+                <input type="text" id="agregar-docente" disabled
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 disabled:cursor-not-allowed">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input type="text" id="agregar-email" disabled
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 disabled:cursor-not-allowed">
+              </div>
+            </div>
+
+            <!-- Tipo de Licencia (TEXT) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Licencia *</label>
+              <input type="text" id="agregar-tipo" placeholder="Ej: LIC POR ESTUDIO"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <p class="text-xs text-gray-500 mt-1">Escriba el tipo de licencia deseado</p>
+            </div>
+
+            <!-- Curso/Cargo -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Curso/Cargo *</label>
+              <select id="agregar-curso" disabled
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed">
+                <option value="">Primero agregue su DNI o N° de empleado...</option>
+              </select>
+            </div>
+
+            <!-- Articulación -->
+            <div>
+              <p class="block text-sm font-medium text-gray-700 mb-2">¿Es horario de Articulación? *</p>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="relative flex items-center justify-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-100 has-[:checked]:ring-2 has-[:checked]:ring-blue-200">
+                  <input type="radio" name="agregar-articulacion" value="Si" class="sr-only">
+                  <span class="text-base font-semibold text-gray-700">✓ Sí</span>
+                </label>
+                <label class="relative flex items-center justify-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-100 has-[:checked]:ring-2 has-[:checked]:ring-blue-200">
+                  <input type="radio" name="agregar-articulacion" value="No" class="sr-only">
+                  <span class="text-base font-semibold text-gray-700">✕ No</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Fechas -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Desde *</label>
+                <input type="date" id="agregar-desde"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha Hasta *</label>
+                <input type="date" id="agregar-hasta"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+            </div>
+
+            <!-- Botón Agregar -->
+            <button onclick="agregarSolicitudManual()"
+              class="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors">
+              ✓ Agregar Solicitud
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista SISO -->
+      <div id="vista-siso" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 class="text-lg font-bold mb-4">Cargar Datos SISO desde CSV</h3>
+          
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar archivo CSV *</label>
+            <input type="file" id="csv-siso" accept=".csv"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            <p class="text-xs text-gray-500 mt-1">Formato: CSV con separador de comas</p>
+          </div>
+
+          <div id="preview-csv" class="hidden mb-4">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">Vista previa (primeras 5 filas)</h4>
+            <div class="overflow-x-auto border border-gray-300 rounded-lg max-h-64 overflow-y-auto">
+              <table id="tabla-preview-csv" class="min-w-full divide-y divide-gray-200 text-xs">
+                <!-- Se llena dinámicamente -->
+              </table>
+            </div>
+            <p id="info-csv" class="text-sm text-gray-600 mt-2"></p>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="cargarCSV()" id="btn-cargar-csv" disabled
+              class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span>✓</span>
+              <span>Guardar en SISO</span>
+            </button>
+            <button onclick="cancelarCSV()"
+              class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              Cancelar
+            </button>
+          </div>
+
+          <div id="siso-listado-filtro" class="mt-6 border border-gray-200 rounded-lg overflow-hidden">
+            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <h4 class="text-sm font-semibold text-gray-800">Agentes con licencia Largo tratamiento</h4>
+              <p class="text-xs text-gray-600 mt-1">2404B o 2262 - Revisar carga en Planta</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agente</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°Empleado</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Hasta</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Lic</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-siso-filtrado" class="bg-white divide-y divide-gray-200">
+                  <tr>
+                    <td colspan="4" class="px-3 py-4 text-sm text-gray-600 text-center">Cargando listado...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="siso-filtrado-resumen" class="px-4 py-2 text-xs text-gray-600 bg-gray-50 border-t border-gray-200">Preparando datos...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Razones Particulares -->
+      <div id="vista-razonespart" class="p-6 hidden">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <!-- ENCABEZADO Y CONTROLES -->
+          <div class="p-4 border-b bg-gray-50 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800">📋 Solicitudes de Razones Particulares</h3>
+              <p class="text-xs text-gray-600 mt-1">Todas las solicitudes que contienen el carácter * en el tipo de licencia</p>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="generarReporteRP()" 
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 font-semibold">
+                <span class="material-icons text-sm">assessment</span>
+                <span>Generar Reporte RP</span>
+              </button>
+              <button onclick="recargarSolicitudesRP()"
+                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors flex items-center gap-2">
+                <span class="material-icons text-sm">refresh</span>
+                <span>Recargar</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- TABLA DE SOLICITUDES -->
+          <div class="overflow-x-auto">
+            <div id="razonespart-info" class="hidden p-4 bg-blue-50 border-b border-blue-200">
+              <p class="text-sm text-blue-800" id="razonespart-info-text">Cargando...</p>
+            </div>
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N° Empleado</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fechas</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curso/Cargo</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Articulación</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-razonespart" class="bg-white divide-y divide-gray-200">
+                <tr>
+                  <td colspan="9" class="px-3 py-4 text-sm text-gray-600 text-center">Cargando solicitudes...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Modal para editar estado -->
+  <!-- Modal detalle de solicitud -->
+  <div id="modal-solicitud" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">Detalle de Solicitud</h3>
+        <button onclick="cerrarModalSolicitud()" class="text-gray-500 hover:text-gray-800">✕</button>
+      </div>
+      <div id="detalle-solicitud" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-800">
+        <!-- Se llena dinámicamente -->
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button onclick="cerrarModalSolicitud()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-estado" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+      <h3 class="text-xl font-bold mb-4">Cambiar Estado</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Nuevo Estado</label>
+          <select id="nuevo-estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            <option value="Pendiente">Pendiente</option>
+            <option value="Autorizada">Autorizada</option>
+            <option value="Justificada">Justificada</option>
+            <option value="Completada">Completada</option>
+            <option value="Injustificada">Injustificada</option>
+            <option value="Descuento">Descuento</option>
+          </select>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="cerrarModal()" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button onclick="guardarCambioEstado()"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para copiar emails -->
+  <div id="modal-emails-jornada" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">📧 Listado de Emails</h3>
+      <div class="relative">
+        <button onclick="copiarEmails()" 
+          class="absolute top-0 right-0 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+          📋 Copiar
+        </button>
+        <pre id="emails-box" class="bg-gray-50 border border-gray-300 rounded-lg p-4 text-sm overflow-x-auto mt-8">
+        </pre>
+      </div>
+      <div class="mt-4 flex justify-end">
+        <button onclick="cerrarModalEmails()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para enviar email -->
+  <div id="modal-email" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-lg">
+      <h3 class="text-xl font-bold mb-4">Enviar Email al Docente</h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="email-docente" readonly
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mensaje Personalizado</label>
+          <textarea id="mensaje-email" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+            placeholder="Escriba su mensaje aquí..."></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="cerrarModalEmail()"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Cancelar
+          </button>
+          <button onclick="enviarEmailDocente()"
+            class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            Enviar Email
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Cargar email del admin inmediatamente después del DOM
+    document.addEventListener('DOMContentLoaded', function() {
+      google.script.run
+        .withSuccessHandler(function (email) {
+          document.getElementById('admin-email').textContent = email;
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error al obtener email:', error);
+          document.getElementById('admin-email').textContent = 'Error';
+        })
+        .obtenerEmailUsuario();
+    });
+  </script>
+
+  <?!=  obtenerDatosHtml('admin.core');  ?>
+  <?!=  obtenerDatosHtml('admin.pagination');  ?>
+  <?!=  obtenerDatosHtml('admin.filters');  ?>
+  <?!=  obtenerDatosHtml('admin.cache');  ?>
+  <?!=  obtenerDatosHtml('admin.novedades');  ?>
+  <?!=  obtenerDatosHtml('admin.jornada');  ?>
+  <?!=  obtenerDatosHtml('admin.fichas');  ?>
+  <?!=  obtenerDatosHtml('admin.siso');  ?>
+  <?!=  obtenerDatosHtml('admin.razonespart');  ?>
+  <?!=  obtenerDatosHtml('admin.actions');  ?>
+
+</body>
+
+</html>

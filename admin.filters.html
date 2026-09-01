@@ -1,0 +1,123 @@
+<script>
+  function toggleFiltrosSolicitudes() {
+    const panel = document.getElementById('filtros-solicitudes');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+  }
+
+  function toggleFiltrosJustificaciones() {
+    const panel = document.getElementById('filtros-justificaciones');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+  }
+
+  function aplicarFiltrosSolicitudes() {
+    const nombre = (document.getElementById('filtro-nombre-solicitud').value || '').toLowerCase().trim();
+    const dni = (document.getElementById('filtro-dni-solicitud').value || '').toLowerCase().trim();
+    const empleado = (document.getElementById('filtro-empleado-solicitud').value || '').toLowerCase().trim();
+    const estado = (document.getElementById('filtro-estado-solicitud').value || '').toLowerCase().trim();
+
+    if (!nombre && !dni && !empleado && !estado) {
+      solicitudesFiltradas = [...solicitudesData];
+      filtroActivoSolicitudes = false;
+    } else {
+      solicitudesFiltradas = solicitudesData.filter(sol => {
+        const nombreCompleto = `${sol.apellidos.toUpperCase()}, ${sol.nombres.toUpperCase()}`.toLowerCase();
+        const cumpleNombre = !nombre || nombreCompleto.includes(nombre);
+        const cumpleDni = !dni || sol.dni.toLowerCase().includes(dni);
+        const cumpleEmpleado = !empleado || sol.numeroEmpleado.toLowerCase().includes(empleado);
+        const estadoNormalizado = String(sol.estado || '').toLowerCase().trim();
+        const cumpleEstado = !estado || estadoNormalizado === estado ||
+          (estado === 'autorizado' && estadoNormalizado === 'autorizada') ||
+          (estado === 'completado' && estadoNormalizado === 'completada') ||
+          (estado === 'rechazado' && estadoNormalizado === 'rechazada');
+
+        return cumpleNombre && cumpleDni && cumpleEmpleado && cumpleEstado;
+      });
+      filtroActivoSolicitudes = true;
+    }
+
+    const infoElement = document.getElementById('info-filtro-solicitud');
+    if (filtroActivoSolicitudes) {
+      infoElement.innerHTML = `📊 ${solicitudesFiltradas.length} resultado(s) encontrado(s)`;
+    } else {
+      infoElement.innerHTML = '';
+    }
+
+    paginaActualSolicitudes = 1;
+    renderizarSolicitudesPaginadas();
+  }
+
+  function limpiarFiltrosSolicitudes() {
+    document.getElementById('filtro-nombre-solicitud').value = '';
+    document.getElementById('filtro-dni-solicitud').value = '';
+    document.getElementById('filtro-empleado-solicitud').value = '';
+    document.getElementById('filtro-estado-solicitud').value = '';
+    document.getElementById('info-filtro-solicitud').innerHTML = '';
+
+    solicitudesFiltradas = [...solicitudesData];
+    filtroActivoSolicitudes = false;
+    paginaActualSolicitudes = 1;
+    renderizarSolicitudesPaginadas();
+    mostrarToast('info', 'Filtros', 'Filtros limpiados');
+  }
+
+  function aplicarFiltrosJustificaciones() {
+    const nombre = (document.getElementById('filtro-nombre-justificacion').value || '').toLowerCase().trim();
+    const dni = (document.getElementById('filtro-dni-justificacion').value || '').toLowerCase().trim();
+    const empleado = (document.getElementById('filtro-empleado-justificacion').value || '').toLowerCase().trim();
+
+    if (!nombre && !dni && !empleado) {
+      justificacionesFiltradas = [...justificacionesData];
+      filtroActivoJustificaciones = false;
+    } else {
+      justificacionesFiltradas = justificacionesData.filter(just => {
+        const nombreCompleto = `${just.apellidos.toUpperCase()}, ${just.nombres.toUpperCase()}`.toLowerCase();
+        const cumpleNombre = !nombre || nombreCompleto.includes(nombre);
+        const cumpleDni = !dni || just.dni.toLowerCase().includes(dni);
+        const cumpleEmpleado = !empleado || (just.numeroEmpleado && just.numeroEmpleado.toLowerCase().includes(empleado));
+
+        return cumpleNombre && cumpleDni && cumpleEmpleado;
+      });
+      filtroActivoJustificaciones = true;
+    }
+
+    const infoElement = document.getElementById('info-filtro-justificacion');
+    if (filtroActivoJustificaciones) {
+      infoElement.innerHTML = `📊 ${justificacionesFiltradas.length} resultado(s) encontrado(s)`;
+    } else {
+      infoElement.innerHTML = '';
+    }
+
+    paginaActualJustificaciones = 1;
+    renderizarJustificacionesPaginadas();
+  }
+
+  function limpiarFiltrosJustificaciones() {
+    document.getElementById('filtro-nombre-justificacion').value = '';
+    document.getElementById('filtro-dni-justificacion').value = '';
+    document.getElementById('filtro-empleado-justificacion').value = '';
+    document.getElementById('info-filtro-justificacion').innerHTML = '';
+
+    justificacionesFiltradas = [...justificacionesData];
+    filtroActivoJustificaciones = false;
+    paginaActualJustificaciones = 1;
+    renderizarJustificacionesPaginadas();
+    mostrarToast('info', 'Filtros', 'Filtros limpiados');
+  }
+
+  function limpiarInputsFiltroSolicitudes() {
+    document.getElementById('filtro-nombre-solicitud').value = '';
+    document.getElementById('filtro-dni-solicitud').value = '';
+    document.getElementById('filtro-empleado-solicitud').value = '';
+    document.getElementById('filtro-estado-solicitud').value = '';
+    document.getElementById('info-filtro-solicitud').innerHTML = '';
+  }
+
+  function limpiarInputsFiltroJustificaciones() {
+    document.getElementById('filtro-nombre-justificacion').value = '';
+    document.getElementById('filtro-dni-justificacion').value = '';
+    document.getElementById('filtro-empleado-justificacion').value = '';
+    document.getElementById('info-filtro-justificacion').innerHTML = '';
+  }
+</script>

@@ -1,0 +1,163 @@
+<script>
+  function actualizarBadgeNovedades(cantidad) {
+    const badge = document.getElementById('badge-novedades');
+    if (!badge) return;
+    const total = Number(cantidad) || 0;
+    badge.textContent = String(total);
+  }
+
+  function cerrarPanelNovedades() {
+    const panel = document.getElementById('panel-novedades');
+    if (!panel) return;
+    panel.classList.add('hidden');
+  }
+
+  function togglePanelNovedades(event) {
+    if (event && typeof event.stopPropagation === 'function') {
+      event.stopPropagation();
+    }
+    const panel = document.getElementById('panel-novedades');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+  }
+
+  function inicializarCierrePanelNovedades() {
+    if (window._panelNovedadesOutsideClickInit) return;
+    window._panelNovedadesOutsideClickInit = true;
+
+    document.addEventListener('click', function(event) {
+      const panel = document.getElementById('panel-novedades');
+      const boton = document.querySelector('button[title="Ver novedades"]');
+      if (!panel || panel.classList.contains('hidden')) return;
+
+      const clickEnPanel = panel.contains(event.target);
+      const clickEnBoton = boton && boton.contains(event.target);
+      if (!clickEnPanel && !clickEnBoton) {
+        cerrarPanelNovedades();
+      }
+    });
+  }
+
+  inicializarCierrePanelNovedades();
+
+  function formatearFechaNovedad(valor) {
+    if (!valor) return '';
+    const fecha = new Date(valor);
+    if (isNaN(fecha.getTime())) {
+      const soloFecha = String(valor).slice(0, 10);
+      const [yyyy, mm, dd] = soloFecha.split('-');
+      if (yyyy && mm && dd) return `${dd}-${mm}-${yyyy}`;
+      return String(valor);
+    }
+    const dd = String(fecha.getDate()).padStart(2, '0');
+    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+    const yyyy = fecha.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  function truncarTipoLicencia(tipoLicencia) {
+    const valor = String(tipoLicencia || '').trim();
+    if (!valor) return '-';
+    return valor.length > 20 ? `${valor.slice(0, 20)}...` : valor;
+  }
+
+  function obtenerOcultasNovedades() {
+    try {
+      const raw = sessionStorage.getItem('novedades_ocultas');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function guardarOcultasNovedades(lista) {
+    try {
+      sessionStorage.setItem('novedades_ocultas', JSON.stringify(lista));
+    } catch (e) {
+    }
+  }
+
+  function ocultarNovedad(id) {
+    const ocultas = obtenerOcultasNovedades();
+    if (!ocultas.includes(id)) {
+      ocultas.push(id);
+      guardarOcultasNovedades(ocultas);
+    }
+    const item = document.querySelector(`[data-novedad-id="${id}"]`);
+    if (item) item.remove();
+
+    const restantes = document.querySelectorAll('#novedades-contenedor [data-novedad-id]').length;
+    actualizarBadgeNovedades(restantes);
+
+    if (restantes === 0) {
+      const contenedor = document.getElementById('novedades-contenedor');
+      if (contenedor) {
+        contenedor.innerHTML = '<div class="text-sm text-gray-500">Sin novedades esta semana.</div>';
+      }
+    }
+  }
+
+  function cargarNovedadesSemana() {
+    const contenedor = document.getElementById('novedades-contenedor');
+    if (!contenedor) return;
+
+    contenedor.innerHTML = '<div class="text-sm text-gray-500">Cargando novedades...</div>';
+
+    google.script.run
+      .withSuccessHandler(function(novedades) {
+        renderizarNovedadesSemana(novedades || []);
+      })
+      .withFailureHandler(function(error) {
+        contenedor.innerHTML = '<div class="text-sm text-red-600">Error al cargar novedades</div>';
+        console.error('Error al cargar novedades:', error);
+      })
+      .obtenerNovedadesSemana();
+  }
+
+  function iconoNovedad(tipo) {
+    switch ((tipo || '').toUpperCase()) {
+      case 'SOLICITUD': return 'description';
+      case 'JUSTIFICACION': return 'playlist_add_check';
+      default: return 'notifications';
+    }
+  }
+
+  function renderizarNovedadesSemana(novedades) {
+    const contenedor = document.getElementById('novedades-contenedor');
+    if (!contenedor) return;
+
+    const ocultas = obtenerOcultasNovedades();
+    const visibles = novedades.filter(n => {
+      const id = `${n.tipo}|${n.timestamp}|${n.idsSolicitudes}|${n.dni}`;
+      return !ocultas.includes(id);
+    });
+
+    if (!visibles.length) {
+      contenedor.innerHTML = '<div class="text-sm text-gray-500">Sin novedades esta semana.</div>';
+      actualizarBadgeNovedades(0);
+      return;
+    }
+
+    const html = visibles.map(n => {
+      const id = `${n.tipo}|${n.timestamp}|${n.idsSolicitudes}|${n.dni}`;
+      const apellidoNombre = `${String(n.apellidos || '').trim()} ${String(n.nombres || '').trim()}`.trim() || 'Sin nombre';
+      const fecha = formatearFechaNovedad(n.timestamp);
+      const tipoLicencia = truncarTipoLicencia(n.tipoLicencia);
+      return `
+        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200" data-novedad-id="${id}">
+          <span class="material-icons text-gray-700">${iconoNovedad(n.tipo)}</span>
+          <div class="flex-1">
+            <div class="text-sm text-gray-800 font-medium">${apellidoNombre}</div>
+            <div class="text-xs text-gray-500 mt-1">${fecha} · ${tipoLicencia}</div>
+          </div>
+          <button onclick="ocultarNovedad('${id}')" class="text-gray-400 hover:text-gray-700" title="Ocultar">
+            ✕
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    contenedor.innerHTML = html;
+    actualizarBadgeNovedades(visibles.length);
+  }
+</script>

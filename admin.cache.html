@@ -1,0 +1,148 @@
+<script>
+  function guardarCacheSolicitudes(datos) {
+    try {
+      const cacheData = {
+        datos: datos,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem('cache_solicitudes', JSON.stringify(cacheData));
+      ultimaCargarSolicitudes = Date.now();
+      console.log('✓ Caché de solicitudes guardado');
+    } catch (error) {
+      console.warn('No se pudo guardar caché de solicitudes:', error);
+    }
+  }
+
+  function obtenerCacheSolicitudes() {
+    try {
+      const cacheStr = sessionStorage.getItem('cache_solicitudes');
+      if (!cacheStr) return null;
+
+      const cacheData = JSON.parse(cacheStr);
+      const ahora = Date.now();
+      const edadCache = ahora - cacheData.timestamp;
+
+      if (edadCache > CACHE_DURATION) {
+        console.log('⏰ Caché de solicitudes expirado');
+        sessionStorage.removeItem('cache_solicitudes');
+        return null;
+      }
+
+      console.log(`✓ Caché de solicitudes válido (${Math.floor(edadCache / 1000)}s atrás)`);
+      ultimaCargarSolicitudes = cacheData.timestamp;
+      return cacheData.datos;
+    } catch (error) {
+      console.warn('Error al leer caché de solicitudes:', error);
+      return null;
+    }
+  }
+
+  function guardarCacheJustificaciones(datos) {
+    try {
+      const cacheData = {
+        datos: datos,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem('cache_justificaciones', JSON.stringify(cacheData));
+      ultimaCargarJustificaciones = Date.now();
+      console.log('✓ Caché de justificaciones guardado');
+    } catch (error) {
+      console.warn('No se pudo guardar caché de justificaciones:', error);
+    }
+  }
+
+  function obtenerCacheJustificaciones() {
+    try {
+      const cacheStr = sessionStorage.getItem('cache_justificaciones');
+      if (!cacheStr) return null;
+
+      const cacheData = JSON.parse(cacheStr);
+      const ahora = Date.now();
+      const edadCache = ahora - cacheData.timestamp;
+
+      if (edadCache > CACHE_DURATION) {
+        console.log('⏰ Caché de justificaciones expirado');
+        sessionStorage.removeItem('cache_justificaciones');
+        return null;
+      }
+
+      console.log(`✓ Caché de justificaciones válido (${Math.floor(edadCache / 1000)}s atrás)`);
+      ultimaCargarJustificaciones = cacheData.timestamp;
+      return cacheData.datos;
+    } catch (error) {
+      console.warn('Error al leer caché de justificaciones:', error);
+      return null;
+    }
+  }
+
+  function limpiarTodoCache() {
+    try {
+      sessionStorage.removeItem('cache_solicitudes');
+      sessionStorage.removeItem('cache_justificaciones');
+      ultimaCargarSolicitudes = 0;
+      ultimaCargarJustificaciones = 0;
+      console.log('✓ Todos los cachés limpiados');
+      mostrarToast('success', 'Caché', 'Caché local limpiado correctamente');
+    } catch (error) {
+      console.warn('Error al limpiar cachés:', error);
+    }
+  }
+
+  function obtenerInfoCache() {
+    const info = {
+      solicitudes: null,
+      justificaciones: null
+    };
+
+    try {
+      const cacheSol = sessionStorage.getItem('cache_solicitudes');
+      if (cacheSol) {
+        const datos = JSON.parse(cacheSol);
+        const edad = Date.now() - datos.timestamp;
+        info.solicitudes = {
+          registros: datos.datos.length,
+          edadSegundos: Math.floor(edad / 1000),
+          valido: edad < CACHE_DURATION
+        };
+      }
+
+      const cacheJust = sessionStorage.getItem('cache_justificaciones');
+      if (cacheJust) {
+        const datos = JSON.parse(cacheJust);
+        const edad = Date.now() - datos.timestamp;
+        info.justificaciones = {
+          registros: datos.datos.length,
+          edadSegundos: Math.floor(edad / 1000),
+          valido: edad < CACHE_DURATION
+        };
+      }
+    } catch (error) {
+      console.warn('Error al obtener info de caché:', error);
+    }
+
+    return info;
+  }
+
+  function mostrarInfoCache() {
+    const info = obtenerInfoCache();
+    let mensaje = '📊 Estado del Caché Local\n\n';
+
+    if (info.solicitudes) {
+      const estado = info.solicitudes.valido ? '✓ Válido' : '⏰ Expirado';
+      mensaje += `Solicitudes: ${info.solicitudes.registros} registros (${info.solicitudes.edadSegundos}s) ${estado}\n`;
+    } else {
+      mensaje += 'Solicitudes: Sin caché\n';
+    }
+
+    if (info.justificaciones) {
+      const estado = info.justificaciones.valido ? '✓ Válido' : '⏰ Expirado';
+      mensaje += `Justificaciones: ${info.justificaciones.registros} registros (${info.justificaciones.edadSegundos}s) ${estado}\n`;
+    } else {
+      mensaje += 'Justificaciones: Sin caché\n';
+    }
+
+    mensaje += `\n⏱️ Duración: 5 minutos`;
+
+    mostrarToast('info', 'Información de Caché', mensaje, 8000);
+  }
+</script>

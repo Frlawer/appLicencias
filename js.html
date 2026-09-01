@@ -1,0 +1,1248 @@
+  <script>
+    let solicitudesSeleccionadas = [];
+    let solicitudesDisponibles = [];
+    let agenteActual = null;
+    let currentStep = 0;
+    let busquedaCargosRealizada = false;
+    let cargosCargados = false;
+    let busquedaSolicitudesRealizada = false;
+
+    // ========================================
+    // === SCROLL AUTOMÁTICO A NUEVOS PASOS ===
+    // ========================================
+    function scrollAlSiguientePaso(elemento) {
+      if (!elemento) return;
+
+      setTimeout(() => {
+        elemento.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 100);
+    }
+
+    // ========================================
+    // === CARGAR LICENCIAS DESDE LA SHEET ===
+    // ========================================
+    function cargarLicenciasEnSelect() {
+      const selectTipo = document.getElementById('sol-tipo');
+      
+      if (!selectTipo) return;
+      
+      google.script.run
+        .withSuccessHandler(function(licencias) {
+          console.log('Licencias cargadas:', licencias);
+          
+          if (!licencias || licencias.length === 0) {
+            selectTipo.innerHTML = '<option value="">No hay licencias disponibles</option>';
+            return;
+          }
+          
+          // Limpiar y agregar opción por defecto
+          selectTipo.innerHTML = '<option value="">Seleccione una licencia...</option>';
+          
+          // Agregar cada licencia como opción
+          licencias.forEach(lic => {
+            const option = document.createElement('option');
+            option.value = lic.nombre;
+            option.textContent = lic.nombre;
+            selectTipo.appendChild(option);
+          });
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error al cargar licencias:', error);
+          selectTipo.innerHTML = '<option value="">Error al cargar licencias</option>';
+        })
+        .obtenerLicencias();
+    }
+
+    // ========================================
+    // === MOSTRAR/OCULTAR TEXTAREA MOTIVO ===
+    // ========================================
+    function configurarMostrarMotivoSiRazonesPart() {
+      const selectTipo = document.getElementById('sol-tipo');
+      const contenedorMotivo = document.getElementById('sol-motivo-container');
+      const textareaMotivo = document.getElementById('sol-motivo');
+
+      if (!selectTipo || !contenedorMotivo || !textareaMotivo) return;
+
+      selectTipo.addEventListener('change', function() {
+        const valorSeleccionado = this.value;
+        const esRazonesPart = valorSeleccionado && valorSeleccionado.includes('*');
+
+        if (esRazonesPart) {
+          // Mostrar con fade in
+          contenedorMotivo.classList.remove('hidden');
+          setTimeout(() => {
+            contenedorMotivo.classList.add('opacity-100');
+          }, 10);
+        } else {
+          // Ocultar y limpiar
+          contenedorMotivo.classList.remove('opacity-100');
+          setTimeout(() => {
+            contenedorMotivo.classList.add('hidden');
+            textareaMotivo.value = ''; // Limpiar contenido
+            actualizarFlujoSolicitud();
+          }, 300);
+        }
+
+        actualizarFlujoSolicitud();
+      });
+
+      textareaMotivo.addEventListener('input', actualizarFlujoSolicitud);
+    }
+
+    // ========================================
+    // === FUNCIONES DE OPTIMIZACIÓN DE ARCHIVOS ===
+    // ========================================
+
+    /**
+     * Optimiza un archivo según su tipo
+     * - Imágenes: redimensiona y comprime
+     * - PDFs y otros: mantiene sin cambios
+     * @param {File} archivo - Archivo original
+     * @param {Function} callback - Callback(archivoBase64, nombreArchivo, mimeType)
+     */
+    function optimizarArchivo(archivo, callback) {
+      const tipoArchivo = archivo.type;
+      const nombreArchivo = archivo.name;
+
+      // Si es imagen (JPG, JPEG, PNG), optimizar
+      if (tipoArchivo.match(/image\/(jpeg|jpg|png)/i)) {
+        comprimirImagen(archivo, function(base64Comprimido) {
+          callback(base64Comprimido, nombreArchivo, tipoArchivo);
+        });
+      } 
+      // Si es PDF u otro tipo, leer directamente sin modificar
+      else {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          callback(e.target.result, nombreArchivo, tipoArchivo);
+        };
+        reader.readAsDataURL(archivo);
+      }
+    }
+
+    /**
+     * Comprime una imagen usando Canvas
+     * Redimensiona a máximo 1000px de ancho manteniendo proporción
+     * @param {File} archivo - Archivo de imagen
+     * @param {Function} callback - Callback(base64String)
+     */
+    function comprimirImagen(archivo, callback) {
+      const reader = new FileReader();
+      
+      reader.onload = function(e) {
+        const img = new Image();
+        
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calcular nuevas dimensiones (máximo 1800px de ancho)
+          const maxWidth = 1800;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          // Configurar canvas
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Dibujar imagen redimensionada
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convertir a base64 con compresión
+          // Para JPG/JPEG usar 0.95 de calidad, para PNG usar 0.98
+          const quality = archivo.type === 'image/png' ? 0.98 : 0.95;
+          const base64Comprimido = canvas.toDataURL(archivo.type, quality);
+          
+          // Log para ver la reducción de tamaño
+          const tamanoOriginal = (e.target.result.length * 0.75) / 1024; // KB aproximados
+          const tamanoComprimido = (base64Comprimido.length * 0.75) / 1024; // KB aproximados
+          const reduccion = ((1 - tamanoComprimido / tamanoOriginal) * 100).toFixed(1);
+          
+          console.log(`📸 Imagen optimizada: ${tamanoOriginal.toFixed(0)}KB → ${tamanoComprimido.toFixed(0)}KB (${reduccion}% reducción)`);
+          
+          callback(base64Comprimido);
+        };
+        
+        img.onerror = function() {
+          console.error('Error al cargar imagen para compresión');
+          // Si falla, usar archivo original
+          callback(e.target.result);
+        };
+        
+        img.src = e.target.result;
+      };
+      
+      reader.onerror = function() {
+        console.error('Error al leer archivo para compresión');
+        // Si falla, intentar leer normalmente
+        const fallbackReader = new FileReader();
+        fallbackReader.onload = function(e) {
+          callback(e.target.result);
+        };
+        fallbackReader.readAsDataURL(archivo);
+      };
+      
+      reader.readAsDataURL(archivo);
+    }
+
+    let toastTimeoutId = null;
+    let toastColorActivo = '';
+
+    // Función para mostrar toast
+    function mostrarToast(tipo, titulo, texto, duracion = 9000) {
+      const toast = document.getElementById('toast-message-cta');
+      const icono = document.getElementById('iconoNotificacion');
+      const tituloElement = document.getElementById('tituloNotificacion');
+      const textoElement = document.getElementById('textoNotificacion');
+
+      if (!toast || !icono || !tituloElement || !textoElement) return;
+      
+      // Configurar icono y clases según el tipo
+      let iconoHTML = '';
+      let claseColor = '';
+      let fondoColor = '';
+      
+      switch(tipo) {
+        case 'success':
+          iconoHTML = '✓';
+          claseColor = 'text-green-600';
+          fondoColor = 'bg-green-300';
+          break;
+        case 'error':
+          iconoHTML = '✕';
+          claseColor = 'text-red-600';
+          fondoColor = 'bg-red-300';
+          break;
+        case 'warning':
+          iconoHTML = '⚠';
+          claseColor = 'text-yellow-600';
+          fondoColor = 'bg-yellow-300';
+          break;
+        case 'info':
+          iconoHTML = 'ℹ';
+          claseColor = 'text-blue-600';
+          fondoColor = 'bg-blue-300';
+          break;
+        default:
+          iconoHTML = '•';
+          claseColor = 'text-gray-600';
+          fondoColor = 'bg-gray-300';
+      }
+      
+      // Establecer contenido
+      icono.innerHTML = iconoHTML;
+      icono.className = `text-2xl font-bold ${claseColor}`;
+      tituloElement.textContent = titulo;
+      textoElement.textContent = texto;
+      
+      if (toastTimeoutId) {
+        clearTimeout(toastTimeoutId);
+        toastTimeoutId = null;
+      }
+
+      if (toastColorActivo) {
+        toast.classList.remove(toastColorActivo);
+      }
+
+      toastColorActivo = fondoColor;
+
+      // Mostrar toast
+      toast.classList.remove('hidden');
+      toast.classList.remove('animate-slide-out');
+      toast.classList.add('animate-slide-in', fondoColor, 'toast-impacto');
+      
+      // Ocultar automáticamente después de la duración especificado
+      if (duracion > 0) {
+        toastTimeoutId = setTimeout(() => {
+          ocultarToast();
+        }, duracion);
+      }
+    }
+
+    function ocultarToast() {
+      const toast = document.getElementById('toast-message-cta');
+      if (!toast) return;
+
+      if (toastTimeoutId) {
+        clearTimeout(toastTimeoutId);
+        toastTimeoutId = null;
+      }
+
+      toast.classList.add('animate-slide-out');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('animate-slide-in', 'animate-slide-out', 'toast-impacto');
+        if (toastColorActivo) {
+          toast.classList.remove(toastColorActivo);
+          toastColorActivo = '';
+        }
+      }, 300);
+    }
+
+    // Agregar event listener para el botón de cerrar
+    document.addEventListener('DOMContentLoaded', function() {
+      const closeButton = document.querySelector('[data-dismiss-target="#toast-message-cta"]');
+      if (closeButton) {
+        closeButton.addEventListener('click', () => ocultarToast());
+      }
+    });
+
+    // Parsear fecha sin desfase (yyyy-mm-dd)
+    function parseFechaLocal(fecha) {
+      if (!fecha) return null;
+      if (typeof fecha === 'string') {
+        const match = fecha.match(/^\d{4}-\d{2}-\d{2}$/);
+        if (match) {
+          const [y, m, d] = fecha.split('-').map(Number);
+          return new Date(y, m - 1, d);
+        }
+      }
+      const d = new Date(fecha);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // Formatear fecha de yyyy-mm-dd a dd/mm/yyyy
+    function formatearFecha(fecha) {
+      if (!fecha) return '';
+      const partes = fecha.split('-');
+      if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+      return fecha;
+    }
+
+    // Convertir fecha de input (yyyy-mm-dd) a dd/mm/yyyy para mostrar
+    function convertirFechaParaMostrar(inputDate) {
+      const date = parseFechaLocal(inputDate);
+      if (!date) return '';
+      const dia = String(date.getDate()).padStart(2, '0');
+      const mes = String(date.getMonth() + 1).padStart(2, '0');
+      const anio = date.getFullYear();
+      return `${dia}/${mes}/${anio}`;
+    }
+
+    function setEstadoSenal(signalId, textId, completa, textoPendiente, textoCompleta) {
+      const signal = document.getElementById(signalId);
+      const text = document.getElementById(textId);
+      if (!signal || !text) return;
+
+      signal.classList.toggle('step-signal--pending', !completa);
+      signal.classList.toggle('step-signal--ready', completa);
+      text.textContent = completa ? textoCompleta : textoPendiente;
+    }
+
+    function actualizarPosicionSenalJustificacion(progreso) {
+      const signal = document.getElementById('just-senal');
+      if (!signal) return;
+      signal.style.bottom = '5px';
+    }
+
+    function actualizarPosicionSenalSolicitud(progreso) {
+      const signal = document.getElementById('sol-senal');
+      if (!signal) return;
+      signal.style.bottom = '5px';
+    }
+
+    function actualizarFlujoSolicitud() {
+      const tipo = (document.getElementById('sol-tipo') || {}).value || '';
+      const dni = (document.getElementById('sol-dni') || {}).value ? document.getElementById('sol-dni').value.trim() : '';
+      const curso = (document.getElementById('sol-curso') || {}).value || '';
+      const desde = (document.getElementById('sol-desde') || {}).value || '';
+      const hasta = (document.getElementById('sol-hasta') || {}).value || '';
+      const motivo = (document.getElementById('sol-motivo') || {}).value ? document.getElementById('sol-motivo').value.trim() : '';
+      const articulacion = document.querySelector('input[name="sol-articulacion"]:checked');
+
+      const requiereMotivo = Boolean(tipo && tipo.includes('*'));
+      const motivoCompleto = !requiereMotivo || Boolean(motivo);
+      const busquedaValida = busquedaCargosRealizada && cargosCargados;
+      const fechasCompletas = Boolean(desde && hasta);
+      const completo = Boolean(tipo && dni && busquedaValida && curso && fechasCompletas && articulacion && motivoCompleto);
+
+      const stepDni = document.getElementById('sol-step-dni');
+      const stepCurso = document.getElementById('sol-step-curso');
+      const stepFechas = document.getElementById('sol-step-fechas');
+      const stepArticulacion = document.getElementById('sol-step-articulacion');
+      const stepEnviar = document.getElementById('sol-step-enviar');
+      const btnEnviar = document.getElementById('btn-enviar-solicitud');
+
+      // Determinar qué paso mostrar y hacer scroll a él
+      let proximoPasoParaScroll = null;
+
+      if (stepDni) {
+        const debeEstarVisible = Boolean(tipo);
+        const estaOculto = stepDni.classList.contains('hidden');
+        stepDni.classList.toggle('hidden', !tipo);
+        if (debeEstarVisible && estaOculto) {
+          proximoPasoParaScroll = stepDni;
+        }
+      }
+
+      if (stepCurso) {
+        const debeEstarVisible = Boolean(busquedaValida);
+        const estaOculto = stepCurso.classList.contains('hidden');
+        stepCurso.classList.toggle('hidden', !busquedaValida);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepCurso;
+        }
+      }
+
+      if (stepFechas) {
+        const debeEstarVisible = Boolean(curso);
+        const estaOculto = stepFechas.classList.contains('hidden');
+        stepFechas.classList.toggle('hidden', !curso);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepFechas;
+        }
+      }
+
+      if (stepArticulacion) {
+        const debeEstarVisible = Boolean(fechasCompletas);
+        const estaOculto = stepArticulacion.classList.contains('hidden');
+        stepArticulacion.classList.toggle('hidden', !fechasCompletas);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepArticulacion;
+        }
+      }
+
+      if (stepEnviar) {
+        const debeEstarVisible = Boolean(completo);
+        const estaOculto = stepEnviar.classList.contains('hidden');
+        stepEnviar.classList.toggle('hidden', !completo);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepEnviar;
+        }
+      }
+
+      if (btnEnviar) {
+        btnEnviar.disabled = !completo;
+        btnEnviar.classList.toggle('opacity-50', !completo);
+        btnEnviar.classList.toggle('cursor-not-allowed', !completo);
+      }
+
+      // Scroll automático al nuevo paso si hay uno
+      if (proximoPasoParaScroll) {
+        scrollAlSiguientePaso(proximoPasoParaScroll);
+      }
+
+      const progresoItems = [
+        Boolean(tipo),
+        Boolean(dni),
+        Boolean(busquedaValida),
+        Boolean(curso),
+        Boolean(fechasCompletas),
+        Boolean(articulacion)
+      ];
+      if (requiereMotivo) {
+        progresoItems.push(Boolean(motivoCompleto));
+      }
+      const progreso = progresoItems.filter(Boolean).length / progresoItems.length;
+      actualizarPosicionSenalSolicitud(progreso);
+
+      const faltantes = [];
+      if (!tipo) faltantes.push('tipo de licencia');
+      if (!dni) faltantes.push('DNI/N° empleado');
+      if (!busquedaValida) faltantes.push('buscar cargos');
+      if (!curso) faltantes.push('curso/cargo');
+      if (!fechasCompletas) faltantes.push('fechas');
+      if (!articulacion) faltantes.push('articulación');
+      if (requiereMotivo && !motivoCompleto) faltantes.push('motivo');
+
+      const textoPendiente = faltantes.length
+        ? `Faltan: ${faltantes.join(', ')}`
+        : 'Complete los pasos para habilitar el envio';
+
+      setEstadoSenal(
+        'sol-senal',
+        'sol-senal-texto',
+        completo,
+        textoPendiente,
+        'Formulario completo. Ya puede enviar la solicitud.'
+      );
+    }
+
+    function resetearJustificacionEnPantalla() {
+      solicitudesSeleccionadas = [];
+      solicitudesDisponibles = [];
+      busquedaSolicitudesRealizada = false;
+
+      const list = document.getElementById('licencias-list');
+      const contador = document.getElementById('contador-licencias');
+      const container = document.getElementById('licencias-container');
+      const stepArchivo = document.getElementById('just-step-archivo');
+      const inputArchivo = document.getElementById('just-archivo');
+
+      if (list) list.innerHTML = '';
+      if (contador) contador.textContent = '';
+      if (container) container.classList.add('hidden');
+      if (stepArchivo) stepArchivo.classList.add('hidden');
+      if (inputArchivo) inputArchivo.value = '';
+    }
+
+    function resetearSolicitudEnPantalla() {
+      const solDni = document.getElementById('sol-dni');
+      const solTipo = document.getElementById('sol-tipo');
+      const solCurso = document.getElementById('sol-curso');
+      const solDesde = document.getElementById('sol-desde');
+      const solHasta = document.getElementById('sol-hasta');
+      const solMotivo = document.getElementById('sol-motivo');
+      const infoAgente = document.getElementById('sol-agente-info');
+      const motivoContainer = document.getElementById('sol-motivo-container');
+
+      if (solDni) solDni.value = '';
+      if (solTipo) solTipo.value = '';
+      if (solCurso) {
+        solCurso.value = '';
+        solCurso.disabled = true;
+        solCurso.innerHTML = '<option value="">Primero agregue su DNI o N° de empleado...</option>';
+      }
+      if (solDesde) solDesde.value = '';
+      if (solHasta) solHasta.value = '';
+      if (solMotivo) solMotivo.value = '';
+      if (infoAgente) infoAgente.classList.add('hidden');
+
+      if (motivoContainer) {
+        motivoContainer.classList.remove('opacity-100');
+        motivoContainer.classList.add('hidden');
+      }
+
+      const articulacionSeleccionada = document.querySelector('input[name="sol-articulacion"]:checked');
+      if (articulacionSeleccionada) articulacionSeleccionada.checked = false;
+
+      busquedaCargosRealizada = false;
+      cargosCargados = false;
+    }
+
+    function resetearJustificacionCompletaEnPantalla() {
+      const justDni = document.getElementById('just-dni');
+      const justInfo = document.getElementById('just-agente-info');
+
+      if (justDni) justDni.value = '';
+      if (justInfo) justInfo.classList.add('hidden');
+
+      resetearJustificacionEnPantalla();
+    }
+
+    function actualizarFlujoJustificacion() {
+      const dni = (document.getElementById('just-dni') || {}).value ? document.getElementById('just-dni').value.trim() : '';
+      const containerLicencias = document.getElementById('licencias-container');
+      const stepArchivo = document.getElementById('just-step-archivo');
+      const inputArchivo = document.getElementById('just-archivo');
+      const btnEnviar = document.getElementById('btn-enviar-justificacion');
+
+      const tieneLicenciasSeleccionadas = solicitudesSeleccionadas.length > 0;
+      const tieneArchivos = Boolean(inputArchivo && inputArchivo.files && inputArchivo.files.length);
+
+      let proximoPasoParaScroll = null;
+
+      if (containerLicencias) {
+        const debeEstarVisible = Boolean(busquedaSolicitudesRealizada);
+        const estaOculto = containerLicencias.classList.contains('hidden');
+        containerLicencias.classList.toggle('hidden', !busquedaSolicitudesRealizada);
+        if (debeEstarVisible && estaOculto) {
+          proximoPasoParaScroll = containerLicencias;
+        }
+      }
+
+      if (stepArchivo) {
+        const debeEstarVisible = Boolean(tieneLicenciasSeleccionadas);
+        const estaOculto = stepArchivo.classList.contains('hidden');
+        stepArchivo.classList.toggle('hidden', !tieneLicenciasSeleccionadas);
+        if (debeEstarVisible && estaOculto && !proximoPasoParaScroll) {
+          proximoPasoParaScroll = stepArchivo;
+        }
+      }
+
+      // Scroll automático al nuevo paso
+      if (proximoPasoParaScroll) {
+        scrollAlSiguientePaso(proximoPasoParaScroll);
+      }
+
+      const completo = Boolean(dni && busquedaSolicitudesRealizada && tieneLicenciasSeleccionadas && tieneArchivos);
+
+      if (btnEnviar) {
+        btnEnviar.disabled = !completo;
+        btnEnviar.classList.toggle('opacity-50', !completo);
+        btnEnviar.classList.toggle('cursor-not-allowed', !completo);
+      }
+
+      const progreso = [
+        Boolean(dni),
+        Boolean(busquedaSolicitudesRealizada),
+        Boolean(tieneLicenciasSeleccionadas),
+        Boolean(tieneArchivos)
+      ].filter(Boolean).length / 4;
+      actualizarPosicionSenalJustificacion(progreso);
+
+      const faltantes = [];
+      if (!dni) faltantes.push('DNI/N° empleado');
+      if (!busquedaSolicitudesRealizada) faltantes.push('buscar licencias');
+      if (!tieneLicenciasSeleccionadas) faltantes.push('seleccionar licencias');
+      if (!tieneArchivos) faltantes.push('cargar archivos');
+
+      const textoPendiente = faltantes.length
+        ? `Faltan: ${faltantes.join(', ')}`
+        : 'Complete los pasos para habilitar el envio';
+
+      setEstadoSenal(
+        'just-senal',
+        'just-senal-texto',
+        completo,
+        textoPendiente,
+        'Formulario completo. Ya puede enviar la justificacion.'
+      );
+    }
+
+    function actualizarBotonesSeccion(step) {
+      const btn1 = document.getElementById('btn-step-1');
+      const btn2 = document.getElementById('btn-step-2');
+
+      if (!btn1 || !btn2) return;
+
+      btn1.classList.toggle('is-active', step === 1);
+      btn2.classList.toggle('is-active', step === 2);
+    }
+
+    function mostrarSeccionConTransicion(formMostrar, formOcultar) {
+      if (!formMostrar || !formOcultar || formMostrar === formOcultar) return;
+
+      formOcultar.classList.remove('section-fade-in');
+      formOcultar.classList.add('section-fade-out');
+
+      setTimeout(() => {
+        formOcultar.classList.add('hidden');
+        formOcultar.classList.remove('section-fade-out');
+
+        formMostrar.classList.remove('hidden', 'section-fade-out');
+        formMostrar.classList.add('section-fade-in');
+
+        setTimeout(() => {
+          formMostrar.classList.remove('section-fade-in');
+        }, 320);
+      }, 180);
+    }
+
+    function cambiarStep(step) {
+      const form1 = document.getElementById('form-solicitud');
+      const form2 = document.getElementById('form-justificacion');
+
+      if (step === 1) {
+        resetearJustificacionCompletaEnPantalla();
+        actualizarFlujoJustificacion();
+      } else if (step === 2) {
+        resetearSolicitudEnPantalla();
+        actualizarFlujoSolicitud();
+      }
+
+      currentStep = step;
+      actualizarBotonesSeccion(step);
+
+      if (!form1 || !form2) return;
+
+      if (step === 1) {
+        if (form1.classList.contains('hidden') && form2.classList.contains('hidden')) {
+          form1.classList.remove('hidden', 'section-fade-out');
+          form1.classList.add('section-fade-in');
+          setTimeout(() => form1.classList.remove('section-fade-in'), 320);
+        } else if (form1.classList.contains('hidden')) {
+          mostrarSeccionConTransicion(form1, form2);
+        }
+      } else {
+        if (form2.classList.contains('hidden') && form1.classList.contains('hidden')) {
+          form2.classList.remove('hidden', 'section-fade-out');
+          form2.classList.add('section-fade-in');
+          setTimeout(() => form2.classList.remove('section-fade-in'), 320);
+        } else if (form2.classList.contains('hidden')) {
+          mostrarSeccionConTransicion(form2, form1);
+        }
+      }
+    }
+
+    function mostrarLoading(mostrar) {
+      const loading = document.getElementById('loading');
+      const form1 = document.getElementById('form-solicitud');
+      const form2 = document.getElementById('form-justificacion');
+      
+      if (mostrar) {
+        loading.classList.remove('hidden');
+        form1.classList.add('hidden');
+        form2.classList.add('hidden');
+      } else {
+        loading.classList.add('hidden');
+        if (currentStep === 1) {
+          form1.classList.remove('hidden');
+        } else if (currentStep === 2) {
+          form2.classList.remove('hidden');
+        }
+      }
+    }
+
+    function mostrarInfoAgente(agente) {
+      if (!agente) return;
+      agenteActual = agente;
+      const div = document.getElementById('info-agente');
+      const datos = document.getElementById('agente-datos');
+      
+      datos.innerHTML = `
+        <p><strong>Nombre:</strong> ${agente.nombre}</p>
+        <p><strong>Email:</strong> ${agente.email}</p>
+        <p><strong>DNI:</strong> ${agente.dni}</p>
+        <p><strong>N° Empleado:</strong> ${agente.numeroEmpleado}</p>
+      `;
+      
+      div.classList.remove('hidden');
+    }
+
+    // Cargar cursos del agente según su DNI o N° Empleado
+    let cargandoCargos = false;
+
+    function setCargandoCargos(estado) {
+      cargandoCargos = estado;
+      const btnEnviar = document.getElementById('btn-enviar-solicitud');
+      const btnBuscar = document.getElementById('btn-buscar-cargos');
+
+      if (btnEnviar) {
+        btnEnviar.disabled = estado;
+        btnEnviar.classList.toggle('opacity-50', estado);
+        btnEnviar.classList.toggle('cursor-not-allowed', estado);
+      }
+
+      if (btnBuscar) {
+        btnBuscar.disabled = estado;
+        btnBuscar.classList.toggle('opacity-50', estado);
+        btnBuscar.classList.toggle('cursor-not-allowed', estado);
+        btnBuscar.innerHTML = estado
+          ? '<span><span class="material-icons text-sm">hourglass_top</span> Buscando...</span>'
+          : '<span><span class="material-icons text-sm">search</span> Buscar Cargos</span>';
+      }
+    }
+
+    function mostrarAgenteNoEncontrado(cardId) {
+      const card = document.getElementById(cardId);
+      card.innerHTML = `
+        <div class="flex items-start gap-2">
+          <span class="material-icons text-amber-500 text-sm mt-0.5">warning</span>
+          <p class="text-sm font-medium text-amber-700">Debe completar el formulario de Datos personales para poder solicitar licencias o cargar constancias.</p>
+        </div>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSd0C_d1tYW2YNF7S9ul2BI55yjjhZ0_-rvipe8Hu2NNZ9PUpA/viewform"
+          target="_blank" rel="noopener noreferrer"
+          class="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold"
+          style="background: #fed7aa; color: #9a3412; border: 1px solid #fdba74; box-shadow: var(--shadow-sm);">
+          <span class="material-icons text-sm">badge</span>
+          <span>Completar Datos Personales</span>
+        </a>`;
+      card.style.borderColor = '#fdba74';
+      card.style.background = '#fff7ed';
+      card.classList.remove('hidden');
+    }
+
+    function mostrarDatosAgente(cardId, prefijo, agente) {
+      const card = document.getElementById(cardId);
+      card.innerHTML = `
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-icons text-sm" style="color: var(--primary);">person</span>
+          <span class="text-sm font-bold" style="color: var(--primary);">Datos del agente</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 text-sm">
+          <p><span class="font-semibold" style="color: var(--text-primary);">Apellido y Nombre:</span> <span class="text-gray-700">${agente.apellidos} ${agente.nombres}</span></p>
+          <p><span class="font-semibold" style="color: var(--text-primary);">Email:</span> <span class="text-gray-700">${agente.email || '-'}</span></p>
+          <p><span class="font-semibold" style="color: var(--text-primary);">Teléfono:</span> <span class="text-gray-700">${agente.telefono || '-'}</span></p>
+        </div>`;
+      card.style.borderColor = 'var(--primary)';
+      card.style.background = 'color-mix(in srgb, var(--primary) 8%, white)';
+      card.classList.remove('hidden');
+    }
+
+    function cargarCargosAgente() {
+      const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
+      const selectCurso = document.getElementById('sol-curso');
+      
+      if (!dniONumEmpleado) {
+        busquedaCargosRealizada = false;
+        cargosCargados = false;
+        selectCurso.innerHTML = '<option value="">Seleccione...</option>';
+        selectCurso.disabled = true;
+        document.getElementById('sol-agente-info').classList.add('hidden');
+        setCargandoCargos(false);
+        actualizarFlujoSolicitud();
+        return;
+      }
+
+      busquedaCargosRealizada = true;
+      cargosCargados = false;
+      actualizarFlujoSolicitud();
+
+      // Mostrar loading en el select
+      selectCurso.innerHTML = '<option value="">Cargando cargos...</option>';
+      selectCurso.disabled = true;
+      setCargandoCargos(true);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('Servidor respondió:', result);
+          // Validar que result no sea null o undefined
+          if (!result) {
+            console.log(result);
+            selectCurso.innerHTML = '<option value="">Error: Sin respuesta del servidor</option>';
+            document.getElementById('sol-agente-info').classList.add('hidden');
+            mostrarToast('error', 'Error', 'No se recibió respuesta del servidor');
+            return;
+          }
+          
+          if (result.success) {
+            selectCurso.innerHTML = '<option value="">Seleccione un curso...</option>';
+            
+            // Mostrar datos del agente
+            if (result.agente) {
+              mostrarDatosAgente('sol-agente-info', 'sol-agente', result.agente);
+            }
+            
+            if (result.cargos && result.cargos.length > 0) {
+              const optionTodos = document.createElement('option');
+              optionTodos.value = 'Todos';
+              optionTodos.textContent = 'Todos';
+              selectCurso.appendChild(optionTodos);
+
+              result.cargos.forEach(cargo => {
+                const option = document.createElement('option');
+                option.value = cargo.texto;
+                option.textContent = cargo.texto;
+                selectCurso.appendChild(option);
+              });
+              selectCurso.disabled = false;
+              cargosCargados = true;
+              mostrarToast('info', 'Cargos cargados', `Se encontraron ${result.cargos.length} cargo(s) asignado(s)`);
+              // Scroll automático al paso de curso
+              setTimeout(() => scrollAlSiguientePaso(document.getElementById('sol-step-curso')), 150);
+            } else {
+              selectCurso.innerHTML = '<option value="">No se encontraron cargos asignados</option>';
+              cargosCargados = false;
+              mostrarToast('warning', 'Sin cargos', 'No se encontraron cargos asignados para este agente');
+            }
+            setCargandoCargos(false);
+            actualizarFlujoSolicitud();
+          } else {
+            selectCurso.innerHTML = '<option value="">Error al cargar cargos</option>';
+            mostrarAgenteNoEncontrado('sol-agente-info');
+            cargosCargados = false;
+            mostrarToast('error', 'Error', result.error || 'No se pudieron cargar los cargos');
+            setCargandoCargos(false);
+            actualizarFlujoSolicitud();
+          }
+        })
+        .withFailureHandler(function(error) {
+          selectCurso.innerHTML = '<option value="">Error al cargar</option>';
+          mostrarAgenteNoEncontrado('sol-agente-info');
+          cargosCargados = false;
+          mostrarToast('error', 'Error', 'Error al obtener cargos: ' + error.message);
+          setCargandoCargos(false);
+          actualizarFlujoSolicitud();
+        })
+        .obtenerCargosAgente(dniONumEmpleado);
+    }
+
+    function enviarSolicitud() {
+      if (cargandoCargos) {
+        mostrarToast('warning', 'Espere', 'Se están cargando los cargos. Intente nuevamente en unos segundos.');
+        return;
+      }
+
+      const dniONumEmpleado = document.getElementById('sol-dni').value.trim();
+      const tipo = document.getElementById('sol-tipo').value;
+      const desde = document.getElementById('sol-desde').value;
+      const hasta = document.getElementById('sol-hasta').value;
+      const curso = document.getElementById('sol-curso').value;
+      const motivo = document.getElementById('sol-motivo').value.trim();
+      const articulacionEl = document.querySelector('input[name="sol-articulacion"]:checked');
+
+      if (!dniONumEmpleado || !tipo || !desde || !hasta) {
+        mostrarToast('warning', 'Campos incompletos', 'Complete todos los campos obligatorios');
+        return;
+      }
+
+      if (!curso) {
+        mostrarToast('warning', 'Curso/Cargo requerido', 'Seleccione un curso/cargo antes de enviar');
+        return;
+      }
+
+      if (!articulacionEl) {
+        mostrarToast('warning', 'Articulación requerida', 'Seleccione si es horario de articulación');
+        return;
+      }
+
+      // Validación especial para RAZONES PARTICULARES
+      if (tipo.includes('*')) {
+        if (!motivo) {
+          mostrarToast('warning', 'Motivo requerido', 'Debe incluir el motivo de su solicitud de razones particulares');
+          return;
+        }
+      }
+
+      const datos = {
+        dniONumEmpleado: dniONumEmpleado,
+        tipoLicencia: tipo,
+        fechaDesde: desde,
+        fechaHasta: hasta,
+        cursoOCargo: curso,
+        articulacion: articulacionEl.value,
+        motivo: motivo || ''
+      };
+
+      mostrarLoading(true);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          mostrarLoading(false);
+
+          if (result.success) {
+            const detalleSolicitud = result.id
+              ? `Su solicitud fue registrada con exito. ID de seguimiento: ${result.id}.`
+              : 'Su solicitud fue registrada con exito.';
+            mostrarToast('success', 'Solicitud registrada', detalleSolicitud, 12000);
+            mostrarInfoAgente(result.agente);
+            // Limpiar formulario
+            document.getElementById('sol-dni').value = '';
+            document.getElementById('sol-tipo').value = '';
+            document.getElementById('sol-desde').value = '';
+            document.getElementById('sol-hasta').value = '';
+            document.getElementById('sol-curso').value = '';
+            document.getElementById('sol-curso').disabled = true;
+            document.getElementById('sol-motivo').value = '';
+            const articulacionSeleccionada = document.querySelector('input[name="sol-articulacion"]:checked');
+            if (articulacionSeleccionada) articulacionSeleccionada.checked = false;
+            busquedaCargosRealizada = false;
+            cargosCargados = false;
+            // Ocultar motivo si estaba visible
+            const contenedorMotivo = document.getElementById('sol-motivo-container');
+            if (contenedorMotivo) {
+              contenedorMotivo.classList.remove('opacity-100');
+              setTimeout(() => {
+                contenedorMotivo.classList.add('hidden');
+                actualizarFlujoSolicitud();
+              }, 300);
+            }
+            actualizarFlujoSolicitud();
+          } else {
+            console.log("error");
+            mostrarToast('error', 'Error', result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          mostrarLoading(false);
+          mostrarToast('error', 'Error al enviar', error.message);
+        })
+        .guardarSolicitud(datos);
+    }
+
+    function cargarSolicitudes() {
+      const dniONumEmpleado = document.getElementById('just-dni').value.trim();
+
+      if (!dniONumEmpleado) {
+        mostrarToast('warning', 'Campo requerido', 'Ingrese su DNI o N° de Empleado');
+        document.getElementById('just-agente-info').classList.add('hidden');
+        resetearJustificacionEnPantalla();
+        actualizarFlujoJustificacion();
+        return;
+      }
+
+      mostrarLoading(true);
+
+      google.script.run
+        .withSuccessHandler(function(resultado) {
+          mostrarLoading(false);
+          solicitudesSeleccionadas = [];
+          busquedaSolicitudesRealizada = true;
+
+          // Soporte para nuevo formato { agente, solicitudes } y formato legacy (array)
+          const solicitudes = Array.isArray(resultado) ? resultado : (resultado && Array.isArray(resultado.solicitudes) ? resultado.solicitudes : []);
+          solicitudesDisponibles = solicitudes;
+
+          // Mostrar datos del agente
+          if (resultado && resultado.agente) {
+            mostrarDatosAgente('just-agente-info', 'just-agente', resultado.agente);
+          } else {
+            mostrarAgenteNoEncontrado('just-agente-info');
+          }
+          
+          const container = document.getElementById('licencias-container');
+          const list = document.getElementById('licencias-list');
+          
+          if (solicitudes.length === 0) {
+            mostrarToast('info', 'Este usuario', 'No tiene solicitudes pendientes');
+            list.innerHTML = '<p class="text-gray-500 text-center py-4">No hay solicitudes pendientes</p>';
+          } else {
+            let html = '';
+            solicitudes.forEach(sol => {
+              const esInjustificada = sol.estado === 'Injustificada' || sol.estado === 'Completada' || sol.estado === 'Descuento' || sol.estado === 'Justificada';
+              const onclickAttr = esInjustificada ? '' : `onclick="toggleLicencia('${sol.id}')"`;
+              const cursorClass = esInjustificada ? 'cursor-not-allowed opacity-50' : 'cursor-pointer';
+              const checkboxHTML = esInjustificada ? '' : `<div id="check-${sol.id}" class="w-5 h-5 rounded border-2 mr-3 flex items-center justify-center border-gray-300"></div>`;
+              
+              html += `
+                <div
+                  ${onclickAttr}
+                  id="lic-${sol.id}" 
+                  class="p-3 mb-2 rounded-lg transition-all border-2 bg-white border-gray-200 hover:border-gray-300 ${cursorClass}">
+                  <div class="flex items-center">
+                    ${checkboxHTML}
+                    <div>
+                      <p class="font-semibold text-gray-800">${sol.tipo}</p>
+                      <p class="text-sm text-gray-600">Del ${formatearFecha(sol.desde)} al ${formatearFecha(sol.hasta)}${sol.cursoOCargo ? ' - ' + sol.cursoOCargo : ''}
+                        <span class="mx-2 px-2 rounded text-white text-3xl" id="estado-${sol.estado}">${sol.estado}</span></p>
+                    </div>
+                  </div>
+                </div>
+              `;
+            });
+            list.innerHTML = html;
+          }
+
+          container.classList.remove('hidden');
+          actualizarContador();
+          actualizarFlujoJustificacion();
+          // Scroll automático al contenedor de licencias
+          setTimeout(() => scrollAlSiguientePaso(container), 150);
+        })
+        .withFailureHandler(function(error) {
+          mostrarLoading(false);
+          busquedaSolicitudesRealizada = false;
+          mostrarToast('error', 'Error al cargar', error.message);
+          actualizarFlujoJustificacion();
+        })
+        .obtenerSolicitudesAgente(dniONumEmpleado);
+    }
+
+    function toggleLicencia(id) {
+      const index = solicitudesSeleccionadas.indexOf(id);
+      const div = document.getElementById('lic-' + id);
+      const check = document.getElementById('check-' + id);
+
+      if (index > -1) {
+        solicitudesSeleccionadas.splice(index, 1);
+        div.className = 'p-3 mb-2 rounded-lg cursor-pointer transition-all border-2 bg-white border-gray-200 hover:border-gray-300';
+        check.className = 'w-5 h-5 rounded border-2 mr-3 flex items-center justify-center border-gray-300';
+        check.innerHTML = '';
+      } else {
+        solicitudesSeleccionadas.push(id);
+        div.className = 'p-3 mb-2 rounded-lg cursor-pointer transition-all border-2 bg-blue-100 border-blue-500';
+        check.className = 'w-5 h-5 rounded border-2 mr-3 flex items-center justify-center bg-blue-500 border-blue-500';
+        check.innerHTML = '✓';
+      }
+
+      actualizarContador();
+      // Scroll al paso de archivo cuando se selecciona la primera licencia
+      if (solicitudesSeleccionadas.length === 1) {
+        setTimeout(() => scrollAlSiguientePaso(document.getElementById('just-step-archivo')), 150);
+      }
+    }
+
+    function actualizarContador() {
+      const contador = document.getElementById('contador-licencias');
+      const cant = solicitudesSeleccionadas.length;
+      if (cant > 0) {
+        contador.textContent = `${cant} licencia${cant > 1 ? 's' : ''} seleccionada${cant > 1 ? 's' : ''}`;
+      } else {
+        contador.textContent = '';
+      }
+      actualizarFlujoJustificacion();
+    }
+
+    function enviarJustificacion() {
+      const dniONumEmpleado = document.getElementById('just-dni').value.trim();
+      const archivos = Array.from(document.getElementById('just-archivo').files || []);
+
+      if (!dniONumEmpleado) {
+        mostrarToast('warning', 'Campo requerido', 'Ingrese su DNI o N° de Empleado');
+        return;
+      }
+
+      if (solicitudesSeleccionadas.length === 0) {
+        mostrarToast('warning', 'Selección requerida', 'Seleccione al menos una licencia');
+        return;
+      }
+
+      if (!archivos.length) {
+        mostrarToast('warning', 'Archivo requerido', 'Seleccione al menos un archivo');
+        return;
+      }
+
+      // Validar tipos permitidos
+      const tiposInvalidos = archivos.filter(f => !f.type.match(/^(image\/(jpeg|jpg|png)|application\/pdf)$/i));
+      if (tiposInvalidos.length) {
+        mostrarToast('error', 'Formato no permitido', 'Solo se aceptan JPG, JPEG, PNG o PDF');
+        return;
+      }
+
+      const licenciasSeleccionadas = solicitudesSeleccionadas.map(id => {
+        const licencia = solicitudesDisponibles.find(sol => String(sol.id) === String(id));
+        return {
+          id: String(id),
+          rowIndex: licencia && licencia.rowIndex ? licencia.rowIndex : null
+        };
+      });
+
+      const datos = {
+        dniONumEmpleado: dniONumEmpleado,
+        licenciasIds: licenciasSeleccionadas.map(lic => lic.id),
+        licencias: licenciasSeleccionadas
+      };
+
+      const hayImagen = archivos.some(a => a.type.match(/image\/(jpeg|jpg|png)/i));
+      if (hayImagen) {
+        mostrarToast('info', 'Procesando imágenes', 'Optimizando imágenes antes de cargar...', 2000);
+        setTimeout(() => procesarYEnviar(datos, archivos), 100);
+      } else {
+        procesarYEnviar(datos, archivos);
+      }
+    }
+
+    // Función auxiliar para procesar y enviar
+    function procesarYEnviar(datos, archivos) {
+      mostrarLoading(true);
+
+      const promesas = archivos.map(archivo => optimizarArchivoPromise(archivo));
+
+      Promise.all(promesas)
+        .then(archivosOptim => {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              mostrarLoading(false);
+              if (result.success) {
+                const detalleJustificacion = result.archivosSubidos
+                  ? `Constancia cargada con exito. Archivos recibidos: ${result.archivosSubidos}.`
+                  : 'Constancia cargada con exito.';
+                mostrarToast('success', 'Carga confirmada', detalleJustificacion, 12000);
+                document.getElementById('just-archivo').value = '';
+                solicitudesSeleccionadas = [];
+                actualizarFlujoJustificacion();
+                cargarSolicitudes();
+              } else {
+                mostrarToast('error', 'Error', result.error);
+              }
+            })
+            .withFailureHandler(function(error) {
+              mostrarLoading(false);
+              mostrarToast('error', 'Error al enviar', error.message);
+            })
+            .guardarJustificacionBackend(datos, archivosOptim);
+        })
+        .catch(function(error) {
+          mostrarLoading(false);
+          console.error('Error al optimizar archivos:', error);
+          mostrarToast('error', 'Error', 'No se pudieron procesar los archivos');
+        });
+    }
+
+    // Promisify optimizarArchivo
+    function optimizarArchivoPromise(archivo) {
+      return new Promise((resolve, reject) => {
+        optimizarArchivo(archivo, function(archivoBase64, nombreArchivo, mimeType) {
+          if (!archivoBase64) {
+            reject(new Error('Archivo vacío'));
+            return;
+          }
+          resolve({ archivoBase64, nombreArchivo, mimeType });
+        });
+      });
+    }
+
+    // Event listener para mostrar info del archivo seleccionado
+    document.addEventListener('DOMContentLoaded', function() {
+      // Cargar licencias desde la Sheet
+      cargarLicenciasEnSelect();
+      actualizarBotonesSeccion(currentStep);
+      configurarMostrarMotivoSiRazonesPart();
+
+      const formSolicitud = document.getElementById('form-solicitud');
+      const formJustificacion = document.getElementById('form-justificacion');
+      if (formSolicitud) formSolicitud.classList.add('hidden');
+      if (formJustificacion) formJustificacion.classList.add('hidden');
+
+      const solDni = document.getElementById('sol-dni');
+      const solCurso = document.getElementById('sol-curso');
+      const solDesde = document.getElementById('sol-desde');
+      const solHasta = document.getElementById('sol-hasta');
+      const solTipo = document.getElementById('sol-tipo');
+      const radiosArticulacion = document.querySelectorAll('input[name="sol-articulacion"]');
+
+      if (solTipo) {
+        solTipo.addEventListener('change', function() {
+          const selectCurso = document.getElementById('sol-curso');
+          if (selectCurso) {
+            selectCurso.value = '';
+            selectCurso.disabled = true;
+            selectCurso.innerHTML = '<option value="">Primero busque sus cargos...</option>';
+          }
+          busquedaCargosRealizada = false;
+          cargosCargados = false;
+          document.getElementById('sol-agente-info').classList.add('hidden');
+          actualizarFlujoSolicitud();
+        });
+      }
+
+      if (solDni) {
+        solDni.addEventListener('input', function() {
+          busquedaCargosRealizada = false;
+          cargosCargados = false;
+          if (solCurso) {
+            solCurso.value = '';
+            solCurso.disabled = true;
+            solCurso.innerHTML = '<option value="">Primero busque sus cargos...</option>';
+          }
+          document.getElementById('sol-agente-info').classList.add('hidden');
+          actualizarFlujoSolicitud();
+        });
+      }
+
+      if (solCurso) solCurso.addEventListener('change', actualizarFlujoSolicitud);
+      if (solDesde) solDesde.addEventListener('change', actualizarFlujoSolicitud);
+      if (solHasta) solHasta.addEventListener('change', actualizarFlujoSolicitud);
+      radiosArticulacion.forEach(radio => radio.addEventListener('change', actualizarFlujoSolicitud));
+
+      const justDni = document.getElementById('just-dni');
+      if (justDni) {
+        justDni.addEventListener('input', function() {
+          resetearJustificacionEnPantalla();
+          document.getElementById('just-agente-info').classList.add('hidden');
+          actualizarFlujoJustificacion();
+        });
+      }
+      
+      const inputArchivo = document.getElementById('just-archivo');
+      if (inputArchivo) {
+        inputArchivo.addEventListener('change', function(e) {
+          const archivos = Array.from(e.target.files || []);
+          if (archivos.length) {
+            const totalMB = archivos.reduce((acc, a) => acc + a.size, 0) / (1024 * 1024);
+            const hayImagen = archivos.some(a => a.type.match(/image\/(jpeg|jpg|png)/i));
+            const nombres = archivos.map(a => a.name).join(', ');
+
+            let mensaje = `📄 ${archivos.length} archivo(s): ${nombres} (${totalMB.toFixed(2)} MB)`;
+            if (hayImagen) {
+              mensaje += ' - Las imágenes se optimizarán antes de cargar';
+            }
+
+            console.log(mensaje);
+
+            if (totalMB > 10) {
+              mostrarToast('warning', 'Archivos grandes', 
+                `Tamaño total ${totalMB.toFixed(2)} MB. ${hayImagen ? 'Se optimizarán las imágenes automáticamente.' : ''}`, 
+                4000);
+            }
+          }
+
+          actualizarFlujoJustificacion();
+        });
+      }
+
+      actualizarFlujoSolicitud();
+      actualizarFlujoJustificacion();
+    });
+  </script>
